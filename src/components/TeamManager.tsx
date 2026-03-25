@@ -5,13 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Save, Loader2, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Camera, Save, Loader2, Users, UserPlus, Shield, ShieldCheck, Trash2, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/contexts/RoleContext";
 
 interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+}
+
+interface TeamMember {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  role: string;
 }
 
 export function TeamManager() {
@@ -21,47 +32,68 @@ export function TeamManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState<string>("vendedor");
+  const [inviting, setInviting] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { role } = useUserRole();
+  const isAdmin = role === "admin";
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+    if (isAdmin) fetchTeamMembers();
+  }, [isAdmin]);
 
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       setEmail(user.email || "");
-
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle();
-
       if (error) throw error;
-
       if (data) {
         setProfile(data);
         setFullName(data.full_name || "");
-      } else {
-        // Create profile if it doesn't exist (for users created before the trigger)
-        const { data: newProfile, error: insertError } = await supabase
-          .from("profiles")
-          .insert({ id: user.id, full_name: user.email })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        setProfile(newProfile);
-        setFullName(newProfile.full_name || "");
       }
     } catch (err: any) {
       toast({ title: "Erro ao carregar perfil", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+      if (rolesError) throw rolesError;
+
+      const userIds = (roles || []).map((r: any) => r.user_id);
+      if (userIds.length === 0) { setTeamMembers([]); return; }
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds);
+      if (profilesError) throw profilesError;
+
+      const members: TeamMember[] = (profiles || []).map((p: any) => {
+        const userRole = (roles || []).find((r: any) => r.user_id === p.id);
+        return { ...p, role: userRole?.role || "vendedor" };
+      });
+      setTeamMembers(members);
+    } catch (err: any) {
+      toast({ title: "Erro ao carregar equipe", description: err.message, variant: "destructive" });
     }
   };
 
@@ -73,7 +105,6 @@ export function TeamManager() {
         .from("profiles")
         .update({ full_name: fullName, updated_at: new Date().toISOString() })
         .eq("id", profile.id);
-
       if (error) throw error;
       setProfile({ ...profile, full_name: fullName });
       toast({ title: "Nome atualizado!" });
@@ -87,31 +118,21 @@ export function TeamManager() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile) return;
-
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
       const filePath = `${profile.id}/avatar.${fileExt}`;
-
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, { upsert: true });
-
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
       const avatarUrl = `${publicUrl}?t=${Date.now()}`;
-
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
         .eq("id", profile.id);
-
       if (updateError) throw updateError;
-
       setProfile({ ...profile, avatar_url: avatarUrl });
       toast({ title: "Foto atualizada!" });
     } catch (err: any) {
@@ -119,6 +140,59 @@ export function TeamManager() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleInvite = async () => {
+    if (!inviteEmail) return;
+    setInviting(true);
+    setTempPassword(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("invite-user", {
+        body: { email: inviteEmail, role: inviteRole, full_name: inviteName },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro ao convidar");
+      const responseData = res.data;
+      if (responseData?.error) throw new Error(responseData.error);
+      setTempPassword(responseData.temp_password);
+      toast({ title: "Usuário convidado com sucesso!" });
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro ao convidar", description: err.message, variant: "destructive" });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .update({ role: newRole })
+        .eq("user_id", userId);
+      if (error) throw error;
+      toast({ title: "Cargo atualizado!" });
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm("Remover este membro da equipe?")) return;
+    try {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
+      if (error) throw error;
+      toast({ title: "Membro removido!" });
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado!" });
   };
 
   if (loading) {
@@ -130,91 +204,182 @@ export function TeamManager() {
   }
 
   const initials = (fullName || email || "U")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+    .split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Users className="h-5 w-5 text-primary" />
         <h2 className="text-xl font-bold text-foreground">Equipe</h2>
       </div>
 
+      {/* My Profile */}
       <Card>
         <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-4">Meu Perfil</h3>
           <div className="flex flex-col sm:flex-row items-start gap-6">
-            {/* Avatar section */}
             <div className="flex flex-col items-center gap-2">
               <div className="relative group">
                 <Avatar className="h-24 w-24 border-2 border-border">
-                  {profile?.avatar_url ? (
-                    <AvatarImage src={profile.avatar_url} alt={fullName} />
-                  ) : null}
-                  <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                    {initials}
-                  </AvatarFallback>
+                  {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={fullName} /> : null}
+                  <AvatarFallback className="text-lg bg-primary/10 text-primary">{initials}</AvatarFallback>
                 </Avatar>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                   className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 >
-                  {uploading ? (
-                    <Loader2 className="h-6 w-6 text-white animate-spin" />
-                  ) : (
-                    <Camera className="h-6 w-6 text-white" />
-                  )}
+                  {uploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Camera className="h-6 w-6 text-white" />}
                 </button>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                 {uploading ? "Enviando..." : "Alterar foto"}
               </Button>
             </div>
-
-            {/* Info section */}
             <div className="flex-1 space-y-4 w-full">
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
                 <p className="text-foreground font-medium">{email}</p>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome</Label>
                 <div className="flex gap-2">
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Seu nome completo"
-                  />
+                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Seu nome completo" />
                   <Button onClick={handleSaveName} disabled={saving} size="sm">
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
+              {role && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Cargo</p>
+                  <Badge variant={role === "admin" ? "default" : "secondary"} className="mt-1">
+                    {role === "admin" ? <><ShieldCheck className="h-3 w-3 mr-1" /> Administrador</> : <><Shield className="h-3 w-3 mr-1" /> Vendedor</>}
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Team Members (admin only) */}
+      {isAdmin && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">Membros da Equipe</h3>
+              <Button size="sm" onClick={() => { setInviteOpen(true); setTempPassword(null); setInviteEmail(""); setInviteName(""); setInviteRole("vendedor"); }}>
+                <UserPlus className="h-4 w-4 mr-1" /> Convidar
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {teamMembers.map((member) => {
+                const memberInitials = (member.full_name || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                const isMe = member.id === profile?.id;
+                return (
+                  <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                    <Avatar className="h-10 w-10">
+                      {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
+                      </p>
+                    </div>
+                    <Badge variant={member.role === "admin" ? "default" : "secondary"} className="text-xs">
+                      {member.role === "admin" ? "Admin" : "Vendedor"}
+                    </Badge>
+                    {!isMe && (
+                      <div className="flex gap-1">
+                        <Select value={member.role} onValueChange={(v) => handleChangeRole(member.id, v)}>
+                          <SelectTrigger className="w-28 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="vendedor">Vendedor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {teamMembers.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum membro encontrado</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Invite Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convidar Membro</DialogTitle>
+          </DialogHeader>
+          {tempPassword ? (
+            <div className="space-y-4">
+              <p className="text-sm text-foreground">Usuário criado com sucesso! Compartilhe as credenciais abaixo:</p>
+              <div className="rounded-lg border border-border p-4 space-y-2 bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm"><strong>Email:</strong> {inviteEmail}</span>
+                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(inviteEmail)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm"><strong>Senha temporária:</strong> {tempPassword}</span>
+                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(tempPassword)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">O usuário deve alterar a senha após o primeiro login.</p>
+              <DialogFooter>
+                <Button onClick={() => setInviteOpen(false)}>Fechar</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Nome completo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Cargo</Label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="vendedor">Vendedor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+                <Button onClick={handleInvite} disabled={inviting || !inviteEmail}>
+                  {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserPlus className="h-4 w-4 mr-1" />}
+                  Convidar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
