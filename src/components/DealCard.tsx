@@ -38,7 +38,7 @@ function hexToRgb(hex: string) {
   return `${r}, ${g}, ${b}`;
 }
 
-export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick }: DealCardProps) {
+export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTagsChanged, onCapture, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
