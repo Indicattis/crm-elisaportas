@@ -203,9 +203,6 @@ export function TeamManager() {
     );
   }
 
-  const initials = (fullName || email || "U")
-    .split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -213,58 +210,6 @@ export function TeamManager() {
         <h2 className="text-xl font-bold text-foreground">Equipe</h2>
       </div>
 
-      {/* My Profile */}
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-4">Meu Perfil</h3>
-          <div className="flex flex-col sm:flex-row items-start gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative group">
-                <Avatar className="h-24 w-24 border-2 border-border">
-                  {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={fullName} /> : null}
-                  <AvatarFallback className="text-lg bg-primary/10 text-primary">{initials}</AvatarFallback>
-                </Avatar>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                >
-                  {uploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Camera className="h-6 w-6 text-white" />}
-                </button>
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                {uploading ? "Enviando..." : "Alterar foto"}
-              </Button>
-            </div>
-            <div className="flex-1 space-y-4 w-full">
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="text-foreground font-medium">{email}</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nome</Label>
-                <div className="flex gap-2">
-                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Seu nome completo" />
-                  <Button onClick={handleSaveName} disabled={saving} size="sm">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              {role && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Cargo</p>
-                  <Badge variant={role === "admin" ? "default" : "secondary"} className="mt-1">
-                    {role === "admin" ? <><ShieldCheck className="h-3 w-3 mr-1" /> Administrador</> : <><Shield className="h-3 w-3 mr-1" /> Vendedor</>}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Team Members (admin only) */}
       {isAdmin && (
         <Card>
           <CardContent className="p-6">

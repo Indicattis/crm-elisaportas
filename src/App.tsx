@@ -22,6 +22,7 @@ const App = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
         <Route path="/clients" element={<AuthGuard><Clients /></AuthGuard>} />
+        <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
         <Route path="/crm-config" element={<AuthGuard><RoleGuard allowedRoles={["admin"]}><CrmConfig /></RoleGuard></AuthGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
