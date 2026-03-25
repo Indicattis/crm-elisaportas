@@ -12,12 +12,6 @@ import { Loader2, Users, UserPlus, Trash2, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
 
-interface Profile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
-
 interface TeamMember {
   id: string;
   full_name: string | null;
@@ -40,27 +34,16 @@ export function TeamManager() {
   const isAdmin = role === "admin";
 
   useEffect(() => {
-    fetchProfile();
+    fetchCurrentUser();
     if (isAdmin) fetchTeamMembers();
   }, [isAdmin]);
 
-  const fetchProfile = async () => {
+  const fetchCurrentUser = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setEmail(user.email || "");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) throw error;
-      if (data) {
-        setProfile(data);
-        setFullName(data.full_name || "");
-      }
+      if (user) setCurrentUserId(user.id);
     } catch (err: any) {
-      toast({ title: "Erro ao carregar perfil", description: err.message, variant: "destructive" });
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -92,57 +75,11 @@ export function TeamManager() {
     }
   };
 
-  const handleSaveName = async () => {
-    if (!profile) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ full_name: fullName, updated_at: new Date().toISOString() })
-        .eq("id", profile.id);
-      if (error) throw error;
-      setProfile({ ...profile, full_name: fullName });
-      toast({ title: "Nome atualizado!" });
-    } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !profile) return;
-    setUploading(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${profile.id}/avatar.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
-      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
-        .eq("id", profile.id);
-      if (updateError) throw updateError;
-      setProfile({ ...profile, avatar_url: avatarUrl });
-      toast({ title: "Foto atualizada!" });
-    } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleInvite = async () => {
     if (!inviteEmail) return;
     setInviting(true);
     setTempPassword(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("invite-user", {
         body: { email: inviteEmail, role: inviteRole, full_name: inviteName },
       });
@@ -198,6 +135,10 @@ export function TeamManager() {
     );
   }
 
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -205,59 +146,57 @@ export function TeamManager() {
         <h2 className="text-xl font-bold text-foreground">Equipe</h2>
       </div>
 
-      {isAdmin && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-muted-foreground">Membros da Equipe</h3>
-              <Button size="sm" onClick={() => { setInviteOpen(true); setTempPassword(null); setInviteEmail(""); setInviteName(""); setInviteRole("vendedor"); }}>
-                <UserPlus className="h-4 w-4 mr-1" /> Convidar
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {teamMembers.map((member) => {
-                const memberInitials = (member.full_name || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-                const isMe = member.id === currentUserId;
-                return (
-                  <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                    <Avatar className="h-10 w-10">
-                      {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
-                      </p>
-                    </div>
-                    <Badge variant={member.role === "admin" ? "default" : "secondary"} className="text-xs">
-                      {member.role === "admin" ? "Admin" : "Vendedor"}
-                    </Badge>
-                    {!isMe && (
-                      <div className="flex gap-1">
-                        <Select value={member.role} onValueChange={(v) => handleChangeRole(member.id, v)}>
-                          <SelectTrigger className="w-28 h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="vendedor">Vendedor</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">Membros da Equipe</h3>
+            <Button size="sm" onClick={() => { setInviteOpen(true); setTempPassword(null); setInviteEmail(""); setInviteName(""); setInviteRole("vendedor"); }}>
+              <UserPlus className="h-4 w-4 mr-1" /> Convidar
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {teamMembers.map((member) => {
+              const memberInitials = (member.full_name || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+              const isMe = member.id === currentUserId;
+              return (
+                <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                  <Avatar className="h-10 w-10">
+                    {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
+                    </p>
                   </div>
-                );
-              })}
-              {teamMembers.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhum membro encontrado</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  <Badge variant={member.role === "admin" ? "default" : "secondary"} className="text-xs">
+                    {member.role === "admin" ? "Admin" : "Vendedor"}
+                  </Badge>
+                  {!isMe && (
+                    <div className="flex gap-1">
+                      <Select value={member.role} onValueChange={(v) => handleChangeRole(member.id, v)}>
+                        <SelectTrigger className="w-28 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="vendedor">Vendedor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {teamMembers.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum membro encontrado</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
