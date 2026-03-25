@@ -73,8 +73,14 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
-  const handleUpdateName = async (id: string, name: string) => {
-    await supabase.from("funnel_columns").update({ name }).eq("id", id);
+  const handleUpdateName = async (id: string, newName: string) => {
+    const col = columns.find((c) => c.id === id);
+    if (!col) return;
+    const oldName = col.name;
+    const { error } = await supabase.from("funnel_columns").update({ name: newName }).eq("id", id);
+    if (!error && oldName !== newName) {
+      await supabase.from("deals").update({ status: newName }).eq("status", oldName).eq("funnel_id", funnelId);
+    }
     onChanged();
   };
 
