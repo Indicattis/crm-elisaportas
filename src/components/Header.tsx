@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-import { LogOut, Users, LayoutDashboard, Settings } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 import logo from "@/assets/logo.png";
 
 export function Header() {
