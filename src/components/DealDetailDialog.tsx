@@ -294,9 +294,28 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               {comments.length === 0 && (
                 <p className="text-sm text-muted-foreground italic">Nenhum comentário ainda.</p>
               )}
-              {comments.map((c) => (
+              {comments.map((c) => {
+                const profile = profilesMap[c.user_id];
+                const initials = (profile?.full_name || "U")
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+                return (
                 <div key={c.id} className="group/comment flex items-start gap-2 rounded-lg border border-border p-3">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    {profile?.avatar_url ? (
+                      <AvatarImage src={profile.avatar_url} alt={profile.full_name || ""} />
+                    ) : null}
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
+                    {profile?.full_name && (
+                      <p className="text-xs font-medium text-foreground">{profile.full_name}</p>
+                    )}
                     <p className="text-sm text-foreground whitespace-pre-wrap">{c.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {format(new Date(c.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
