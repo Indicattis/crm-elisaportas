@@ -9,12 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
-const STATUSES = [
-  "Lead", "Fazer orçamento", "Orçamento enviado", "Propenso a fechar",
-  "Aguardando obra", "Sem interesse", "Excluído (Perda de tempo)",
-  "Visitas", "Pedidos a lançar", "Cliente fechado",
-];
-
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
 interface DealDialogProps {
@@ -23,14 +17,16 @@ interface DealDialogProps {
   deal?: DealWithClient | null;
   defaultStatus?: string;
   clients: Tables<"clients">[];
+  statuses: string[];
+  funnelId: string;
   onSaved: () => void;
 }
 
-export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, onSaved }: DealDialogProps) {
+export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, statuses, funnelId, onSaved }: DealDialogProps) {
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState<string>("");
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState("Lead");
+  const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -46,10 +42,10 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, o
       setTitle("");
       setClientId("");
       setValue("");
-      setStatus(defaultStatus || "Lead");
+      setStatus(defaultStatus || statuses[0] || "");
       setNotes("");
     }
-  }, [deal, defaultStatus, open]);
+  }, [deal, defaultStatus, open, statuses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +62,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, o
         status,
         notes: notes || null,
         user_id: user.id,
+        funnel_id: funnelId,
       };
 
       if (deal) {
@@ -135,7 +132,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, o
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {STATUSES.map((s) => (
+                  {statuses.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>

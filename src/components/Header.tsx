@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, LayoutDashboard } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Settings } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 export function Header() {
@@ -33,6 +33,14 @@ export function Header() {
           >
             <Users className="h-4 w-4 mr-1" />
             Clientes
+          </Button>
+          <Button
+            variant={location.pathname === "/crm-config" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => navigate("/crm-config")}
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            Configurações
           </Button>
         </nav>
       </div>
