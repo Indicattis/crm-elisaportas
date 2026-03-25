@@ -55,6 +55,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
   const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
+  const [externalClient, setExternalClient] = useState<ExternalClient | null>(null);
+  const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [clientSearchResults, setClientSearchResults] = useState<ExternalClient[]>([]);
+  const [clientSearchLoading, setClientSearchLoading] = useState(false);
+  const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   // Inline editing state
