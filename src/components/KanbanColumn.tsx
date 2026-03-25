@@ -25,11 +25,24 @@ interface KanbanColumnProps {
 export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
+  const hexToRgb = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r}, ${g}, ${b}`;
+  };
+
+  const rgb = color ? hexToRgb(color) : null;
+
   return (
     <div
-      className={`flex w-72 flex-shrink-0 flex-col rounded-2xl p-3 transition-colors ${
-        isOver ? "bg-accent/50" : "bg-muted/30"
-      }`}
+      className="flex w-72 flex-shrink-0 flex-col rounded-2xl p-3 transition-colors border-t-[3px]"
+      style={{
+        borderTopColor: color || 'transparent',
+        backgroundColor: rgb
+          ? `rgba(${rgb}, ${isOver ? 0.12 : 0.06})`
+          : isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)',
+      }}
     >
       {(() => {
         const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
@@ -41,7 +54,13 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal
                   <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                 )}
                 <h3 className="text-sm font-semibold text-foreground">{status}</h3>
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">
+                <span
+                  className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: rgb ? `rgba(${rgb}, 0.15)` : 'hsl(var(--primary) / 0.1)',
+                    color: color || 'hsl(var(--primary))',
+                  }}
+                >
                   {deals.length}
                 </span>
               </div>
