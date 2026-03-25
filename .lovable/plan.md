@@ -1,40 +1,41 @@
 
 
-# Funcionalidade de Captura de Negociação
+# Header responsivo para mobile
 
-## Resumo
+## Alterações em `src/components/Header.tsx`
 
-Adicionar campo `assigned_to` na tabela `deals` para registrar o vendedor responsável. No card do Kanban, exibir avatar do responsável ou botão de captura. No header do modal de detalhes, exibir a foto do responsável.
+### Layout
 
-## 1. Migração de banco de dados
+- **Desktop (md+):** Manter o grid de 3 colunas atual (logo | nav | ações)
+- **Mobile (<md):** Duas linhas:
+  - Linha 1: Logo à esquerda, botões tema/logout à direita
+  - Linha 2: Navegação centralizada como barra fixa no rodapé da tela (bottom nav)
 
-Adicionar coluna `assigned_to` (uuid, nullable) na tabela `deals`:
+### Detalhes
 
-```sql
-ALTER TABLE public.deals ADD COLUMN assigned_to uuid;
+1. **Header principal:** Trocar `grid grid-cols-3` por `flex justify-between` com `flex-wrap`. Reduzir padding para `px-4 py-2` no mobile.
+
+2. **Navegação mobile:** Mover a `<nav>` para uma barra fixa no bottom (`fixed bottom-0`) em telas menores que `md`. Mostrar apenas ícones (sem labels) no mobile. Em desktop, manter inline no header como está.
+
+3. **Botão logout:** Esconder o texto "Sair" no mobile, manter só o ícone.
+
+4. **Logo:** Reduzir altura para `h-8` no mobile (`h-8 md:h-11`).
+
+### Estrutura mobile
+
+```text
+┌──────────────────────────┐
+│ [Logo]    [🌙] [🚪]      │  ← header fixo top
+└──────────────────────────┘
+
+         (conteúdo)
+
+┌──────────────────────────┐
+│   📊      👥      ⚙️     │  ← nav fixa bottom
+└──────────────────────────┘
 ```
 
-## 2. Alterações em `DealCard.tsx`
+### Usar `useIsMobile` hook
 
-- Receber nova prop `assignedProfile` com `{ avatar_url, full_name }` e prop `onCapture`
-- No rodapé do card (ao lado do valor), exibir:
-  - Se `deal.assigned_to` existe: Avatar pequeno (h-6 w-6) com foto do responsável
-  - Se não existe: botão de captura (ícone `UserPlus`, h-6 w-6) que chama `onCapture(deal.id)` ao clicar
-
-## 3. Alterações em `KanbanBoard.tsx`
-
-- Buscar profiles dos responsáveis (fetch profiles dos `assigned_to` dos deals)
-- Manter um `profilesMap` com os dados dos responsáveis
-- Implementar `handleCapture(dealId)`: atualiza `assigned_to` com `auth.uid()` via Supabase e refaz fetch
-- Passar `assignedProfile` e `onCapture` para cada `DealCard`
-
-## 4. Alterações em `KanbanColumn.tsx`
-
-- Repassar as novas props (`assignedProfile`/`onCapture`) para os `DealCard`s
-
-## 5. Alterações em `DealDetailDialog.tsx`
-
-- Buscar o profile do responsável quando o deal tem `assigned_to`
-- No header, ao lado do título/status, exibir Avatar do responsável com nome
-- Se não tiver responsável, mostrar botão "Capturar" no header
+Importar o hook existente `useIsMobile` para renderizar condicionalmente a nav no bottom ou inline.
 
