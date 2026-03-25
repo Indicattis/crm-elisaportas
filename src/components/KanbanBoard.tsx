@@ -37,6 +37,7 @@ export function KanbanBoard() {
   const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
+  const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
