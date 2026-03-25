@@ -29,6 +29,11 @@ interface DealComment {
   created_at: string;
 }
 
+interface CommentProfile {
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 interface DealDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
