@@ -64,7 +64,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      let finalClientId: string | null = clientId || null;
+      let finalClientId: string | null = clientId && clientId !== "none" ? clientId : null;
 
       if (showNewClient && newClientName.trim()) {
         const { data: newClient, error: clientError } = await supabase
