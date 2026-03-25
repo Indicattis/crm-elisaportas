@@ -213,6 +213,50 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, o
             </div>
           )}
 
+          {/* Tags section */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-sm font-semibold text-foreground">Tags</h3>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-6 w-6">
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="start">
+                  <div className="space-y-1">
+                    {allTags.filter((t) => !dealTags.some((dt) => dt.id === t.id)).map((tag) => (
+                      <button
+                        key={tag.id}
+                        className="flex items-center gap-2 w-full rounded px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+                        onClick={() => handleAddTag(tag.id)}
+                      >
+                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tag.color }} />
+                        {tag.name}
+                      </button>
+                    ))}
+                    {allTags.filter((t) => !dealTags.some((dt) => dt.id === t.id)).length === 0 && (
+                      <p className="text-xs text-muted-foreground px-2 py-1">Nenhuma tag disponível</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {dealTags.map((tag) => (
+                <Badge key={tag.id} style={{ backgroundColor: tag.color, color: "#fff" }} className="gap-1 pr-1">
+                  {tag.name}
+                  <button onClick={() => handleRemoveTag(tag.id)} className="ml-0.5 hover:opacity-70">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {dealTags.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Sem tags</p>
+              )}
+            </div>
+          </div>
+
           <Separator />
 
           {/* Comments section */}
