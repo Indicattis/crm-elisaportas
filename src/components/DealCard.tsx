@@ -1,12 +1,20 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { User, DollarSign, Calendar, Clock, Flame } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
 
+interface DealTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface DealCardProps {
   deal: Tables<"deals"> & { clients?: Tables<"clients"> | null };
+  tags?: DealTag[];
   onClick: () => void;
 }
 
