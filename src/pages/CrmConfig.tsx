@@ -7,7 +7,8 @@ import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users } from "lucide-react";
+import { TeamManager } from "@/components/TeamManager";
 import { useToast } from "@/hooks/use-toast";
 
 interface Funnel {
@@ -30,7 +31,7 @@ export default function CrmConfig() {
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFunnel, setEditingFunnel] = useState<Funnel | null>(null);
-  const [activeSection, setActiveSection] = useState<null | "funnels" | "tags">(null);
+  const [activeSection, setActiveSection] = useState<null | "funnels" | "tags" | "team">(null);
   const { toast } = useToast();
 
   const fetchFunnels = useCallback(async () => {
@@ -121,6 +122,23 @@ export default function CrmConfig() {
                   </div>
                 </CardHeader>
               </Card>
+
+              <Card
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
+                onClick={() => setActiveSection("team")}
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2.5">
+                      <Users className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Equipe</CardTitle>
+                      <CardDescription>Gerencie seu perfil e equipe</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
             </div>
           </>
         )}
@@ -176,6 +194,15 @@ export default function CrmConfig() {
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <TagManager />
+          </>
+        )}
+
+        {activeSection === "team" && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setActiveSection(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <TeamManager />
           </>
         )}
       </div>
