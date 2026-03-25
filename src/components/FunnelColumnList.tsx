@@ -6,9 +6,13 @@ import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const COLOR_OPTIONS = [
-  "#6366f1", "#3b82f6", "#06b6d4", "#10b981", "#22c55e",
-  "#eab308", "#f97316", "#ef4444", "#ec4899", "#8b5cf6",
-  "#64748b", "#78716c",
+  "#ef4444", "#dc2626", "#f97316", "#ea580c",
+  "#f59e0b", "#d97706", "#eab308", "#84cc16",
+  "#22c55e", "#16a34a", "#10b981", "#059669",
+  "#06b6d4", "#0891b2", "#3b82f6", "#2563eb",
+  "#6366f1", "#4f46e5", "#8b5cf6", "#7c3aed",
+  "#ec4899", "#db2777", "#f43f5e", "#e11d48",
+  "#64748b", "#475569", "#78716c", "#57534e",
 ];
 
 interface FunnelColumn {
