@@ -41,8 +41,8 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
       className="flex w-72 flex-shrink-0 flex-col rounded-2xl p-3 transition-colors border-t-[3px]"
       style={{
         borderTopColor: color || 'transparent',
-        backgroundColor: rgb
-          ? `rgba(${rgb}, ${isOver ? 0.35 : 0.25})`
+        backgroundColor: color
+          ? color
           : isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)',
       }}
     >
