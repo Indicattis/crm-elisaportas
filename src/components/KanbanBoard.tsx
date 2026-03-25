@@ -144,6 +144,8 @@ export function KanbanBoard() {
   };
 
   const handleViewDeal = (deal: DealWithClient) => {
+    const col = columns.find((c) => c.name === deal.status);
+    setViewingColumnColor(col?.color || "");
     setViewingDeal(deal);
     setDetailOpen(true);
   };
