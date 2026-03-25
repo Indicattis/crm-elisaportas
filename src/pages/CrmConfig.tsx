@@ -6,8 +6,8 @@ import { FunnelDialog } from "@/components/FunnelDialog";
 import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Funnel {
@@ -30,6 +30,7 @@ export default function CrmConfig() {
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFunnel, setEditingFunnel] = useState<Funnel | null>(null);
+  const [activeSection, setActiveSection] = useState<null | "funnels" | "tags">(null);
   const { toast } = useToast();
 
   const fetchFunnels = useCallback(async () => {
@@ -83,15 +84,54 @@ export default function CrmConfig() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="mx-auto max-w-3xl p-6 space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Configuração do CRM</h1>
+        {activeSection === null && (
+          <>
+            <h1 className="text-2xl font-bold text-foreground">Configuração do CRM</h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
+                onClick={() => setActiveSection("funnels")}
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2.5">
+                      <GitBranch className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Funis</CardTitle>
+                      <CardDescription>Gerencie seus funis e colunas</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
 
-        <Tabs defaultValue="funnels">
-          <TabsList>
-            <TabsTrigger value="funnels">Funis</TabsTrigger>
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-          </TabsList>
+              <Card
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
+                onClick={() => setActiveSection("tags")}
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2.5">
+                      <Tag className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Tags</CardTitle>
+                      <CardDescription>Gerencie suas tags de negociação</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            </div>
+          </>
+        )}
 
-          <TabsContent value="funnels" className="space-y-6 mt-4">
+        {activeSection === "funnels" && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setActiveSection(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">Funis</h1>
+
             <div className="flex items-center gap-3">
               <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
                 <SelectTrigger className="w-64">
@@ -127,12 +167,17 @@ export default function CrmConfig() {
                 onChanged={fetchColumns}
               />
             )}
-          </TabsContent>
+          </>
+        )}
 
-          <TabsContent value="tags" className="mt-4">
+        {activeSection === "tags" && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setActiveSection(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
             <TagManager />
-          </TabsContent>
-        </Tabs>
+          </>
+        )}
       </div>
 
       <FunnelDialog
