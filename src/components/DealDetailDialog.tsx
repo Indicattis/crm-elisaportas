@@ -38,7 +38,7 @@ interface DealDetailDialogProps {
   onUpdated: () => void;
 }
 
-export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, onUpdated }: DealDetailDialogProps) {
+export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnColor, onEdit, onUpdated }: DealDetailDialogProps) {
   const [comments, setComments] = useState<DealComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
