@@ -11,6 +11,12 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
+interface DealTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface FunnelColumn {
   id: string;
   funnel_id: string;
