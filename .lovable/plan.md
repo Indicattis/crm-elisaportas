@@ -1,49 +1,28 @@
 
 
-# Cards Brancos com Destaque de Tag + Modal com Cor da Coluna
+# Inverter Valor e Calor + Destaque no Valor
 
-## Resumo
+## Alterações em `src/components/DealCard.tsx`
 
-Duas mudanças: (1) cards voltam ao fundo branco, mantendo borda colorida da tag; (2) ao abrir o modal de detalhes, o header usa a cor da coluna onde o deal está.
+### 1. Mover o valor para o rodapé (linha 130-150)
+- Colocar o valor (R$) no lado direito do rodapé, onde atualmente ficam as chamas de calor
+- Aplicar destaque: `text-sm font-bold text-primary` com um fundo sutil `bg-primary/10 rounded px-1.5 py-0.5`
 
-## Alterações
+### 2. Mover o calor (chamas) para onde estava o valor (linhas 112-117)
+- As chamas ficam logo após o cliente, no lugar onde o valor estava
 
-### 1. `src/components/DealCard.tsx` — Card branco
-
-- Remover `backgroundColor: primaryTag ? primaryTag.color : undefined` do style
-- Manter apenas `borderLeftColor` com a cor da tag (borda esquerda colorida como destaque)
-- Remover classes condicionais de `text-white` — voltar a usar `text-foreground`, `text-muted-foreground`, `text-primary` padrão
-- Background padrão via classe: `bg-background` (branco/escuro conforme tema)
-
-### 2. `src/components/KanbanBoard.tsx` — Passar cor da coluna ao abrir modal
-
-- Ao chamar `handleViewDeal`, identificar a coluna do deal pelo `deal.status` e pegar a `color` correspondente
-- Criar novo estado `viewingColumnColor` para armazenar a cor
-- Passar `columnColor` como nova prop ao `DealDetailDialog`
-
-### 3. `src/components/DealDetailDialog.tsx` — Header colorido
-
-- Receber nova prop `columnColor?: string`
-- Aplicar `backgroundColor` e `text-white` no `DialogHeader` quando `columnColor` estiver presente
-- Ajustar padding e border-radius para encaixar no topo do dialog
+### 3. Remover o bloco de valor antigo (linhas 112-117) e o bloco de calor antigo (linhas 143-149)
 
 ### Layout resultante
-
 ```text
-Card no Kanban:
-┌──┬────────────────────┐
-│▌ │ Título do Deal     │  ← borda esquerda colorida (tag)
-│▌ │ Cliente • R$ 1.000 │  ← fundo branco
-│▌ │ [Tag1] [Tag2]      │
-└──┴────────────────────┘
-
-Modal ao clicar:
-┌─────────────────────────────┐
-│  ██ Header com cor coluna █ │  ← backgroundColor = cor da coluna
-│  Título do Deal             │
-│  Status: Prospecção         │
-├─────────────────────────────┤
-│  Conteúdo normal...         │
-└─────────────────────────────┘
+┌──┬──────────────────────────────┐
+│▌ │ Título do Deal          [🏷] │
+│▌ │ 👤 Cliente                   │
+│▌ │ 🔥🔥🔥                       │
+│▌ │ [Tag1] [Tag2]               │
+│▌ │ 📅 01/01/2025  🕐 3d  R$1k  │
+└──┴──────────────────────────────┘
 ```
+
+O valor fica no rodapé à direita com badge destacado, e o calor sobe para o corpo do card.
 
