@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -64,6 +64,12 @@ export function Header() {
         )}
 
         <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => navigate("/profile")}
+            className="flex items-center justify-center rounded-full border border-border p-2 text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
+          >
+            <User className="h-5 w-5" />
+          </button>
           <button
             onClick={toggleTheme}
             className="flex items-center justify-center rounded-full border border-border p-2 text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
