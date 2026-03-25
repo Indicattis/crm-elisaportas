@@ -43,7 +43,6 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    backgroundColor: primaryTag ? primaryTag.color : undefined,
     borderLeftColor: primaryTag ? primaryTag.color : 'transparent',
     borderLeftWidth: '3px',
     borderLeftStyle: 'solid' as const,
