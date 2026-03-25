@@ -180,11 +180,14 @@ export default function CrmConfig() {
             </div>
 
             {selectedFunnelId && (
-              <FunnelColumnList
-                funnelId={selectedFunnelId}
-                columns={columns}
-                onChanged={fetchColumns}
-              />
+              <>
+                <FunnelColumnList
+                  funnelId={selectedFunnelId}
+                  columns={columns}
+                  onChanged={fetchColumns}
+                />
+                <FunnelMembersManager funnelId={selectedFunnelId} />
+              </>
             )}
           </>
         )}
