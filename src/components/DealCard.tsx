@@ -104,7 +104,7 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
         )}
       </div>
       {deal.clients && (
-        <div className={`flex items-center gap-1 text-xs ${primaryTag ? 'text-white/80' : 'text-muted-foreground'}`}>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <User className="h-3 w-3" />
           <span>{deal.clients.name}</span>
         </div>
