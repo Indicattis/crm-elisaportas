@@ -308,6 +308,30 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
+  const handleLinkClient = async (client: ExternalClient) => {
+    if (!deal) return;
+    const { error } = await supabase.from("deals").update({ client_id: client.id } as any).eq("id", deal.id);
+    if (error) {
+      toast({ title: "Erro ao vincular cliente", description: error.message, variant: "destructive" });
+    } else {
+      setExternalClient(client);
+      setClientComboOpen(false);
+      setClientSearchQuery("");
+      onUpdated();
+    }
+  };
+
+  const handleUnlinkClient = async () => {
+    if (!deal) return;
+    const { error } = await supabase.from("deals").update({ client_id: null }).eq("id", deal.id);
+    if (error) {
+      toast({ title: "Erro ao desvincular", description: error.message, variant: "destructive" });
+    } else {
+      setExternalClient(null);
+      onUpdated();
+    }
+  };
+
   if (!deal) return null;
 
   const daysInStage = Math.floor(
