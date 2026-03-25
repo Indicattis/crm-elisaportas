@@ -73,43 +73,63 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
     >
       <div className="flex items-start justify-between">
         <h4 className="text-sm font-semibold text-foreground leading-tight flex-1">{deal.title}</h4>
-        {allTags.length > 0 && (
-          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-            <PopoverTrigger asChild>
-              <button
-                className="ml-1 p-1 rounded-md hover:bg-background/60 transition-colors opacity-0 group-hover:opacity-100"
-                onClick={(e) => { e.stopPropagation(); }}
-              >
-                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-48 p-2"
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
+        <div className="flex items-center gap-1 ml-1">
+          {(deal as any).assigned_to && assignedProfile ? (
+            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
+              {assignedProfile.avatar_url ? (
+                <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
+              ) : null}
+              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <button
+              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
+              title="Capturar negociação"
+              onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
             >
-              <p className="text-xs font-medium text-muted-foreground mb-2">Tags</p>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {allTags.map((tag) => (
-                  <label
-                    key={tag.id}
-                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer text-sm"
-                  >
-                    <Checkbox
-                      checked={tagIds.has(tag.id)}
-                      onCheckedChange={(checked) => {
-                        onTagsChanged?.(deal.id, tag.id, !!checked);
-                      }}
-                    />
-                    <div className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tag.color }} />
-                    <span className="truncate">{tag.name}</span>
-                  </label>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
+              <UserPlus className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+          {allTags.length > 0 && (
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="p-1 rounded-md hover:bg-background/60 transition-colors opacity-0 group-hover:opacity-100"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-48 p-2"
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-2">Tags</p>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {allTags.map((tag) => (
+                    <label
+                      key={tag.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={tagIds.has(tag.id)}
+                        onCheckedChange={(checked) => {
+                          onTagsChanged?.(deal.id, tag.id, !!checked);
+                        }}
+                      />
+                      <div className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tag.color }} />
+                      <span className="truncate">{tag.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
       {deal.clients && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -149,32 +169,12 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {deal.value && deal.value > 0 && (
-            <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-            </div>
-          )}
-          {(deal as any).assigned_to && assignedProfile ? (
-            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
-              {assignedProfile.avatar_url ? (
-                <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
-              ) : null}
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <button
-              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
-              title="Capturar negociação"
-              onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
-            >
-              <UserPlus className="h-3 w-3 text-muted-foreground" />
-            </button>
-          )}
-        </div>
+        {deal.value && deal.value > 0 && (
+          <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
       </div>
     </div>
   );
