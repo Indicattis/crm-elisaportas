@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Pencil, Trash2, Plus, X } from "lucide-react";
 import { format } from "date-fns";
@@ -28,6 +29,11 @@ interface DealComment {
   created_at: string;
 }
 
+interface CommentProfile {
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 interface DealDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +51,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [heat, setHeat] = useState(0);
   const [dealTags, setDealTags] = useState<Tag[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
   const { toast } = useToast();
 
   const fetchComments = useCallback(async () => {
@@ -54,7 +61,22 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       .select("*")
       .eq("deal_id", deal.id)
       .order("created_at", { ascending: true });
-    setComments((data as DealComment[]) || []);
+    const commentsList = (data as DealComment[]) || [];
+    setComments(commentsList);
+
+    // Fetch profiles for commenters
+    const userIds = [...new Set(commentsList.map((c) => c.user_id))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds);
+      const map: Record<string, CommentProfile> = {};
+      (profiles || []).forEach((p: any) => {
+        map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+      });
+      setProfilesMap(map);
+    }
   }, [deal]);
 
   const fetchTags = useCallback(async () => {
@@ -272,9 +294,28 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               {comments.length === 0 && (
                 <p className="text-sm text-muted-foreground italic">Nenhum comentário ainda.</p>
               )}
-              {comments.map((c) => (
+              {comments.map((c) => {
+                const profile = profilesMap[c.user_id];
+                const initials = (profile?.full_name || "U")
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+                return (
                 <div key={c.id} className="group/comment flex items-start gap-2 rounded-lg border border-border p-3">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    {profile?.avatar_url ? (
+                      <AvatarImage src={profile.avatar_url} alt={profile.full_name || ""} />
+                    ) : null}
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
+                    {profile?.full_name && (
+                      <p className="text-xs font-medium text-foreground">{profile.full_name}</p>
+                    )}
                     <p className="text-sm text-foreground whitespace-pre-wrap">{c.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {format(new Date(c.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -289,7 +330,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     <Trash2 className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <Textarea
