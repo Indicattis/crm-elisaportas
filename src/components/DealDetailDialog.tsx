@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Pencil, Trash2, Plus, X } from "lucide-react";
 import { format } from "date-fns";
