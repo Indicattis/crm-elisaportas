@@ -1,18 +1,66 @@
 
 
-# Drag por Long Press no Card Inteiro
+# Modal Detalhado de Negociação com Histórico e Calor
 
-## O que muda
+## Resumo
 
-Atualmente o drag só funciona pelo ícone grip. Passará a funcionar clicando em qualquer parte do card, com delay de 500ms (long press) para não conflitar com o click de edição.
+Criar um modal grande (`DealDetailDialog`) que abre ao clicar no card, substituindo o `DealDialog` de edição. O modal terá: header com título, seção de informações, seção de comentários/histórico, e footer com botão "Marcar como Vendido" e 5 ícones de fogo para definir o calor da negociação.
 
-## Implementação
+## Banco de Dados
 
-**`src/components/KanbanBoard.tsx`**
-- Trocar `PointerSensor` por `TouchSensor` + `MouseSensor` (ou manter `PointerSensor`) com `activationConstraint: { delay: 500, tolerance: 5 }` em vez de `distance: 8`
+### Nova tabela: `deal_comments`
+Para armazenar o histórico de comentários/anotações de cada negociação.
 
-**`src/components/DealCard.tsx`**
-- Mover `{...attributes}` e `{...listeners}` do botão grip para o `<div>` raiz do card
-- Remover o botão grip (ícone `GripVertical`) já que todo o card é arrastável
-- Manter `onClick` para edição — o dnd-kit com delay permite distinguir click rápido de drag
+```sql
+CREATE TABLE public.deal_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid NOT NULL REFERENCES public.deals(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  content text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.deal_comments ENABLE ROW LEVEL SECURITY;
+-- RLS: usuarios veem/criam seus proprios comentarios
+```
+
+### Novo campo na tabela `deals`
+Adicionar coluna `heat` (integer, default 0, range 0-5) para o calor da negociação.
+
+```sql
+ALTER TABLE public.deals ADD COLUMN heat integer NOT NULL DEFAULT 0;
+```
+
+## Componentes
+
+### 1. `src/components/DealDetailDialog.tsx` (novo)
+
+Modal grande usando `Dialog` com `sm:max-w-2xl`. Estrutura:
+
+- **Header**: Título da negociação (editável inline), botão fechar
+- **Seção Informações**: Cliente, valor, status atual, data de cadastro, dias na etapa, notas
+- **Seção Comentários**: Lista de comentários com data/hora + campo de input para adicionar novo comentário
+- **Footer fixo**:
+  - Botão "Marcar como Vendido" (muda status para coluna final ou status especial)
+  - 5 ícones de `Flame` (lucide-react) clicáveis para definir heat 1-5 (preenchidos até o nível selecionado)
+  - Botão "Editar" que abre o `DealDialog` existente
+
+### 2. `src/components/KanbanBoard.tsx` (editar)
+
+- Substituir `onEditDeal` por `onViewDeal` que abre o `DealDetailDialog`
+- Manter `DealDialog` disponível para edição a partir do detail modal
+
+### 3. `src/components/DealCard.tsx` (editar)
+
+- Mostrar indicador de calor (pequenos pontos ou chamas) no card quando `heat > 0`
+
+## Fluxo
+
+```text
+Card click → DealDetailDialog (visualização completa)
+  ├── Ver informações
+  ├── Adicionar comentários (histórico)
+  ├── Definir calor (1-5 chamas)
+  ├── Marcar como vendido
+  └── Botão Editar → abre DealDialog existente
+```
 
