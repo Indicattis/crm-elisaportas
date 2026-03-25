@@ -38,7 +38,7 @@ function darkenHex(hex: string, amount: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], onTagsChanged, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
