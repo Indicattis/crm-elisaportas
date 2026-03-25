@@ -111,7 +111,7 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
         </div>
       )}
       {deal.value && deal.value > 0 && (
-        <div className="flex items-center gap-1 text-xs font-medium text-primary">
+        <div className={`flex items-center gap-1 text-xs font-medium ${primaryTag ? 'text-white' : 'text-primary'}`}>
           <DollarSign className="h-3 w-3" />
           <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         </div>
