@@ -1,33 +1,18 @@
 
 
-# Correção: Negociações Desaparecem ao Renomear Colunas
+# Drag por Long Press no Card Inteiro
 
-## Problema Identificado
+## O que muda
 
-A negociação foi criada com status "Teste", mas depois a coluna foi renomeada para "Lead". O campo `status` dos deals armazena o **nome** da coluna, e quando a coluna é renomeada, os deals existentes mantêm o status antigo. Como o Kanban filtra `deals.filter(d => d.status === col.name)`, os deals com status antigo desaparecem.
+Atualmente o drag só funciona pelo ícone grip. Passará a funcionar clicando em qualquer parte do card, com delay de 500ms (long press) para não conflitar com o click de edição.
 
-## Solucao
+## Implementação
 
-Duas correções:
+**`src/components/KanbanBoard.tsx`**
+- Trocar `PointerSensor` por `TouchSensor` + `MouseSensor` (ou manter `PointerSensor`) com `activationConstraint: { delay: 500, tolerance: 5 }` em vez de `distance: 8`
 
-1. **`src/components/FunnelColumnList.tsx`** -- No `handleUpdateName`, ao renomear uma coluna, atualizar tambem todos os deals que possuem o status antigo para o novo nome.
-
-2. **Corrigir dados existentes** -- Atualizar via insert tool o deal orfao que ficou com status "Teste" para "Lead".
-
-## Detalhes Tecnicos
-
-No `handleUpdateName`, apos atualizar o nome da coluna, executar:
-```typescript
-await supabase.from("deals")
-  .update({ status: newName })
-  .eq("status", oldName)
-  .eq("funnel_id", funnelId);
-```
-
-Isso garante que renomear uma coluna nunca mais cause deals orfaos.
-
-| Acao | Arquivo/Recurso |
-|------|-----------------|
-| Editar | `src/components/FunnelColumnList.tsx` -- atualizar deals ao renomear coluna |
-| Update dados | Deal com status "Teste" para "Lead" via insert tool |
+**`src/components/DealCard.tsx`**
+- Mover `{...attributes}` e `{...listeners}` do botão grip para o `<div>` raiz do card
+- Remover o botão grip (ícone `GripVertical`) já que todo o card é arrastável
+- Manter `onClick` para edição — o dnd-kit com delay permite distinguir click rápido de drag
 
