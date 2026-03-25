@@ -69,7 +69,7 @@ export function KanbanBoard() {
     if (!selectedFunnelId) return;
     const { data, error } = await supabase
       .from("deals")
-      .select("*, clients(*)")
+      .select("*")
       .eq("funnel_id", selectedFunnelId)
       .order("created_at", { ascending: false });
     if (error) {
