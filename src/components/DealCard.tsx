@@ -109,10 +109,11 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
           <span>{deal.clients.name}</span>
         </div>
       )}
-      {deal.value && deal.value > 0 && (
-        <div className="flex items-center gap-1 text-xs font-medium text-primary">
-          <DollarSign className="h-3 w-3" />
-          <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+      {deal.heat > 0 && (
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: deal.heat }, (_, i) => (
+            <Flame key={i} className="h-3 w-3 text-orange-500 fill-orange-500" />
+          ))}
         </div>
       )}
       {tags.length > 0 && (
@@ -140,11 +141,10 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
             </span>
           </div>
         </div>
-        {deal.heat > 0 && (
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: deal.heat }, (_, i) => (
-              <Flame key={i} className="h-3 w-3 text-orange-500 fill-orange-500" />
-            ))}
+        {deal.value && deal.value > 0 && (
+          <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
           </div>
         )}
       </div>
