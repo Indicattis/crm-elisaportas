@@ -46,26 +46,26 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
     >
       {/* Header */}
       <div
-        className="px-4 py-3"
+        className="flex items-center justify-between px-3 h-[50px] max-h-[50px]"
         style={{ backgroundColor: headerBg }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-white">{status}</h3>
-            <span
-              className="flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-            >
-              {deals.length}
-            </span>
-          </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => onAddDeal(status)}>
-            <Plus className="h-4 w-4" />
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="text-sm font-bold text-white truncate">{status}</h3>
+          <span
+            className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
+            style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+          >
+            {deals.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xs font-semibold text-white/85">
+            {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </span>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15" onClick={() => onAddDeal(status)}>
+            <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <p className="mt-1 text-base font-bold text-white">
-          {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-        </p>
       </div>
 
       {/* Cards */}
