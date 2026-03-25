@@ -217,7 +217,7 @@ export function TeamManager() {
             <div className="space-y-3">
               {teamMembers.map((member) => {
                 const memberInitials = (member.full_name || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-                const isMe = member.id === profile?.id;
+                const isMe = member.id === currentUserId;
                 return (
                   <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
                     <Avatar className="h-10 w-10">
