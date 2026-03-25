@@ -186,7 +186,7 @@ export function KanbanBoard() {
         deal={viewingDeal}
         statuses={columns.map((c) => c.name)}
         onEdit={handleEditDeal}
-        onUpdated={() => fetchDeals()}
+        onUpdated={() => { fetchDeals(); fetchDealTags(); }}
       />
 
       <DealDialog
