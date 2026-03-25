@@ -150,10 +150,6 @@ export function KanbanBoard() {
     setDetailOpen(true);
   };
 
-  const handleEditDeal = (deal: DealWithClient) => {
-    setEditingDeal(deal);
-    setDialogOpen(true);
-  };
 
   const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
     if (checked) {
