@@ -128,7 +128,7 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
           )}
         </div>
       )}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className={`flex items-center justify-between text-xs ${primaryTag ? 'text-white/70' : 'text-muted-foreground'}`}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
