@@ -245,10 +245,9 @@ export function KanbanBoard() {
         onOpenChange={setDialogOpen}
         deal={editingDeal}
         defaultStatus={defaultStatus}
-        clients={clients}
         statuses={columns.map((c) => c.name)}
         funnelId={selectedFunnelId}
-        onSaved={() => { fetchDeals(); fetchClients(); }}
+        onSaved={() => { fetchDeals(); }}
       />
     </>
   );
