@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { UserPlus, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -29,6 +30,10 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -45,6 +50,10 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
       setStatus(defaultStatus || statuses[0] || "");
       setNotes("");
     }
+    setShowNewClient(false);
+    setNewClientName("");
+    setNewClientEmail("");
+    setNewClientPhone("");
   }, [deal, defaultStatus, open, statuses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,9 +64,21 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
+      let finalClientId: string | null = clientId && clientId !== "none" ? clientId : null;
+
+      if (showNewClient && newClientName.trim()) {
+        const { data: newClient, error: clientError } = await supabase
+          .from("clients")
+          .insert({ name: newClientName.trim(), email: newClientEmail.trim() || null, phone: newClientPhone.trim() || null, user_id: user.id })
+          .select()
+          .single();
+        if (clientError) throw clientError;
+        finalClientId = newClient.id;
+      }
+
       const payload = {
         title,
-        client_id: clientId || null,
+        client_id: finalClientId,
         value: value ? parseFloat(value) : 0,
         status,
         notes: notes || null,
@@ -112,15 +133,53 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Ex: Porta automática loja centro" />
           </div>
           <div className="space-y-2">
-            <Label>Cliente</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <Label>Cliente</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-xs"
+                onClick={() => {
+                  setShowNewClient(!showNewClient);
+                  if (!showNewClient) setClientId("");
+                }}
+              >
+                {showNewClient ? (
+                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
+                ) : (
+                  <><UserPlus className="h-3 w-3 mr-1" /> Novo Cliente</>
+                )}
+              </Button>
+            </div>
+            {showNewClient ? (
+              <div className="space-y-3 rounded-md border border-border p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome *</Label>
+                  <Input value={newClientName} onChange={(e) => setNewClientName(e.target.value)} required placeholder="Nome do cliente" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">E-mail</Label>
+                    <Input type="email" value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="email@exemplo.com" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Telefone</Label>
+                    <Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="(00) 00000-0000" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem cliente</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
