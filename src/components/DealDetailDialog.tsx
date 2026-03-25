@@ -52,6 +52,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [dealTags, setDealTags] = useState<Tag[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
+  const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
   const { toast } = useToast();
 
   // Inline editing state
