@@ -303,8 +303,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   .toUpperCase()
                   .slice(0, 2);
                 return (
-                <div key={c.id} className="group/comment flex items-start gap-2 rounded-lg border border-border p-3">
-                  <Avatar className="h-8 w-8 shrink-0">
+                <div key={c.id} className="group/comment flex items-start gap-3">
+                  <Avatar className="h-8 w-8 shrink-0 mt-0.5">
                     {profile?.avatar_url ? (
                       <AvatarImage src={profile.avatar_url} alt={profile.full_name || ""} />
                     ) : null}
@@ -312,23 +312,25 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
-                    {profile?.full_name && (
-                      <p className="text-xs font-medium text-foreground">{profile.full_name}</p>
-                    )}
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{c.content}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(c.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground truncate">
+                        {profile?.full_name || "Usuário"}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {format(new Date(c.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity shrink-0"
+                        onClick={() => handleDeleteComment(c.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-foreground/80 whitespace-pre-wrap mt-0.5">{c.content}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover/comment:opacity-100 transition-opacity"
-                    onClick={() => handleDeleteComment(c.id)}
-                  >
-                    <Trash2 className="h-3 w-3 text-muted-foreground" />
-                  </Button>
                 </div>
                 );
               })}
