@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase, type ExternalClient } from "@/integrations/external-supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
@@ -53,6 +55,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
   const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
+  const [externalClient, setExternalClient] = useState<ExternalClient | null>(null);
+  const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [clientSearchResults, setClientSearchResults] = useState<ExternalClient[]>([]);
+  const [clientSearchLoading, setClientSearchLoading] = useState(false);
+  const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   // Inline editing state
@@ -105,6 +113,56 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setAssignedProfile(data || null);
   }, [deal]);
 
+  const fetchExternalClient = useCallback(async () => {
+    if (!deal || !deal.client_id) { setExternalClient(null); return; }
+    try {
+      const { data } = await externalSupabase
+        .from("clientes")
+        .select("*")
+        .eq("id", deal.client_id as string)
+        .single();
+      setExternalClient(data as ExternalClient | null);
+    } catch {
+      setExternalClient(null);
+    }
+  }, [deal]);
+
+  const searchExternalClients = useCallback(async (query: string) => {
+    setClientSearchLoading(true);
+    try {
+      const q = externalSupabase
+        .from("clientes")
+        .select("*")
+        .eq("ativo", true)
+        .order("nome")
+        .limit(20);
+      if (query.trim()) {
+        q.ilike("nome", `%${query.trim()}%`);
+      }
+      const { data } = await q;
+      setClientSearchResults((data as ExternalClient[]) || []);
+    } catch {
+      setClientSearchResults([]);
+    } finally {
+      setClientSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (clientComboOpen && clientSearchQuery === "") {
+      searchExternalClients("");
+    }
+  }, [clientComboOpen, clientSearchQuery, searchExternalClients]);
+
+  useEffect(() => {
+    if (!clientComboOpen) return;
+    if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current);
+    clientDebounceRef.current = setTimeout(() => {
+      searchExternalClients(clientSearchQuery);
+    }, 300);
+    return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current); };
+  }, [clientSearchQuery, clientComboOpen, searchExternalClients]);
+
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
@@ -113,8 +171,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchTags();
       fetchAllTags();
       fetchAssignedProfile();
+      fetchExternalClient();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
@@ -249,6 +308,30 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
+  const handleLinkClient = async (client: ExternalClient) => {
+    if (!deal) return;
+    const { error } = await supabase.from("deals").update({ client_id: client.id } as any).eq("id", deal.id);
+    if (error) {
+      toast({ title: "Erro ao vincular cliente", description: error.message, variant: "destructive" });
+    } else {
+      setExternalClient(client);
+      setClientComboOpen(false);
+      setClientSearchQuery("");
+      onUpdated();
+    }
+  };
+
+  const handleUnlinkClient = async () => {
+    if (!deal) return;
+    const { error } = await supabase.from("deals").update({ client_id: null }).eq("id", deal.id);
+    if (error) {
+      toast({ title: "Erro ao desvincular", description: error.message, variant: "destructive" });
+    } else {
+      setExternalClient(null);
+      onUpdated();
+    }
+  };
+
   if (!deal) return null;
 
   const daysInStage = Math.floor(
@@ -328,15 +411,108 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* Client section */}
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Cliente
+              </h3>
+              <div className="flex items-center gap-1">
+                {externalClient && (
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleUnlinkClient} title="Desvincular cliente">
+                    <Unlink className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                )}
+                <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
+                      <Link2 className="h-3.5 w-3.5" />
+                      {externalClient ? "Trocar" : "Vincular"}
+                      <ChevronsUpDown className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-0" align="end">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Buscar cliente..."
+                        value={clientSearchQuery}
+                        onValueChange={setClientSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {clientSearchLoading ? "Buscando..." : "Nenhum cliente encontrado"}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {clientSearchResults.map((c) => (
+                            <CommandItem
+                              key={c.id}
+                              value={c.id}
+                              onSelect={() => handleLinkClient(c)}
+                              className="flex flex-col items-start gap-0.5"
+                            >
+                              <span className="font-medium">{c.nome}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {[c.telefone, c.cidade].filter(Boolean).join(" · ") || "Sem info"}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {externalClient ? (
+              <div className="space-y-2 text-sm">
+                <p className="font-medium text-foreground text-base">{externalClient.nome}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  {externalClient.telefone && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5" />
+                      <span>{externalClient.telefone}</span>
+                    </div>
+                  )}
+                  {externalClient.email && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5" />
+                      <span>{externalClient.email}</span>
+                    </div>
+                  )}
+                  {externalClient.cpf_cnpj && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <User className="h-3.5 w-3.5" />
+                      <span>{externalClient.cpf_cnpj}</span>
+                    </div>
+                  )}
+                  {(externalClient.cidade || externalClient.estado) && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{[externalClient.cidade, externalClient.estado].filter(Boolean).join("/")}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-1.5 mt-1">
+                  {externalClient.fidelizado && (
+                    <Badge variant="secondary" className="text-xs">Fidelizado</Badge>
+                  )}
+                  {externalClient.parceiro && (
+                    <Badge variant="secondary" className="text-xs">Parceiro</Badge>
+                  )}
+                  {externalClient.tipo_cliente && (
+                    <Badge variant="outline" className="text-xs">{externalClient.tipo_cliente}</Badge>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Nenhum cliente vinculado</p>
+            )}
+          </div>
+
           {/* Info section */}
           <div className="grid grid-cols-2 gap-4">
-            {deal.clients && (
-              <div className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Cliente:</span>
-                <span className="font-medium text-foreground">{deal.clients.name}</span>
-              </div>
-            )}
             <div className="flex items-center gap-2 text-sm">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Valor:</span>
