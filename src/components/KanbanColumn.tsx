@@ -13,13 +13,20 @@ interface DealTag {
   color: string;
 }
 
+interface AssignedProfile {
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 interface KanbanColumnProps {
   status: string;
   color?: string;
   deals: DealWithClient[];
   dealTagsMap?: Record<string, DealTag[]>;
   allTags?: DealTag[];
+  profilesMap?: Record<string, AssignedProfile>;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
+  onCapture?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: DealWithClient) => void;
 }
@@ -31,7 +38,7 @@ function darkenHex(hex: string, amount: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], onTagsChanged, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
@@ -77,7 +84,9 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
               deal={deal}
               tags={dealTagsMap[deal.id]}
               allTags={allTags}
+              assignedProfile={(deal as any).assigned_to ? profilesMap[(deal as any).assigned_to] : null}
               onTagsChanged={onTagsChanged}
+              onCapture={onCapture}
               onClick={() => onEditDeal(deal)}
             />
           ))}

@@ -40,6 +40,7 @@ export function KanbanBoard() {
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
@@ -107,6 +108,17 @@ export function KanbanBoard() {
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
+  // Fetch profiles for assigned deals
+  const fetchProfiles = useCallback(async () => {
+    const assignedIds = [...new Set(deals.filter(d => (d as any).assigned_to).map(d => (d as any).assigned_to as string))];
+    if (assignedIds.length === 0) { setProfilesMap({}); return; }
+    const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", assignedIds);
+    const map: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+    (data || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
+    setProfilesMap(map);
+  }, [deals]);
+
+  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
   useEffect(() => { fetchClients(); fetchAllTags(); }, [fetchClients, fetchAllTags]);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -151,6 +163,18 @@ export function KanbanBoard() {
   };
 
 
+  const handleCapture = async (dealId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", dealId);
+    if (error) {
+      toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Negociação capturada!" });
+      fetchDeals();
+    }
+  };
+
   const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
     if (checked) {
       const { error } = await supabase.from("deal_tags").insert({ deal_id: dealId, tag_id: tagId });
@@ -193,7 +217,9 @@ export function KanbanBoard() {
               deals={deals.filter((d) => d.status === col.name)}
               dealTagsMap={dealTagsMap}
               allTags={allTags}
+              profilesMap={profilesMap}
               onTagsChanged={handleTagToggle}
+              onCapture={handleCapture}
               onAddDeal={handleAddDeal}
               onEditDeal={handleViewDeal}
             />

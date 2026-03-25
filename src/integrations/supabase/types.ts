@@ -111,6 +111,7 @@ export type Database = {
       }
       deals: {
         Row: {
+          assigned_to: string | null
           client_id: string | null
           created_at: string
           funnel_id: string | null
@@ -124,6 +125,7 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          assigned_to?: string | null
           client_id?: string | null
           created_at?: string
           funnel_id?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          assigned_to?: string | null
           client_id?: string | null
           created_at?: string
           funnel_id?: string | null

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
@@ -52,6 +52,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [dealTags, setDealTags] = useState<Tag[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
+  const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
   const { toast } = useToast();
 
   // Inline editing state
@@ -98,6 +99,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setAllTags(data || []);
   }, []);
 
+  const fetchAssignedProfile = useCallback(async () => {
+    if (!deal || !(deal as any).assigned_to) { setAssignedProfile(null); return; }
+    const { data } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", (deal as any).assigned_to).single();
+    setAssignedProfile(data || null);
+  }, [deal]);
+
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
@@ -105,8 +112,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchComments();
       fetchTags();
       fetchAllTags();
+      fetchAssignedProfile();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
@@ -272,9 +280,48 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               {deal.title}
             </DialogTitle>
           )}
-          <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
-            Status: <span className={`font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>{deal.status}</span>
-          </p>
+          <div className="flex items-center justify-between">
+            <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
+              Status: <span className={`font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>{deal.status}</span>
+            </p>
+            {assignedProfile ? (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-7 w-7 border-2 border-white/30">
+                  {assignedProfile.avatar_url ? (
+                    <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
+                  ) : null}
+                  <AvatarFallback className="text-[10px] bg-white/20 text-white">
+                    {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className={`text-sm font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>
+                  {assignedProfile.full_name}
+                </span>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`gap-1 ${columnColor ? 'text-white hover:bg-white/20' : ''}`}
+                onClick={async () => {
+                  if (!deal) return;
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) return;
+                  const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", deal.id);
+                  if (error) {
+                    toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "Negociação capturada!" });
+                    onUpdated();
+                    fetchAssignedProfile();
+                  }
+                }}
+              >
+                <UserPlus className="h-4 w-4" />
+                Capturar
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <Separator />
