@@ -113,6 +113,56 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setAssignedProfile(data || null);
   }, [deal]);
 
+  const fetchExternalClient = useCallback(async () => {
+    if (!deal || !deal.client_id) { setExternalClient(null); return; }
+    try {
+      const { data } = await externalSupabase
+        .from("clientes")
+        .select("*")
+        .eq("id", deal.client_id as string)
+        .single();
+      setExternalClient(data as ExternalClient | null);
+    } catch {
+      setExternalClient(null);
+    }
+  }, [deal]);
+
+  const searchExternalClients = useCallback(async (query: string) => {
+    setClientSearchLoading(true);
+    try {
+      const q = externalSupabase
+        .from("clientes")
+        .select("*")
+        .eq("ativo", true)
+        .order("nome")
+        .limit(20);
+      if (query.trim()) {
+        q.ilike("nome", `%${query.trim()}%`);
+      }
+      const { data } = await q;
+      setClientSearchResults((data as ExternalClient[]) || []);
+    } catch {
+      setClientSearchResults([]);
+    } finally {
+      setClientSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (clientComboOpen && clientSearchQuery === "") {
+      searchExternalClients("");
+    }
+  }, [clientComboOpen, clientSearchQuery, searchExternalClients]);
+
+  useEffect(() => {
+    if (!clientComboOpen) return;
+    if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current);
+    clientDebounceRef.current = setTimeout(() => {
+      searchExternalClients(clientSearchQuery);
+    }, 300);
+    return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current); };
+  }, [clientSearchQuery, clientComboOpen, searchExternalClients]);
+
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
@@ -121,8 +171,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchTags();
       fetchAllTags();
       fetchAssignedProfile();
+      fetchExternalClient();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
