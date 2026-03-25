@@ -51,6 +51,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [heat, setHeat] = useState(0);
   const [dealTags, setDealTags] = useState<Tag[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
   const { toast } = useToast();
 
   const fetchComments = useCallback(async () => {
@@ -60,7 +61,22 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       .select("*")
       .eq("deal_id", deal.id)
       .order("created_at", { ascending: true });
-    setComments((data as DealComment[]) || []);
+    const commentsList = (data as DealComment[]) || [];
+    setComments(commentsList);
+
+    // Fetch profiles for commenters
+    const userIds = [...new Set(commentsList.map((c) => c.user_id))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds);
+      const map: Record<string, CommentProfile> = {};
+      (profiles || []).forEach((p: any) => {
+        map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+      });
+      setProfilesMap(map);
+    }
   }, [deal]);
 
   const fetchTags = useCallback(async () => {
