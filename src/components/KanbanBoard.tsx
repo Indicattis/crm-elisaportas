@@ -38,6 +38,7 @@ export function KanbanBoard() {
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
+  const [allTags, setAllTags] = useState<DealTag[]>([]);
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
@@ -98,9 +99,14 @@ export function KanbanBoard() {
     setClients(data || []);
   }, []);
 
+  const fetchAllTags = useCallback(async () => {
+    const { data } = await supabase.from("tags").select("id, name, color").order("name");
+    setAllTags(data || []);
+  }, []);
+
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
-  useEffect(() => { fetchClients(); }, [fetchClients]);
+  useEffect(() => { fetchClients(); fetchAllTags(); }, [fetchClients, fetchAllTags]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const deal = deals.find((d) => d.id === event.active.id);
@@ -146,6 +152,23 @@ export function KanbanBoard() {
     setDialogOpen(true);
   };
 
+  const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
+    if (checked) {
+      const { error } = await supabase.from("deal_tags").insert({ deal_id: dealId, tag_id: tagId });
+      if (error) {
+        toast({ title: "Erro ao adicionar tag", description: error.message, variant: "destructive" });
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("deal_tags").delete().eq("deal_id", dealId).eq("tag_id", tagId);
+      if (error) {
+        toast({ title: "Erro ao remover tag", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    fetchDealTags();
+  };
+
   return (
     <>
       <div className="px-6 pt-4">
@@ -170,6 +193,8 @@ export function KanbanBoard() {
               color={col.color}
               deals={deals.filter((d) => d.status === col.name)}
               dealTagsMap={dealTagsMap}
+              allTags={allTags}
+              onTagsChanged={handleTagToggle}
               onAddDeal={handleAddDeal}
               onEditDeal={handleViewDeal}
             />
