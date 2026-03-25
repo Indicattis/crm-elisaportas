@@ -33,6 +33,7 @@ interface DealDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   deal: DealWithClient | null;
   statuses: string[];
+  columnColor?: string;
   onEdit: (deal: DealWithClient) => void;
   onUpdated: () => void;
 }
