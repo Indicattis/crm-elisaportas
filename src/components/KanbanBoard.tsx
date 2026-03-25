@@ -155,6 +155,15 @@ export function KanbanBoard() {
         </DragOverlay>
       </DndContext>
 
+      <DealDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        deal={viewingDeal}
+        statuses={columns.map((c) => c.name)}
+        onEdit={handleEditDeal}
+        onUpdated={() => fetchDeals()}
+      />
+
       <DealDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
