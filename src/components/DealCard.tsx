@@ -61,7 +61,7 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
       style={style}
       {...attributes}
       {...listeners}
-      className="group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40"
+      className={`group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 ${primaryTag ? 'text-white' : ''}`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
