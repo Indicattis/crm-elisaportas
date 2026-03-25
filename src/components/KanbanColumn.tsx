@@ -7,10 +7,17 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
+interface DealTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface KanbanColumnProps {
   status: string;
   color?: string;
   deals: DealWithClient[];
+  dealTagsMap?: Record<string, DealTag[]>;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: DealWithClient) => void;
 }
