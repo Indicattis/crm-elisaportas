@@ -1,42 +1,36 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase, type ExternalClient } from "@/integrations/external-supabase";
 import { Header } from "@/components/Header";
-import { ClientDialog } from "@/components/ClientDialog";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import type { Tables } from "@/integrations/supabase/types";
 
 export default function Clients() {
-  const [clients, setClients] = useState<Tables<"clients">[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Tables<"clients"> | null>(null);
+  const [clients, setClients] = useState<ExternalClient[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchClients = useCallback(async () => {
-    const { data, error } = await supabase.from("clients").select("*").order("name");
+    setLoading(true);
+    const { data, error } = await externalSupabase
+      .from("clientes")
+      .select("*")
+      .eq("ativo", true)
+      .order("nome");
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else setClients(data || []);
+    else setClients((data as ExternalClient[]) || []);
+    setLoading(false);
   }, [toast]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("clients").delete().eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else { toast({ title: "Cliente excluído!" }); fetchClients(); }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-          <Button onClick={() => { setEditingClient(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Cliente
-          </Button>
+          <span className="text-sm text-muted-foreground">{clients.length} cliente(s)</span>
         </div>
 
         <div className="glass-strong rounded-2xl overflow-hidden">
@@ -46,30 +40,46 @@ export default function Clients() {
                 <TableHead>Nome</TableHead>
                 <TableHead>E-mail</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead className="w-24">Ações</TableHead>
+                <TableHead>CPF/CNPJ</TableHead>
+                <TableHead>Localização</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhum cliente cadastrado
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : clients.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
               ) : (
                 clients.map((client) => (
                   <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell className="font-medium">{client.nome}</TableCell>
                     <TableCell>{client.email || "—"}</TableCell>
-                    <TableCell>{client.phone || "—"}</TableCell>
+                    <TableCell>{client.telefone || "—"}</TableCell>
+                    <TableCell>{client.cpf_cnpj || "—"}</TableCell>
+                    <TableCell>
+                      {client.cidade && client.estado
+                        ? `${client.cidade}/${client.estado}`
+                        : client.cidade || client.estado || "—"}
+                    </TableCell>
+                    <TableCell>{client.tipo_cliente || "—"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingClient(client); setDialogOpen(true); }}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(client.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {client.fidelizado && (
+                          <Badge variant="default" className="text-xs">Fidelizado</Badge>
+                        )}
+                        {client.parceiro && (
+                          <Badge variant="secondary" className="text-xs">Parceiro</Badge>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -79,13 +89,6 @@ export default function Clients() {
           </Table>
         </div>
       </div>
-
-      <ClientDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        client={editingClient}
-        onSaved={fetchClients}
-      />
     </div>
   );
 }
