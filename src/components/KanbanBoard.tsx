@@ -193,6 +193,8 @@ export function KanbanBoard() {
               color={col.color}
               deals={deals.filter((d) => d.status === col.name)}
               dealTagsMap={dealTagsMap}
+              allTags={allTags}
+              onTagsChanged={handleTagToggle}
               onAddDeal={handleAddDeal}
               onEditDeal={handleViewDeal}
             />
