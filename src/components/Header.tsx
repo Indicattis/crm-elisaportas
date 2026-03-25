@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserRole } from "@/contexts/RoleContext";
 import logo from "@/assets/logo.png";
 import logoWhite from "@/assets/logo-white.png";
 
@@ -11,22 +12,24 @@ export function Header() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
+  const { role } = useUserRole();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
 
-  const navItems = [
+  const allNavItems = [
     { path: "/", label: "Kanban", icon: LayoutDashboard },
     { path: "/clients", label: "Clientes", icon: Users },
-    { path: "/crm-config", label: "Configurações", icon: Settings },
+    { path: "/crm-config", label: "Configurações", icon: Settings, adminOnly: true },
   ];
+
+  const navItems = allNavItems.filter((item) => !item.adminOnly || role === "admin");
 
   return (
     <>
       <header className="glass-strong sticky top-0 z-40 flex items-center justify-between px-4 py-2 md:grid md:grid-cols-3 md:px-8 md:py-4">
-        {/* Logo */}
         <div className="flex items-center">
           <img
             src={theme === "dark" ? logoWhite : logo}
@@ -35,7 +38,6 @@ export function Header() {
           />
         </div>
 
-        {/* Center nav — desktop only */}
         {!isMobile && (
           <nav className="flex items-center justify-center gap-1">
             {navItems.map(({ path, label, icon: Icon }) => {
@@ -61,7 +63,6 @@ export function Header() {
           </nav>
         )}
 
-        {/* Right: actions */}
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={toggleTheme}
@@ -79,7 +80,6 @@ export function Header() {
         </div>
       </header>
 
-      {/* Bottom nav — mobile only */}
       {isMobile && (
         <nav className="glass-strong fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border px-2 py-2">
           {navItems.map(({ path, icon: Icon }) => {
