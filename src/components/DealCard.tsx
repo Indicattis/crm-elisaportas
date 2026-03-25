@@ -169,32 +169,12 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {deal.value && deal.value > 0 && (
-            <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-            </div>
-          )}
-          {(deal as any).assigned_to && assignedProfile ? (
-            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
-              {assignedProfile.avatar_url ? (
-                <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
-              ) : null}
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <button
-              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
-              title="Capturar negociação"
-              onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
-            >
-              <UserPlus className="h-3 w-3 text-muted-foreground" />
-            </button>
-          )}
-        </div>
+        {deal.value && deal.value > 0 && (
+          <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
       </div>
     </div>
   );
