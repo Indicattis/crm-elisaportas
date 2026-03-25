@@ -108,6 +108,17 @@ export function KanbanBoard() {
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
+  // Fetch profiles for assigned deals
+  const fetchProfiles = useCallback(async () => {
+    const assignedIds = [...new Set(deals.filter(d => (d as any).assigned_to).map(d => (d as any).assigned_to as string))];
+    if (assignedIds.length === 0) { setProfilesMap({}); return; }
+    const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", assignedIds);
+    const map: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+    (data || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
+    setProfilesMap(map);
+  }, [deals]);
+
+  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
   useEffect(() => { fetchClients(); fetchAllTags(); }, [fetchClients, fetchAllTags]);
 
   const handleDragStart = (event: DragStartEvent) => {
