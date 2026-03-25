@@ -1,0 +1,160 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+const COLOR_OPTIONS = [
+  "#6366f1", "#3b82f6", "#06b6d4", "#10b981", "#22c55e",
+  "#eab308", "#f97316", "#ef4444", "#ec4899", "#8b5cf6",
+  "#64748b", "#78716c",
+];
+
+interface FunnelColumn {
+  id: string;
+  funnel_id: string;
+  name: string;
+  color: string;
+  position: number;
+}
+
+interface Props {
+  funnelId: string;
+  columns: FunnelColumn[];
+  onChanged: () => void;
+}
+
+export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
+  const { toast } = useToast();
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("funnel_columns").insert({
+      funnel_id: funnelId,
+      name: newName.trim(),
+      color: newColor,
+      position: columns.length,
+      user_id: user.id,
+    });
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      setNewName("");
+      onChanged();
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("funnel_columns").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      onChanged();
+    }
+  };
+
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= columns.length) return;
+
+    const current = columns[index];
+    const target = columns[targetIndex];
+
+    await Promise.all([
+      supabase.from("funnel_columns").update({ position: target.position }).eq("id", current.id),
+      supabase.from("funnel_columns").update({ position: current.position }).eq("id", target.id),
+    ]);
+    onChanged();
+  };
+
+  const handleUpdateName = async (id: string, name: string) => {
+    await supabase.from("funnel_columns").update({ name }).eq("id", id);
+    onChanged();
+  };
+
+  const handleUpdateColor = async (id: string, color: string) => {
+    await supabase.from("funnel_columns").update({ color }).eq("id", id);
+    onChanged();
+  };
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold text-foreground">Colunas do Funil</h2>
+
+      <div className="space-y-2">
+        {columns.map((col, i) => (
+          <div key={col.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2">
+            <div className="flex flex-col gap-0.5">
+              <Button size="icon" variant="ghost" className="h-5 w-5" disabled={i === 0} onClick={() => handleMove(i, -1)}>
+                <ArrowUp className="h-3 w-3" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-5 w-5" disabled={i === columns.length - 1} onClick={() => handleMove(i, 1)}>
+                <ArrowDown className="h-3 w-3" />
+              </Button>
+            </div>
+
+            <div
+              className="h-8 w-8 rounded-md flex-shrink-0 cursor-pointer relative group"
+              style={{ backgroundColor: col.color }}
+            >
+              <div className="absolute top-full left-0 mt-1 hidden group-hover:flex gap-1 flex-wrap bg-popover border border-border rounded-lg p-2 z-50 w-40 shadow-lg">
+                {COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    className="h-6 w-6 rounded-md border border-border hover:scale-110 transition-transform"
+                    style={{ backgroundColor: c }}
+                    onClick={() => handleUpdateColor(col.id, c)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <Input
+              className="flex-1"
+              defaultValue={col.name}
+              onBlur={(e) => {
+                if (e.target.value !== col.name) handleUpdateName(col.id, e.target.value);
+              }}
+            />
+
+            <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-2">
+        <div className="relative group">
+          <div className="h-8 w-8 rounded-md flex-shrink-0 cursor-pointer" style={{ backgroundColor: newColor }} />
+          <div className="absolute top-full left-0 mt-1 hidden group-hover:flex gap-1 flex-wrap bg-popover border border-border rounded-lg p-2 z-50 w-40 shadow-lg">
+            {COLOR_OPTIONS.map((c) => (
+              <button
+                key={c}
+                className="h-6 w-6 rounded-md border border-border hover:scale-110 transition-transform"
+                style={{ backgroundColor: c }}
+                onClick={() => setNewColor(c)}
+              />
+            ))}
+          </div>
+        </div>
+        <Input
+          placeholder="Nome da nova coluna..."
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          className="flex-1"
+        />
+        <Button size="sm" onClick={handleAdd} disabled={!newName.trim()}>
+          <Plus className="h-4 w-4 mr-1" /> Adicionar
+        </Button>
+      </div>
+    </div>
+  );
+}

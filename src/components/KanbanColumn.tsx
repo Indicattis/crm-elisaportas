@@ -9,12 +9,13 @@ type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
 interface KanbanColumnProps {
   status: string;
+  color?: string;
   deals: DealWithClient[];
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: DealWithClient) => void;
 }
 
-export function KanbanColumn({ status, deals, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
@@ -25,6 +26,9 @@ export function KanbanColumn({ status, deals, onAddDeal, onEditDeal }: KanbanCol
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
+          {color && (
+            <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+          )}
           <h3 className="text-sm font-semibold text-foreground">{status}</h3>
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">
             {deals.length}
