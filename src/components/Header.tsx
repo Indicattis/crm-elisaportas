@@ -4,6 +4,7 @@ import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon } from "lucide-reac
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import logo from "@/assets/logo.png";
+import logoWhite from "@/assets/logo-white.png";
 
 export function Header() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export function Header() {
         {/* Logo */}
         <div className="flex items-center">
           <img
-            src={logo}
+            src={theme === "dark" ? logoWhite : logo}
             alt="Elisa Portas de Enrolar"
             className="h-8 md:h-11 object-contain drop-shadow-md"
           />
