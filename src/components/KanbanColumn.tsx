@@ -42,7 +42,7 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
       style={{
         borderTopColor: color || 'transparent',
         backgroundColor: rgb
-          ? `rgba(${rgb}, ${isOver ? 0.12 : 0.06})`
+          ? `rgba(${rgb}, ${isOver ? 0.35 : 0.25})`
           : isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)',
       }}
     >
