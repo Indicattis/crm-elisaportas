@@ -34,6 +34,7 @@ export function KanbanBoard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewingDeal, setViewingDeal] = useState<DealWithClient | null>(null);
+  const [viewingColumnColor, setViewingColumnColor] = useState<string>("");
   const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
