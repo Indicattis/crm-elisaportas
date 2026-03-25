@@ -18,11 +18,13 @@ interface KanbanColumnProps {
   color?: string;
   deals: DealWithClient[];
   dealTagsMap?: Record<string, DealTag[]>;
+  allTags?: DealTag[];
+  onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: DealWithClient) => void;
 }
 
-export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], onTagsChanged, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const hexToRgb = (hex: string) => {
@@ -80,7 +82,14 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal
       <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 min-h-[100px]">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} tags={dealTagsMap[deal.id]} onClick={() => onEditDeal(deal)} />
+            <DealCard
+              key={deal.id}
+              deal={deal}
+              tags={dealTagsMap[deal.id]}
+              allTags={allTags}
+              onTagsChanged={onTagsChanged}
+              onClick={() => onEditDeal(deal)}
+            />
           ))}
         </SortableContext>
       </div>
