@@ -217,7 +217,9 @@ export function KanbanBoard() {
               deals={deals.filter((d) => d.status === col.name)}
               dealTagsMap={dealTagsMap}
               allTags={allTags}
+              profilesMap={profilesMap}
               onTagsChanged={handleTagToggle}
+              onCapture={handleCapture}
               onAddDeal={handleAddDeal}
               onEditDeal={handleViewDeal}
             />

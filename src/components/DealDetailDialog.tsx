@@ -280,9 +280,48 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               {deal.title}
             </DialogTitle>
           )}
-          <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
-            Status: <span className={`font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>{deal.status}</span>
-          </p>
+          <div className="flex items-center justify-between">
+            <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
+              Status: <span className={`font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>{deal.status}</span>
+            </p>
+            {assignedProfile ? (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-7 w-7 border-2 border-white/30">
+                  {assignedProfile.avatar_url ? (
+                    <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
+                  ) : null}
+                  <AvatarFallback className="text-[10px] bg-white/20 text-white">
+                    {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className={`text-sm font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>
+                  {assignedProfile.full_name}
+                </span>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`gap-1 ${columnColor ? 'text-white hover:bg-white/20' : ''}`}
+                onClick={async () => {
+                  if (!deal) return;
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) return;
+                  const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", deal.id);
+                  if (error) {
+                    toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "Negociação capturada!" });
+                    onUpdated();
+                    fetchAssignedProfile();
+                  }
+                }}
+              >
+                <UserPlus className="h-4 w-4" />
+                Capturar
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <Separator />
