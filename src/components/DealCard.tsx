@@ -16,11 +16,18 @@ interface DealTag {
   color: string;
 }
 
+interface AssignedProfile {
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 interface DealCardProps {
-  deal: Tables<"deals"> & { clients?: Tables<"clients"> | null };
+  deal: Tables<"deals"> & { clients?: Tables<"clients"> | null; assigned_to?: string | null };
   tags?: DealTag[];
   allTags?: DealTag[];
+  assignedProfile?: AssignedProfile | null;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
+  onCapture?: (dealId: string) => void;
   onClick: () => void;
 }
 
