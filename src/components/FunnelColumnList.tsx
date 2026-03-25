@@ -143,7 +143,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-2">
         <div className="relative group">
           <div className="h-8 w-8 rounded-md flex-shrink-0 cursor-pointer" style={{ backgroundColor: newColor }} />
-          <div className="absolute top-full left-0 mt-1 hidden group-hover:flex gap-1 flex-wrap bg-popover border border-border rounded-lg p-2 z-50 w-40 shadow-lg">
+          <div className="absolute top-full left-0 mt-1 hidden group-hover:flex gap-1 flex-wrap bg-popover border border-border rounded-lg p-2 z-50 w-52 shadow-lg">
             {COLOR_OPTIONS.map((c) => (
               <button
                 key={c}
