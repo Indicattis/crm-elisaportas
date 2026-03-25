@@ -1,30 +1,27 @@
 
 
-# Redesign do Header - Menu Centralizado e Visual Detalhado
+# Mostrar Montante Total por Coluna no Kanban
 
-## Layout
+## O que muda
+
+Cada coluna do Kanban passa a exibir, ao lado do contador de deals, o valor total (soma) de todas as negociações daquela coluna.
+
+## Implementação
+
+**Arquivo: `src/components/KanbanColumn.tsx`**
+
+- Calcular `totalValue` somando `deal.value` de todos os deals da coluna
+- Exibir abaixo do título da coluna (ou ao lado do badge de contagem) o valor formatado em R$ usando `toLocaleString("pt-BR")`
+- Mostrar apenas se `totalValue > 0`
+- Estilo: texto pequeno (`text-xs`) com cor `text-muted-foreground` e ícone de cifra
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│  [Logo]          [Kanban] [Clientes] [Config]        [Sair]  │
-│  left            ← centralizado no header →          right   │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────┐
+│ 🟣 Proposta Enviada  [3]   │
+│    R$ 45.000,00             │
+│ ┌─────────────────────────┐ │
+│ │ Deal card...            │ │
+│ └─────────────────────────┘ │
+└─────────────────────────────┘
 ```
-
-Usar CSS grid com 3 colunas (`grid-cols-3`) para alinhar logo a esquerda, nav ao centro e logout a direita.
-
-## Melhorias Visuais
-
-- **Header maior** com mais padding vertical e uma borda inferior mais definida
-- **Nav items** com estilo pill/tab: fundo arredondado, transicao suave, indicador ativo com underline ou fundo accent mais forte
-- **Icones** ligeiramente maiores (h-5 w-5) e com spacing melhor
-- **Logo** com leve drop-shadow para destaque
-- **Botao Sair** com estilo outline sutil e hover vermelho
-- **Separador visual** (linha ou gradient) entre header e conteudo
-
-## Arquivo
-
-| Acao | Arquivo |
-|------|---------|
-| Editar | `src/components/Header.tsx` - novo layout grid + estilos refinados |
 
