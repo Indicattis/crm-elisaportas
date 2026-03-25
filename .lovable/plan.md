@@ -1,40 +1,33 @@
 
 
-# Seção de Cliente no Modal de Detalhes da Negociação
+# Corrigir vinculação de cliente externo na negociação
 
-## Visão geral
+## Problema
 
-Adicionar ao `DealDetailDialog` a capacidade de visualizar informações completas do cliente da base externa e de vincular/alterar o cliente associado à negociação, usando o mesmo combobox de busca do `DealDialog`.
+A tabela `deals` tem uma foreign key `deals_client_id_fkey` que referencia a tabela local `clients`. Quando tentamos salvar um ID de cliente da base externa, o PostgreSQL rejeita com 409 Conflict porque o UUID não existe na tabela local `clients`.
 
-## Alterações
+## Solução
 
-### 1. Atualizar `src/components/DealDetailDialog.tsx`
+### 1. Migration: remover a FK constraint
 
-- Importar `externalSupabase` e `ExternalClient`
-- Ao abrir o dialog, se `deal.client_id` existir, buscar os dados completos do cliente na tabela externa `clientes` pelo ID
-- Substituir a seção simples de cliente (linhas 333-339) por um card expandido mostrando: nome, telefone, email, CPF/CNPJ, cidade/estado, tipo, badges fidelizado/parceiro
-- Adicionar botão para vincular/trocar cliente usando o mesmo padrão Popover+Command (combobox com busca) já usado no `DealDialog`
-- Ao selecionar um cliente, atualizar o `client_id` do deal no banco e recarregar os dados
-- Permitir desvincular o cliente (opção "Sem cliente")
+Executar uma migration SQL para dropar a foreign key, permitindo que `client_id` armazene IDs de clientes externos livremente:
 
-### 2. Seção de cliente no modal
-
-```text
-┌──────────────────────────────────┐
-│ 👤 Cliente: João Silva    [✏️]  │
-│   Tel: (11) 99999-0000          │
-│   Email: joao@email.com         │
-│   CPF/CNPJ: 123.456.789-00     │
-│   Cidade/UF: São Paulo/SP       │
-│   [Fidelizado] [Parceiro]       │
-└──────────────────────────────────┘
+```sql
+ALTER TABLE public.deals DROP CONSTRAINT IF EXISTS deals_client_id_fkey;
 ```
 
-Se não houver cliente vinculado, exibir botão "Vincular cliente" que abre o combobox.
+### 2. Atualizar `KanbanBoard.tsx`
 
-### Arquivos
+Remover o `.select("*, clients(*)")` do fetch de deals (já que a relação FK não existirá mais) e usar apenas `.select("*")`.
+
+### 3. Remover dependências da tabela local `clients`
+
+- No `KanbanBoard`, remover o `fetchClients` e o state `clients` que buscam da tabela local (já não são usados após a migração para clientes externos).
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Adicionar seção de cliente com busca externa |
+| Migration SQL | Dropar `deals_client_id_fkey` |
+| `src/components/KanbanBoard.tsx` | Ajustar select de deals, remover fetch de clients local |
 
