@@ -163,6 +163,18 @@ export function KanbanBoard() {
   };
 
 
+  const handleCapture = async (dealId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", dealId);
+    if (error) {
+      toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Negociação capturada!" });
+      fetchDeals();
+    }
+  };
+
   const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
     if (checked) {
       const { error } = await supabase.from("deal_tags").insert({ deal_id: dealId, tag_id: tagId });
