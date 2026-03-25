@@ -76,13 +76,30 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId, toast]);
 
+  const fetchDealTags = useCallback(async () => {
+    if (!selectedFunnelId) return;
+    const { data } = await supabase
+      .from("deal_tags")
+      .select("deal_id, tag_id, tags(id, name, color)");
+    if (data) {
+      const map: Record<string, DealTag[]> = {};
+      data.forEach((dt: any) => {
+        if (dt.tags) {
+          if (!map[dt.deal_id]) map[dt.deal_id] = [];
+          map[dt.deal_id].push(dt.tags);
+        }
+      });
+      setDealTagsMap(map);
+    }
+  }, [selectedFunnelId]);
+
   const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("*").order("name");
     setClients(data || []);
   }, []);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
-  useEffect(() => { fetchColumns(); fetchDeals(); }, [fetchColumns, fetchDeals]);
+  useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
   const handleDragStart = (event: DragStartEvent) => {
