@@ -18,7 +18,7 @@ interface DealCardProps {
   onClick: () => void;
 }
 
-export function DealCard({ deal, onClick }: DealCardProps) {
+export function DealCard({ deal, tags = [], onClick }: DealCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
   });
