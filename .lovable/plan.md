@@ -1,48 +1,34 @@
 
 
-# Integração com Base Externa de Clientes
+# Combobox de Clientes Externos no DealDialog
 
-## Visão geral
+## Visao geral
 
-Conectar a página `/clients` a um projeto externo para buscar clientes da tabela `clientes`, exibindo os dados na interface existente. A chave anon é pública e pode ficar no código.
+Substituir o `<Select>` de clientes no `DealDialog` por um combobox com campo de busca, alimentado pela base externa de clientes (mesma usada na pagina `/clients`).
 
-## Alterações
+## Alteracoes
 
-### 1. Criar `src/integrations/external-supabase.ts`
+### 1. Atualizar `src/components/DealDialog.tsx`
 
-Criar um cliente Supabase separado apontando para o projeto externo:
-- URL: `https://zddnvwqhfcqspmxscwyy.supabase.co`
-- Anon Key: a chave fornecida
+- Remover a prop `clients` (nao depender mais dos clientes locais)
+- Adicionar estado para buscar clientes da base externa usando `externalSupabase`
+- Buscar da tabela `clientes` com filtro `ativo = true` e `ilike` no campo `nome` baseado no texto digitado
+- Substituir o `<Select>` por um Popover + Command (combobox pattern) usando os componentes `cmdk` ja existentes no projeto
+- Ao digitar, filtrar clientes pelo nome com debounce
+- Exibir nome e telefone/cidade nos itens do dropdown
+- Manter o botao "Novo Cliente" para cadastro inline
+- O `client_id` selecionado sera o `id` da base externa (salvar como texto no deal)
 
-### 2. Atualizar `src/pages/Clients.tsx`
+### 2. Fluxo do combobox
 
-- Importar o cliente externo
-- Buscar da tabela `clientes` (filtro `ativo = true`) em vez da tabela `clients` local
-- Mapear colunas: `nome` → name, `email` → email, `telefone` → phone
-- Exibir colunas extras relevantes (CPF/CNPJ, cidade, estado, tipo_cliente, fidelizado, parceiro)
-- Remover ações de criar/editar/excluir (dados são read-only da base externa)
+1. Usuario clica no campo de cliente -> abre popover
+2. Digita texto -> busca na base externa com `ilike('%texto%')` no campo `nome`
+3. Seleciona um cliente -> popover fecha, nome exibido no trigger
+4. Opcao "Sem cliente" disponivel
 
-### 3. Atualizar `src/components/ClientDialog.tsx`
+### Arquivos
 
-- Não será mais necessário para a base externa (manter arquivo mas não usar, ou remover import)
-
-## Mapeamento de colunas
-
-| Base externa (`clientes`) | UI |
+| Arquivo | Acao |
 |---|---|
-| `nome` | Nome |
-| `email` | E-mail |
-| `telefone` | Telefone |
-| `cpf_cnpj` | CPF/CNPJ |
-| `cidade` / `estado` | Localização |
-| `tipo_cliente` | Tipo |
-| `fidelizado` | Badge fidelizado |
-| `parceiro` | Badge parceiro |
-
-## Arquivos
-
-| Arquivo | Ação |
-|---|---|
-| `src/integrations/external-supabase.ts` | Criar |
-| `src/pages/Clients.tsx` | Atualizar fetch + UI |
+| `src/components/DealDialog.tsx` | Substituir Select por Combobox com busca externa |
 
