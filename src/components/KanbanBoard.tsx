@@ -169,13 +169,14 @@ export function KanbanBoard() {
               status={col.name}
               color={col.color}
               deals={deals.filter((d) => d.status === col.name)}
+              dealTagsMap={dealTagsMap}
               onAddDeal={handleAddDeal}
               onEditDeal={handleViewDeal}
             />
           ))}
         </div>
         <DragOverlay>
-          {activeDeal && <DealCard deal={activeDeal} onClick={() => {}} />}
+          {activeDeal && <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
 
