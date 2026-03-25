@@ -1,32 +1,63 @@
 
 
-# Adicionar Avatar do Comentarista nos Comentários
+# Edição inline no modal de detalhes + Marcar como Perdida
 
 ## Resumo
 
-Exibir a foto de perfil (da tabela `profiles`) ao lado de cada comentário no modal de detalhes do deal.
+Remover o botão "Editar" do footer do `DealDetailDialog`. Os campos de informação (título, cliente, valor, observações) se tornam editáveis ao clicar neles. Adicionar botão "Marcar como Perdida" ao lado do "Marcar como Vendido".
 
-## Alterações
+## Alterações em `src/components/DealDetailDialog.tsx`
 
-### 1. `src/components/DealDetailDialog.tsx`
+### 1. Edição inline nos campos
 
-- Alterar `DealComment` para incluir dados do perfil (avatar_url, full_name)
-- No `fetchComments`, fazer join com `profiles`: `.select("*, profiles(full_name, avatar_url)")` usando o campo `user_id`
-- Antes de cada comentário, renderizar um `Avatar` com `AvatarImage` (foto) e `AvatarFallback` (iniciais do nome)
-- Importar `Avatar, AvatarImage, AvatarFallback` de `@/components/ui/avatar`
+Adicionar estados locais para controlar qual campo está em modo edição:
+- `editingField`: `"title" | "value" | "notes" | null`
+- `editTitle`, `editValue`, `editNotes`: valores temporários durante edição
 
-### Layout do comentário
+Cada campo de texto (título, valor, observações) será envolvido num wrapper clicável:
+- Ao clicar, troca para um `Input` / `Textarea` com o valor atual
+- Ao pressionar Enter ou perder foco (onBlur), salva via `supabase.from("deals").update(...)` e chama `onUpdated()`
+- Ao pressionar Escape, cancela a edição
+
+O **título** no header do dialog também será editável (clicando nele aparece um Input).
+
+O **valor** mostrará um Input numérico inline.
+
+As **observações** mostrarão um Textarea inline. Se não houver observações, mostrar um texto clicável "Adicionar observações...".
+
+### 2. Remover botão "Editar"
+
+- Remover o `<Button variant="outline">` com ícone `Pencil` do footer (linhas 382-385)
+- Remover a prop `onEdit` da interface (e do componente pai `KanbanBoard`)
+
+### 3. Botão "Marcar como Perdida"
+
+- Adicionar um botão vermelho ao lado do botão verde no footer
+- Ícone: `XCircle` do lucide-react
+- Texto: "Marcar como Perdida"
+- Ação: `handleMarkAsLost` — deleta o deal do banco (`supabase.from("deals").delete()`) e fecha o dialog com toast de confirmação
+
+### 4. Atualizar `KanbanBoard.tsx`
+
+- Remover a prop `onEdit` passada ao `DealDetailDialog`
+- Remover a função `handleEditDeal` (não mais necessária para o detail dialog)
+- Manter o `DealDialog` para criação de novos deals
+
+### Layout do footer atualizado
 
 ```text
-┌──────────────────────────────────────┐
-│ [👤]  Texto do comentário...         │
-│       25/03/2026 às 14:17    [🗑️]   │
-└──────────────────────────────────────┘
+[🔥🔥🔥🔥🔥]     [❌ Perdida] [✅ Vendido]
 ```
 
-O avatar fica à esquerda (h-8 w-8), o conteúdo ao centro, e o botão de excluir à direita.
+### Layout dos campos editáveis
 
-### Nota técnica
+```text
+Título (clicável → Input)
+👤 Cliente: Nome (somente leitura)
+💰 Valor: R$ 1.000,00 (clicável → Input number)
+📅 Criado em: 01/01/2025 (somente leitura)
+🕐 Na etapa: 3 dias (somente leitura)
 
-O join `profiles(full_name, avatar_url)` funciona via `user_id` referenciando `auth.users(id)`, e `profiles.id` também referencia `auth.users(id)`. Como não há FK direta entre `deal_comments.user_id` e `profiles.id`, será necessário buscar os perfis separadamente com os `user_id`s dos comentários, ou criar uma view/FK. A abordagem mais simples: buscar comentários normalmente, coletar os `user_id`s únicos, e fazer uma query separada em `profiles` para montar um mapa `userId → profile`.
+Observações (clicável → Textarea)
+```
 
