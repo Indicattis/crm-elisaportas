@@ -61,7 +61,7 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal
       <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 min-h-[100px]">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} onClick={() => onEditDeal(deal)} />
+            <DealCard key={deal.id} deal={deal} tags={dealTagsMap[deal.id]} onClick={() => onEditDeal(deal)} />
           ))}
         </SortableContext>
       </div>
