@@ -99,9 +99,14 @@ export function KanbanBoard() {
     setClients(data || []);
   }, []);
 
+  const fetchAllTags = useCallback(async () => {
+    const { data } = await supabase.from("tags").select("id, name, color").order("name");
+    setAllTags(data || []);
+  }, []);
+
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
-  useEffect(() => { fetchClients(); }, [fetchClients]);
+  useEffect(() => { fetchClients(); fetchAllTags(); }, [fetchClients, fetchAllTags]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const deal = deals.find((d) => d.id === event.active.id);
