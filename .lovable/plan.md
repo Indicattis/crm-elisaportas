@@ -1,41 +1,34 @@
 
 
-# Card com Background de Tag + Ícone de Troca Rápida
+# Toggle de Modo Claro/Escuro
 
 ## Resumo
 
-Cada card de negociação terá o background colorido pela primeira tag associada (vibrante, ~20-25% opacidade). Um ícone de tag no card abrirá um Popover para trocar/adicionar tags rapidamente sem abrir o detalhe.
+Adicionar um botão toggle no Header que alterna entre modo claro e escuro, persistindo a preferência no `localStorage`.
 
 ## Implementação
 
-### 1. `src/components/DealCard.tsx`
+### 1. Criar hook `useTheme` (`src/hooks/use-theme.tsx`)
 
-- **Background colorido**: usar a cor da primeira tag como `backgroundColor` com `rgba(r,g,b, 0.2)` e borda lateral esquerda sólida com a cor da tag
-- Adicionar helper `hexToRgb` para converter cor hex em RGB
-- **Ícone de tag**: adicionar botão com ícone `Tag` (lucide) no canto superior direito do card
-- Ao clicar no ícone, abrir Popover com lista de todas as tags disponíveis (checkboxes) para adicionar/remover tags do deal
-- O clique no ícone deve ter `e.stopPropagation()` para não abrir o detalhe do deal
-- Novo prop `allTags` (todas as tags do usuário) e `onTagsChanged` callback
+- Estado `theme: "light" | "dark"`, inicializado a partir do `localStorage` ou preferência do sistema
+- Ao mudar, adicionar/remover classe `dark` no `document.documentElement` e salvar no `localStorage`
+- Exportar `{ theme, toggleTheme }`
 
-### 2. `src/components/KanbanBoard.tsx`
+### 2. Atualizar `src/components/Header.tsx`
 
-- Buscar todas as tags do usuário (`allTags`) para passar ao `DealCard`
-- Passar `allTags` via `KanbanColumn` até o `DealCard`
-- Adicionar handler `onTagsChanged` que faz toggle de deal_tags (insert/delete) e atualiza `dealTagsMap`
+- Importar `useTheme` e ícones `Sun`/`Moon` do lucide
+- Adicionar botão toggle ao lado do botão "Sair" (à direita)
+- Mostrar `Sun` no modo escuro, `Moon` no modo claro
+- Estilo consistente com o botão de logout (rounded-full, border)
 
-### 3. `src/components/KanbanColumn.tsx`
-
-- Receber e repassar `allTags` e `onTagsChanged` para cada `DealCard`
-
-## Visual do Card
-
+Layout do header (direita):
 ```text
-┌─────────────────────────┐
-│█ Título do Deal    [🏷] │  ← borda esquerda cor da tag, ícone tag
-│  👤 Cliente              │
-│  💲 R$ 1.200,00          │
-│  [Tag1] [Tag2]           │  ← badges das tags
-│  📅 01/01  ⏱ 3d          │
-└─────────────────────────┘  ← background com cor da 1ª tag @ 20%
+[☀/🌙]  [Sair]
 ```
+
+### 3. Garantir suporte ao dark mode
+
+- O `tailwind.config.ts` já tem `darkMode: ["class"]` configurado
+- O `index.css` já tem variáveis `.dark` definidas
+- Nenhuma mudança necessária nesses arquivos
 
