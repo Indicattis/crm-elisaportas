@@ -1,66 +1,71 @@
 
 
-# Modal Detalhado de Negociação com Histórico e Calor
+# Hub de Configuração + Sistema de Tags
 
 ## Resumo
 
-Criar um modal grande (`DealDetailDialog`) que abre ao clicar no card, substituindo o `DealDialog` de edição. O modal terá: header com título, seção de informações, seção de comentários/histórico, e footer com botão "Marcar como Vendido" e 5 ícones de fogo para definir o calor da negociação.
+Transformar `/crm-config` em hub com abas (Tabs): "Funis" (existente) e "Tags" (novo). Criar tabela `tags` e tabela de junção `deal_tags` para associar tags às negociações.
 
 ## Banco de Dados
 
-### Nova tabela: `deal_comments`
-Para armazenar o histórico de comentários/anotações de cada negociação.
-
+### Nova tabela: `tags`
 ```sql
-CREATE TABLE public.deal_comments (
+CREATE TABLE public.tags (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  deal_id uuid NOT NULL REFERENCES public.deals(id) ON DELETE CASCADE,
   user_id uuid NOT NULL,
-  content text NOT NULL,
+  name text NOT NULL,
+  color text NOT NULL DEFAULT '#6366f1',
   created_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.deal_comments ENABLE ROW LEVEL SECURITY;
--- RLS: usuarios veem/criam seus proprios comentarios
+ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
+-- RLS CRUD para user_id = auth.uid()
 ```
 
-### Novo campo na tabela `deals`
-Adicionar coluna `heat` (integer, default 0, range 0-5) para o calor da negociação.
-
+### Nova tabela: `deal_tags` (junção N:N)
 ```sql
-ALTER TABLE public.deals ADD COLUMN heat integer NOT NULL DEFAULT 0;
+CREATE TABLE public.deal_tags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid NOT NULL REFERENCES public.deals(id) ON DELETE CASCADE,
+  tag_id uuid NOT NULL REFERENCES public.tags(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(deal_id, tag_id)
+);
+ALTER TABLE public.deal_tags ENABLE ROW LEVEL SECURITY;
+-- RLS baseado no user_id do deal via subquery
 ```
 
 ## Componentes
 
-### 1. `src/components/DealDetailDialog.tsx` (novo)
+### 1. `src/pages/CrmConfig.tsx` (refatorar)
+- Usar `Tabs` com duas abas: "Funis" e "Tags"
+- Aba "Funis" contém o conteúdo atual (select de funil, colunas, etc.)
+- Aba "Tags" renderiza novo componente `TagManager`
 
-Modal grande usando `Dialog` com `sm:max-w-2xl`. Estrutura:
+### 2. `src/components/TagManager.tsx` (novo)
+- Lista de tags do usuário com nome e cor (badge colorido)
+- Botão "Nova Tag" abre inline form com campos nome + seletor de cor
+- Cada tag tem botões editar/excluir
+- CRUD completo na tabela `tags`
 
-- **Header**: Título da negociação (editável inline), botão fechar
-- **Seção Informações**: Cliente, valor, status atual, data de cadastro, dias na etapa, notas
-- **Seção Comentários**: Lista de comentários com data/hora + campo de input para adicionar novo comentário
-- **Footer fixo**:
-  - Botão "Marcar como Vendido" (muda status para coluna final ou status especial)
-  - 5 ícones de `Flame` (lucide-react) clicáveis para definir heat 1-5 (preenchidos até o nível selecionado)
-  - Botão "Editar" que abre o `DealDialog` existente
+### 3. `src/components/DealDetailDialog.tsx` (editar)
+- Adicionar seção de tags entre info e comentários
+- Mostrar tags associadas como badges coloridos com botão X para remover
+- Popover/select para adicionar tags existentes ao deal
 
-### 2. `src/components/KanbanBoard.tsx` (editar)
+### 4. `src/components/DealCard.tsx` (editar)
+- Mostrar badges das tags associadas ao deal (compactos)
 
-- Substituir `onEditDeal` por `onViewDeal` que abre o `DealDetailDialog`
-- Manter `DealDialog` disponível para edição a partir do detail modal
-
-### 3. `src/components/DealCard.tsx` (editar)
-
-- Mostrar indicador de calor (pequenos pontos ou chamas) no card quando `heat > 0`
+### 5. `src/components/KanbanBoard.tsx` (editar)
+- Buscar `deal_tags` + `tags` junto com os deals para exibir nos cards
 
 ## Fluxo
 
 ```text
-Card click → DealDetailDialog (visualização completa)
-  ├── Ver informações
-  ├── Adicionar comentários (histórico)
-  ├── Definir calor (1-5 chamas)
-  ├── Marcar como vendido
-  └── Botão Editar → abre DealDialog existente
+/crm-config
+  ├── Aba "Funis" → configuração existente
+  └── Aba "Tags" → TagManager (CRUD de tags)
+
+DealCard → mostra badges de tags
+DealDetailDialog → adicionar/remover tags do deal
 ```
 
