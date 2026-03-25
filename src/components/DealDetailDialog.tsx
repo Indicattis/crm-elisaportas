@@ -330,7 +330,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     <Trash2 className="h-3 w-3 text-muted-foreground" />
                   </Button>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <Textarea
