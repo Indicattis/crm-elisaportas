@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase, type ExternalClient } from "@/integrations/external-supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, X, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -17,15 +21,15 @@ interface DealDialogProps {
   onOpenChange: (open: boolean) => void;
   deal?: DealWithClient | null;
   defaultStatus?: string;
-  clients: Tables<"clients">[];
   statuses: string[];
   funnelId: string;
   onSaved: () => void;
 }
 
-export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, statuses, funnelId, onSaved }: DealDialogProps) {
+export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, funnelId, onSaved }: DealDialogProps) {
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState<string>("");
+  const [clientName, setClientName] = useState<string>("");
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
@@ -34,18 +38,56 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
+  const [comboOpen, setComboOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [externalClients, setExternalClients] = useState<ExternalClient[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  const searchClients = useCallback(async (query: string) => {
+    setSearchLoading(true);
+    try {
+      let q = externalSupabase
+        .from("clientes")
+        .select("*")
+        .eq("ativo", true)
+        .order("nome")
+        .limit(20);
+      if (query.trim()) {
+        q = q.ilike("nome", `%${query.trim()}%`);
+      }
+      const { data } = await q;
+      setExternalClients((data as ExternalClient[]) || []);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (comboOpen) {
+      searchClients(searchQuery);
+    }
+  }, [comboOpen]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchClients(value), 300);
+  };
 
   useEffect(() => {
     if (deal) {
       setTitle(deal.title);
       setClientId(deal.client_id || "");
+      setClientName(deal.clients?.name || "");
       setValue(deal.value ? String(deal.value) : "");
       setStatus(deal.status);
       setNotes(deal.notes || "");
     } else {
       setTitle("");
       setClientId("");
+      setClientName("");
       setValue("");
       setStatus(defaultStatus || statuses[0] || "");
       setNotes("");
@@ -54,6 +96,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
     setNewClientName("");
     setNewClientEmail("");
     setNewClientPhone("");
+    setSearchQuery("");
   }, [deal, defaultStatus, open, statuses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,15 +213,66 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, clients, s
                 </div>
               </div>
             ) : (
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem cliente</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={comboOpen} onOpenChange={setComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={comboOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {clientName || "Selecionar cliente..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Buscar cliente..."
+                      value={searchQuery}
+                      onValueChange={handleSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {searchLoading ? "Buscando..." : "Nenhum cliente encontrado."}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            setClientId("");
+                            setClientName("");
+                            setComboOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", !clientId ? "opacity-100" : "opacity-0")} />
+                          Sem cliente
+                        </CommandItem>
+                        {externalClients.map((c) => (
+                          <CommandItem
+                            key={c.id}
+                            onSelect={() => {
+                              setClientId(c.id);
+                              setClientName(c.nome);
+                              setComboOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                            <div className="flex flex-col">
+                              <span>{c.nome}</span>
+                              {(c.telefone || c.cidade) && (
+                                <span className="text-xs text-muted-foreground">
+                                  {[c.telefone, c.cidade].filter(Boolean).join(" · ")}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
           <div className="grid grid-cols-2 gap-4">
