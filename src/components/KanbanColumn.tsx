@@ -13,13 +13,20 @@ interface DealTag {
   color: string;
 }
 
+interface AssignedProfile {
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 interface KanbanColumnProps {
   status: string;
   color?: string;
   deals: DealWithClient[];
   dealTagsMap?: Record<string, DealTag[]>;
   allTags?: DealTag[];
+  profilesMap?: Record<string, AssignedProfile>;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
+  onCapture?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: DealWithClient) => void;
 }
