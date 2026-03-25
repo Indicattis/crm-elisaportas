@@ -29,7 +29,7 @@ export function Header() {
         {/* Logo */}
         <div className="flex items-center">
           <img
-            src={logo}
+            src={theme === "dark" ? logoWhite : logo}
             alt="Elisa Portas de Enrolar"
             className="h-8 md:h-11 object-contain drop-shadow-md"
           />
