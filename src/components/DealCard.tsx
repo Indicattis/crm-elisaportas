@@ -74,24 +74,6 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       <div className="flex items-start justify-between">
         <h4 className="text-sm font-semibold text-foreground leading-tight flex-1">{deal.title}</h4>
         <div className="flex items-center gap-1 ml-1">
-          {(deal as any).assigned_to && assignedProfile ? (
-            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
-              {assignedProfile.avatar_url ? (
-                <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
-              ) : null}
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <button
-              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
-              title="Capturar negociação"
-              onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
-            >
-              <UserPlus className="h-3 w-3 text-muted-foreground" />
-            </button>
-          )}
           {allTags.length > 0 && (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
@@ -128,6 +110,24 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
                 </div>
               </PopoverContent>
             </Popover>
+          )}
+          {(deal as any).assigned_to && assignedProfile ? (
+            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
+              {assignedProfile.avatar_url ? (
+                <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
+              ) : null}
+              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <button
+              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
+              title="Capturar negociação"
+              onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
+            >
+              <UserPlus className="h-3 w-3 text-muted-foreground" />
+            </button>
           )}
         </div>
       </div>
