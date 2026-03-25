@@ -1,50 +1,48 @@
 
 
-# Página de Perfil com Reset de Senha
+# Integração com Base Externa de Clientes
 
 ## Visão geral
 
-Criar uma página dedicada `/profile` onde o usuário pode ver/editar seu perfil (nome, foto, email, cargo) e resetar sua senha. Remover a seção "Meu Perfil" do `TeamManager` (que fica em `/crm-config`). Adicionar botão de acesso ao perfil no Header.
+Conectar a página `/clients` a um projeto externo para buscar clientes da tabela `clientes`, exibindo os dados na interface existente. A chave anon é pública e pode ficar no código.
 
 ## Alterações
 
-### 1. Criar `src/pages/Profile.tsx`
+### 1. Criar `src/integrations/external-supabase.ts`
 
-Nova página com duas seções:
+Criar um cliente Supabase separado apontando para o projeto externo:
+- URL: `https://zddnvwqhfcqspmxscwyy.supabase.co`
+- Anon Key: a chave fornecida
 
-**Seção 1 — Meu Perfil** (extraído do `TeamManager`):
-- Avatar com upload de foto
-- Nome editável
-- Email (somente leitura)
-- Badge do cargo
+### 2. Atualizar `src/pages/Clients.tsx`
 
-**Seção 2 — Alterar Senha**:
-- Campo "Nova senha" e "Confirmar nova senha"
-- Botão "Alterar senha"
-- Usa `supabase.auth.updateUser({ password })` para atualizar
+- Importar o cliente externo
+- Buscar da tabela `clientes` (filtro `ativo = true`) em vez da tabela `clients` local
+- Mapear colunas: `nome` → name, `email` → email, `telefone` → phone
+- Exibir colunas extras relevantes (CPF/CNPJ, cidade, estado, tipo_cliente, fidelizado, parceiro)
+- Remover ações de criar/editar/excluir (dados são read-only da base externa)
 
-### 2. Atualizar `src/components/TeamManager.tsx`
+### 3. Atualizar `src/components/ClientDialog.tsx`
 
-- Remover toda a seção "Meu Perfil" (Card com avatar, nome, email, cargo)
-- Manter apenas a seção "Membros da Equipe" e o dialog de convite
+- Não será mais necessário para a base externa (manter arquivo mas não usar, ou remover import)
 
-### 3. Atualizar `src/App.tsx`
+## Mapeamento de colunas
 
-- Importar a página `Profile`
-- Adicionar rota `/profile` protegida por `AuthGuard` (acessível por admin e vendedor)
-
-### 4. Atualizar `src/components/Header.tsx`
-
-- Adicionar botão/ícone de perfil (ícone `User` ou avatar do usuário) ao lado do botão de tema e logout
-- Ao clicar, navega para `/profile`
-- Visível para todos os usuários (não filtrado por role)
+| Base externa (`clientes`) | UI |
+|---|---|
+| `nome` | Nome |
+| `email` | E-mail |
+| `telefone` | Telefone |
+| `cpf_cnpj` | CPF/CNPJ |
+| `cidade` / `estado` | Localização |
+| `tipo_cliente` | Tipo |
+| `fidelizado` | Badge fidelizado |
+| `parceiro` | Badge parceiro |
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Profile.tsx` | Criar |
-| `src/components/TeamManager.tsx` | Remover seção "Meu Perfil" |
-| `src/components/Header.tsx` | Adicionar botão de perfil |
-| `src/App.tsx` | Adicionar rota `/profile` |
+| `src/integrations/external-supabase.ts` | Criar |
+| `src/pages/Clients.tsx` | Atualizar fetch + UI |
 
