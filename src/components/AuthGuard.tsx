@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { RoleProvider } from "@/contexts/RoleContext";
 import type { Session } from "@supabase/supabase-js";
 
 interface AuthGuardProps {
@@ -38,5 +39,5 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (!session) return null;
 
-  return <>{children}</>;
+  return <RoleProvider>{children}</RoleProvider>;
 }
