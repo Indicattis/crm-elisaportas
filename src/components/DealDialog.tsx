@@ -292,10 +292,6 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Observações</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Detalhes da negociação..." />
-          </div>
           <div className="flex gap-2 justify-end">
             {deal && (
               <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
