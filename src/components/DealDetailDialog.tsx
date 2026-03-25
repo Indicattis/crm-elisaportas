@@ -56,12 +56,50 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, o
     setComments((data as DealComment[]) || []);
   }, [deal]);
 
+  const fetchTags = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_tags")
+      .select("tag_id, tags(id, name, color)")
+      .eq("deal_id", deal.id);
+    setDealTags((data || []).map((dt: any) => dt.tags).filter(Boolean));
+  }, [deal]);
+
+  const fetchAllTags = useCallback(async () => {
+    const { data } = await supabase.from("tags").select("id, name, color").order("name");
+    setAllTags(data || []);
+  }, []);
+
   useEffect(() => {
     if (deal && open) {
-      setHeat((deal as any).heat || 0);
+      setHeat(deal.heat || 0);
       fetchComments();
+      fetchTags();
+      fetchAllTags();
     }
-  }, [deal, open, fetchComments]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags]);
+
+  const handleAddTag = async (tagId: string) => {
+    if (!deal) return;
+    const { error } = await supabase.from("deal_tags").insert({ deal_id: deal.id, tag_id: tagId });
+    if (error) {
+      toast({ title: "Erro ao adicionar tag", description: error.message, variant: "destructive" });
+    } else {
+      fetchTags();
+      onUpdated();
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    if (!deal) return;
+    const { error } = await supabase.from("deal_tags").delete().eq("deal_id", deal.id).eq("tag_id", tagId);
+    if (error) {
+      toast({ title: "Erro ao remover tag", description: error.message, variant: "destructive" });
+    } else {
+      fetchTags();
+      onUpdated();
+    }
+  };
 
   const handleSendComment = async () => {
     if (!deal || !newComment.trim()) return;
