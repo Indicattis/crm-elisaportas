@@ -43,7 +43,6 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    backgroundColor: primaryTag ? primaryTag.color : undefined,
     borderLeftColor: primaryTag ? primaryTag.color : 'transparent',
     borderLeftWidth: '3px',
     borderLeftStyle: 'solid' as const,
@@ -61,7 +60,7 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
       style={style}
       {...attributes}
       {...listeners}
-      className={`group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 ${primaryTag ? 'text-white' : ''}`}
+      className="group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 bg-background"
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
@@ -105,13 +104,13 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
         )}
       </div>
       {deal.clients && (
-        <div className={`flex items-center gap-1 text-xs ${primaryTag ? 'text-white/80' : 'text-muted-foreground'}`}>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <User className="h-3 w-3" />
           <span>{deal.clients.name}</span>
         </div>
       )}
       {deal.value && deal.value > 0 && (
-        <div className={`flex items-center gap-1 text-xs font-medium ${primaryTag ? 'text-white' : 'text-primary'}`}>
+        <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <DollarSign className="h-3 w-3" />
           <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         </div>
@@ -128,7 +127,7 @@ export function DealCard({ deal, tags = [], allTags = [], onTagsChanged, onClick
           )}
         </div>
       )}
-      <div className={`flex items-center justify-between text-xs ${primaryTag ? 'text-white/70' : 'text-muted-foreground'}`}>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />

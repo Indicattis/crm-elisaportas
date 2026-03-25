@@ -34,6 +34,7 @@ export function KanbanBoard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewingDeal, setViewingDeal] = useState<DealWithClient | null>(null);
+  const [viewingColumnColor, setViewingColumnColor] = useState<string>("");
   const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
@@ -143,6 +144,8 @@ export function KanbanBoard() {
   };
 
   const handleViewDeal = (deal: DealWithClient) => {
+    const col = columns.find((c) => c.name === deal.status);
+    setViewingColumnColor(col?.color || "");
     setViewingDeal(deal);
     setDetailOpen(true);
   };
@@ -210,6 +213,7 @@ export function KanbanBoard() {
         onOpenChange={setDetailOpen}
         deal={viewingDeal}
         statuses={columns.map((c) => c.name)}
+        columnColor={viewingColumnColor}
         onEdit={handleEditDeal}
         onUpdated={() => { fetchDeals(); fetchDealTags(); }}
       />
