@@ -99,6 +99,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setAllTags(data || []);
   }, []);
 
+  const fetchAssignedProfile = useCallback(async () => {
+    if (!deal || !(deal as any).assigned_to) { setAssignedProfile(null); return; }
+    const { data } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", (deal as any).assigned_to).single();
+    setAssignedProfile(data || null);
+  }, [deal]);
+
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
@@ -106,8 +112,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchComments();
       fetchTags();
       fetchAllTags();
+      fetchAssignedProfile();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
