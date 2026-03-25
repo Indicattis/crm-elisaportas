@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users } from "lucide-react";
 import { TeamManager } from "@/components/TeamManager";
+import { FunnelMembersManager } from "@/components/FunnelMembersManager";
 import { useToast } from "@/hooks/use-toast";
 
 interface Funnel {
