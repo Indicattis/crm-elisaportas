@@ -5,10 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Pencil, Trash2, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
@@ -34,6 +42,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, o
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
   const [heat, setHeat] = useState(0);
+  const [dealTags, setDealTags] = useState<Tag[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
   const { toast } = useToast();
 
   const fetchComments = useCallback(async () => {
@@ -46,12 +56,50 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, o
     setComments((data as DealComment[]) || []);
   }, [deal]);
 
+  const fetchTags = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_tags")
+      .select("tag_id, tags(id, name, color)")
+      .eq("deal_id", deal.id);
+    setDealTags((data || []).map((dt: any) => dt.tags).filter(Boolean));
+  }, [deal]);
+
+  const fetchAllTags = useCallback(async () => {
+    const { data } = await supabase.from("tags").select("id, name, color").order("name");
+    setAllTags(data || []);
+  }, []);
+
   useEffect(() => {
     if (deal && open) {
-      setHeat((deal as any).heat || 0);
+      setHeat(deal.heat || 0);
       fetchComments();
+      fetchTags();
+      fetchAllTags();
     }
-  }, [deal, open, fetchComments]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags]);
+
+  const handleAddTag = async (tagId: string) => {
+    if (!deal) return;
+    const { error } = await supabase.from("deal_tags").insert({ deal_id: deal.id, tag_id: tagId });
+    if (error) {
+      toast({ title: "Erro ao adicionar tag", description: error.message, variant: "destructive" });
+    } else {
+      fetchTags();
+      onUpdated();
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    if (!deal) return;
+    const { error } = await supabase.from("deal_tags").delete().eq("deal_id", deal.id).eq("tag_id", tagId);
+    if (error) {
+      toast({ title: "Erro ao remover tag", description: error.message, variant: "destructive" });
+    } else {
+      fetchTags();
+      onUpdated();
+    }
+  };
 
   const handleSendComment = async () => {
     if (!deal || !newComment.trim()) return;
@@ -164,6 +212,50 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, o
               <p className="text-sm text-foreground whitespace-pre-wrap">{deal.notes}</p>
             </div>
           )}
+
+          {/* Tags section */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-sm font-semibold text-foreground">Tags</h3>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-6 w-6">
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="start">
+                  <div className="space-y-1">
+                    {allTags.filter((t) => !dealTags.some((dt) => dt.id === t.id)).map((tag) => (
+                      <button
+                        key={tag.id}
+                        className="flex items-center gap-2 w-full rounded px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+                        onClick={() => handleAddTag(tag.id)}
+                      >
+                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tag.color }} />
+                        {tag.name}
+                      </button>
+                    ))}
+                    {allTags.filter((t) => !dealTags.some((dt) => dt.id === t.id)).length === 0 && (
+                      <p className="text-xs text-muted-foreground px-2 py-1">Nenhuma tag disponível</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {dealTags.map((tag) => (
+                <Badge key={tag.id} style={{ backgroundColor: tag.color, color: "#fff" }} className="gap-1 pr-1">
+                  {tag.name}
+                  <button onClick={() => handleRemoveTag(tag.id)} className="ml-0.5 hover:opacity-70">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {dealTags.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Sem tags</p>
+              )}
+            </div>
+          </div>
 
           <Separator />
 

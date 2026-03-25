@@ -11,6 +11,12 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
+interface DealTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface FunnelColumn {
   id: string;
   funnel_id: string;
@@ -31,6 +37,7 @@ export function KanbanBoard() {
   const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
+  const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
@@ -69,13 +76,30 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId, toast]);
 
+  const fetchDealTags = useCallback(async () => {
+    if (!selectedFunnelId) return;
+    const { data } = await supabase
+      .from("deal_tags")
+      .select("deal_id, tag_id, tags(id, name, color)");
+    if (data) {
+      const map: Record<string, DealTag[]> = {};
+      data.forEach((dt: any) => {
+        if (dt.tags) {
+          if (!map[dt.deal_id]) map[dt.deal_id] = [];
+          map[dt.deal_id].push(dt.tags);
+        }
+      });
+      setDealTagsMap(map);
+    }
+  }, [selectedFunnelId]);
+
   const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("*").order("name");
     setClients(data || []);
   }, []);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
-  useEffect(() => { fetchColumns(); fetchDeals(); }, [fetchColumns, fetchDeals]);
+  useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -145,13 +169,14 @@ export function KanbanBoard() {
               status={col.name}
               color={col.color}
               deals={deals.filter((d) => d.status === col.name)}
+              dealTagsMap={dealTagsMap}
               onAddDeal={handleAddDeal}
               onEditDeal={handleViewDeal}
             />
           ))}
         </div>
         <DragOverlay>
-          {activeDeal && <DealCard deal={activeDeal} onClick={() => {}} />}
+          {activeDeal && <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
 
@@ -161,7 +186,7 @@ export function KanbanBoard() {
         deal={viewingDeal}
         statuses={columns.map((c) => c.name)}
         onEdit={handleEditDeal}
-        onUpdated={() => fetchDeals()}
+        onUpdated={() => { fetchDeals(); fetchDealTags(); }}
       />
 
       <DealDialog

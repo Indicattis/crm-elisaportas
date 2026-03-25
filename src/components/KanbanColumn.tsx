@@ -7,15 +7,22 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
 
+interface DealTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface KanbanColumnProps {
   status: string;
   color?: string;
   deals: DealWithClient[];
+  dealTagsMap?: Record<string, DealTag[]>;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: DealWithClient) => void;
 }
 
-export function KanbanColumn({ status, color, deals, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
@@ -54,7 +61,7 @@ export function KanbanColumn({ status, color, deals, onAddDeal, onEditDeal }: Ka
       <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 min-h-[100px]">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} onClick={() => onEditDeal(deal)} />
+            <DealCard key={deal.id} deal={deal} tags={dealTagsMap[deal.id]} onClick={() => onEditDeal(deal)} />
           ))}
         </SortableContext>
       </div>

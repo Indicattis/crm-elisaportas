@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { FunnelColumnList } from "@/components/FunnelColumnList";
 import { FunnelDialog } from "@/components/FunnelDialog";
+import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -83,41 +85,54 @@ export default function CrmConfig() {
       <div className="mx-auto max-w-3xl p-6 space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Configuração do CRM</h1>
 
-        <div className="flex items-center gap-3">
-          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Selecionar funil" />
-            </SelectTrigger>
-            <SelectContent>
-              {funnels.map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Tabs defaultValue="funnels">
+          <TabsList>
+            <TabsTrigger value="funnels">Funis</TabsTrigger>
+            <TabsTrigger value="tags">Tags</TabsTrigger>
+          </TabsList>
 
-          <Button size="sm" onClick={() => { setEditingFunnel(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Funil
-          </Button>
+          <TabsContent value="funnels" className="space-y-6 mt-4">
+            <div className="flex items-center gap-3">
+              <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Selecionar funil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {funnels.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          {selectedFunnel && (
-            <>
-              <Button size="sm" variant="outline" onClick={() => { setEditingFunnel(selectedFunnel); setDialogOpen(true); }}>
-                <Pencil className="h-4 w-4" />
+              <Button size="sm" onClick={() => { setEditingFunnel(null); setDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Novo Funil
               </Button>
-              <Button size="sm" variant="destructive" onClick={handleDeleteFunnel}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
 
-        {selectedFunnelId && (
-          <FunnelColumnList
-            funnelId={selectedFunnelId}
-            columns={columns}
-            onChanged={fetchColumns}
-          />
-        )}
+              {selectedFunnel && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => { setEditingFunnel(selectedFunnel); setDialogOpen(true); }}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={handleDeleteFunnel}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {selectedFunnelId && (
+              <FunnelColumnList
+                funnelId={selectedFunnelId}
+                columns={columns}
+                onChanged={fetchColumns}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="tags" className="mt-4">
+            <TagManager />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <FunnelDialog
