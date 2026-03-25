@@ -22,7 +22,7 @@ interface KanbanColumnProps {
   onEditDeal: (deal: DealWithClient) => void;
 }
 
-export function KanbanColumn({ status, color, deals, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, dealTagsMap = {}, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
