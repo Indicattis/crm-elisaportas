@@ -42,6 +42,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, onEdit, o
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
   const [heat, setHeat] = useState(0);
+  const [dealTags, setDealTags] = useState<Tag[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
   const { toast } = useToast();
 
   const fetchComments = useCallback(async () => {
