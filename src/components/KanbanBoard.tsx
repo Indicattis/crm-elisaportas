@@ -97,8 +97,7 @@ export function KanbanBoard() {
   }, [selectedFunnelId]);
 
   const fetchClients = useCallback(async () => {
-    const { data } = await supabase.from("clients").select("*").order("name");
-    setClients(data || []);
+    // No longer needed - clients come from external database
   }, []);
 
   const fetchAllTags = useCallback(async () => {
