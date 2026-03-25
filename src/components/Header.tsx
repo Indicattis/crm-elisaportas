@@ -1,12 +1,14 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-import { LogOut, Users, LayoutDashboard, Settings } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 import logo from "@/assets/logo.png";
 
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -55,7 +57,13 @@ export function Header() {
       </nav>
 
       {/* Right: Logout */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center rounded-full border border-border p-2 text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
