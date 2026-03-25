@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           client_id: string | null
           created_at: string
+          funnel_id: string | null
           id: string
           notes: string | null
           status: string
@@ -56,6 +57,7 @@ export type Database = {
         Insert: {
           client_id?: string | null
           created_at?: string
+          funnel_id?: string | null
           id?: string
           notes?: string | null
           status?: string
@@ -67,6 +69,7 @@ export type Database = {
         Update: {
           client_id?: string | null
           created_at?: string
+          funnel_id?: string | null
           id?: string
           notes?: string | null
           status?: string
@@ -83,7 +86,76 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deals_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      funnel_columns: {
+        Row: {
+          color: string
+          created_at: string
+          funnel_id: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          funnel_id: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_columns_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnels: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
