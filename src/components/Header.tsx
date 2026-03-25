@@ -4,6 +4,7 @@ import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon } from "lucide-reac
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import logo from "@/assets/logo.png";
+import logoWhite from "@/assets/logo-white.png";
 
 export function Header() {
   const navigate = useNavigate();
