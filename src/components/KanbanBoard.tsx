@@ -112,6 +112,11 @@ export function KanbanBoard() {
     setDialogOpen(true);
   };
 
+  const handleViewDeal = (deal: DealWithClient) => {
+    setViewingDeal(deal);
+    setDetailOpen(true);
+  };
+
   const handleEditDeal = (deal: DealWithClient) => {
     setEditingDeal(deal);
     setDialogOpen(true);
