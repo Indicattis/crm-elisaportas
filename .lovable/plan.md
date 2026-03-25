@@ -1,34 +1,21 @@
 
 
-# Toggle de Modo Claro/Escuro
+# Cores Sólidas nas Colunas e Cards
 
 ## Resumo
 
-Adicionar um botão toggle no Header que alterna entre modo claro e escuro, persistindo a preferência no `localStorage`.
+Trocar as cores com baixa opacidade (6-20%) por cores sólidas mais vibrantes nas colunas do Kanban e nos cards de negociação.
 
 ## Implementação
 
-### 1. Criar hook `useTheme` (`src/hooks/use-theme.tsx`)
+### 1. `src/components/KanbanColumn.tsx`
 
-- Estado `theme: "light" | "dark"`, inicializado a partir do `localStorage` ou preferência do sistema
-- Ao mudar, adicionar/remover classe `dark` no `document.documentElement` e salvar no `localStorage`
-- Exportar `{ theme, toggleTheme }`
+- Background da coluna: de `rgba(rgb, 0.06)` para `rgba(rgb, 0.25)` (normal) e `0.35` (isOver)
+- Manter `border-t-[3px]` com cor sólida
 
-### 2. Atualizar `src/components/Header.tsx`
+### 2. `src/components/DealCard.tsx`
 
-- Importar `useTheme` e ícones `Sun`/`Moon` do lucide
-- Adicionar botão toggle ao lado do botão "Sair" (à direita)
-- Mostrar `Sun` no modo escuro, `Moon` no modo claro
-- Estilo consistente com o botão de logout (rounded-full, border)
-
-Layout do header (direita):
-```text
-[☀/🌙]  [Sair]
-```
-
-### 3. Garantir suporte ao dark mode
-
-- O `tailwind.config.ts` já tem `darkMode: ["class"]` configurado
-- O `index.css` já tem variáveis `.dark` definidas
-- Nenhuma mudança necessária nesses arquivos
+- Background do card: de `rgba(rgb, 0.2)` para `rgba(rgb, 0.35)`
+- Borda esquerda mantém cor sólida da tag
+- Texto permanece legível com contraste adequado
 
