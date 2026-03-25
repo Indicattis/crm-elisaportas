@@ -8,6 +8,7 @@ import logo from "@/assets/logo.png";
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
