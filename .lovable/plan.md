@@ -1,34 +1,40 @@
 
 
-# Combobox de Clientes Externos no DealDialog
+# Seção de Cliente no Modal de Detalhes da Negociação
 
-## Visao geral
+## Visão geral
 
-Substituir o `<Select>` de clientes no `DealDialog` por um combobox com campo de busca, alimentado pela base externa de clientes (mesma usada na pagina `/clients`).
+Adicionar ao `DealDetailDialog` a capacidade de visualizar informações completas do cliente da base externa e de vincular/alterar o cliente associado à negociação, usando o mesmo combobox de busca do `DealDialog`.
 
-## Alteracoes
+## Alterações
 
-### 1. Atualizar `src/components/DealDialog.tsx`
+### 1. Atualizar `src/components/DealDetailDialog.tsx`
 
-- Remover a prop `clients` (nao depender mais dos clientes locais)
-- Adicionar estado para buscar clientes da base externa usando `externalSupabase`
-- Buscar da tabela `clientes` com filtro `ativo = true` e `ilike` no campo `nome` baseado no texto digitado
-- Substituir o `<Select>` por um Popover + Command (combobox pattern) usando os componentes `cmdk` ja existentes no projeto
-- Ao digitar, filtrar clientes pelo nome com debounce
-- Exibir nome e telefone/cidade nos itens do dropdown
-- Manter o botao "Novo Cliente" para cadastro inline
-- O `client_id` selecionado sera o `id` da base externa (salvar como texto no deal)
+- Importar `externalSupabase` e `ExternalClient`
+- Ao abrir o dialog, se `deal.client_id` existir, buscar os dados completos do cliente na tabela externa `clientes` pelo ID
+- Substituir a seção simples de cliente (linhas 333-339) por um card expandido mostrando: nome, telefone, email, CPF/CNPJ, cidade/estado, tipo, badges fidelizado/parceiro
+- Adicionar botão para vincular/trocar cliente usando o mesmo padrão Popover+Command (combobox com busca) já usado no `DealDialog`
+- Ao selecionar um cliente, atualizar o `client_id` do deal no banco e recarregar os dados
+- Permitir desvincular o cliente (opção "Sem cliente")
 
-### 2. Fluxo do combobox
+### 2. Seção de cliente no modal
 
-1. Usuario clica no campo de cliente -> abre popover
-2. Digita texto -> busca na base externa com `ilike('%texto%')` no campo `nome`
-3. Seleciona um cliente -> popover fecha, nome exibido no trigger
-4. Opcao "Sem cliente" disponivel
+```text
+┌──────────────────────────────────┐
+│ 👤 Cliente: João Silva    [✏️]  │
+│   Tel: (11) 99999-0000          │
+│   Email: joao@email.com         │
+│   CPF/CNPJ: 123.456.789-00     │
+│   Cidade/UF: São Paulo/SP       │
+│   [Fidelizado] [Parceiro]       │
+└──────────────────────────────────┘
+```
+
+Se não houver cliente vinculado, exibir botão "Vincular cliente" que abre o combobox.
 
 ### Arquivos
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---|---|
-| `src/components/DealDialog.tsx` | Substituir Select por Combobox com busca externa |
+| `src/components/DealDetailDialog.tsx` | Adicionar seção de cliente com busca externa |
 
