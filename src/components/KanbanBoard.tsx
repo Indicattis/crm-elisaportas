@@ -27,7 +27,7 @@ interface FunnelColumn {
 
 export function KanbanBoard() {
   const [deals, setDeals] = useState<DealWithClient[]>([]);
-  const [clients, setClients] = useState<Tables<"clients">[]>([]);
+  const [clients] = useState<Tables<"clients">[]>([]);
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
@@ -69,7 +69,7 @@ export function KanbanBoard() {
     if (!selectedFunnelId) return;
     const { data, error } = await supabase
       .from("deals")
-      .select("*, clients(*)")
+      .select("*")
       .eq("funnel_id", selectedFunnelId)
       .order("created_at", { ascending: false });
     if (error) {
@@ -97,8 +97,7 @@ export function KanbanBoard() {
   }, [selectedFunnelId]);
 
   const fetchClients = useCallback(async () => {
-    const { data } = await supabase.from("clients").select("*").order("name");
-    setClients(data || []);
+    // No longer needed - clients come from external database
   }, []);
 
   const fetchAllTags = useCallback(async () => {
