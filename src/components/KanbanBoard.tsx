@@ -213,6 +213,7 @@ export function KanbanBoard() {
         onOpenChange={setDetailOpen}
         deal={viewingDeal}
         statuses={columns.map((c) => c.name)}
+        columnColor={viewingColumnColor}
         onEdit={handleEditDeal}
         onUpdated={() => { fetchDeals(); fetchDealTags(); }}
       />

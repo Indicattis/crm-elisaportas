@@ -168,9 +168,14 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle className="text-xl">{deal.title}</DialogTitle>
-          <p className="text-sm text-muted-foreground">Status: <span className="font-medium text-foreground">{deal.status}</span></p>
+        <DialogHeader
+          className="px-6 pt-6 pb-4 rounded-t-lg"
+          style={columnColor ? { backgroundColor: columnColor } : undefined}
+        >
+          <DialogTitle className={`text-xl ${columnColor ? 'text-white' : ''}`}>{deal.title}</DialogTitle>
+          <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
+            Status: <span className={`font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>{deal.status}</span>
+          </p>
         </DialogHeader>
 
         <Separator />
