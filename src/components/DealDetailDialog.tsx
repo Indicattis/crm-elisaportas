@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Pencil, Trash2, Plus, X } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
@@ -40,11 +41,10 @@ interface DealDetailDialogProps {
   deal: DealWithClient | null;
   statuses: string[];
   columnColor?: string;
-  onEdit: (deal: DealWithClient) => void;
   onUpdated: () => void;
 }
 
-export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnColor, onEdit, onUpdated }: DealDetailDialogProps) {
+export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnColor, onUpdated }: DealDetailDialogProps) {
   const [comments, setComments] = useState<DealComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
@@ -53,6 +53,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
   const { toast } = useToast();
+
+  // Inline editing state
+  const [editingField, setEditingField] = useState<"title" | "value" | "notes" | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editValue, setEditValue] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   const fetchComments = useCallback(async () => {
     if (!deal) return;
@@ -64,7 +70,6 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     const commentsList = (data as DealComment[]) || [];
     setComments(commentsList);
 
-    // Fetch profiles for commenters
     const userIds = [...new Set(commentsList.map((c) => c.user_id))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
@@ -96,11 +101,55 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
+      setEditingField(null);
       fetchComments();
       fetchTags();
       fetchAllTags();
     }
   }, [deal, open, fetchComments, fetchTags, fetchAllTags]);
+
+  // Inline edit save
+  const saveField = async (field: "title" | "value" | "notes") => {
+    if (!deal) return;
+    let updateData: Record<string, any> = {};
+    if (field === "title") {
+      const val = editTitle.trim();
+      if (!val || val === deal.title) { setEditingField(null); return; }
+      updateData = { title: val };
+    } else if (field === "value") {
+      const val = parseFloat(editValue) || 0;
+      if (val === Number(deal.value || 0)) { setEditingField(null); return; }
+      updateData = { value: val };
+    } else if (field === "notes") {
+      const val = editNotes.trim();
+      if (val === (deal.notes || "")) { setEditingField(null); return; }
+      updateData = { notes: val || null };
+    }
+    const { error } = await supabase.from("deals").update(updateData).eq("id", deal.id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      onUpdated();
+    }
+    setEditingField(null);
+  };
+
+  const startEditing = (field: "title" | "value" | "notes") => {
+    if (!deal) return;
+    if (field === "title") setEditTitle(deal.title);
+    else if (field === "value") setEditValue(String(deal.value || 0));
+    else if (field === "notes") setEditNotes(deal.notes || "");
+    setEditingField(field);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent, field: "title" | "value" | "notes") => {
+    if (e.key === "Enter" && field !== "notes") {
+      e.preventDefault();
+      saveField(field);
+    } else if (e.key === "Escape") {
+      setEditingField(null);
+    }
+  };
 
   const handleAddTag = async (tagId: string) => {
     if (!deal) return;
@@ -180,6 +229,18 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
+  const handleMarkAsLost = async () => {
+    if (!deal) return;
+    const { error } = await supabase.from("deals").delete().eq("id", deal.id);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Negociação marcada como perdida" });
+      onUpdated();
+      onOpenChange(false);
+    }
+  };
+
   if (!deal) return null;
 
   const daysInStage = Math.floor(
@@ -194,7 +255,23 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           className="px-6 pt-6 pb-4 rounded-t-lg"
           style={columnColor ? { backgroundColor: columnColor } : undefined}
         >
-          <DialogTitle className={`text-xl ${columnColor ? 'text-white' : ''}`}>{deal.title}</DialogTitle>
+          {editingField === "title" ? (
+            <Input
+              autoFocus
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={() => saveField("title")}
+              onKeyDown={(e) => handleEditKeyDown(e, "title")}
+              className="text-xl font-semibold bg-background/80"
+            />
+          ) : (
+            <DialogTitle
+              className={`text-xl cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors ${columnColor ? 'text-white' : ''}`}
+              onClick={() => startEditing("title")}
+            >
+              {deal.title}
+            </DialogTitle>
+          )}
           <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
             Status: <span className={`font-medium ${columnColor ? 'text-white' : 'text-foreground'}`}>{deal.status}</span>
           </p>
@@ -216,9 +293,24 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             <div className="flex items-center gap-2 text-sm">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Valor:</span>
-              <span className="font-medium text-foreground">
-                R$ {Number(deal.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </span>
+              {editingField === "value" ? (
+                <Input
+                  type="number"
+                  autoFocus
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => saveField("value")}
+                  onKeyDown={(e) => handleEditKeyDown(e, "value")}
+                  className="h-7 w-32 text-sm"
+                />
+              ) : (
+                <span
+                  className="font-medium text-foreground cursor-pointer rounded px-1 -mx-1 hover:bg-accent transition-colors"
+                  onClick={() => startEditing("value")}
+                >
+                  R$ {Number(deal.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -234,10 +326,34 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             </div>
           </div>
 
-          {deal.notes && (
-            <div className="rounded-lg border border-border bg-muted/50 p-3">
+          {/* Notes - inline editable */}
+          {editingField === "notes" ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Observações</p>
+              <Textarea
+                autoFocus
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                onBlur={() => saveField("notes")}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setEditingField(null);
+                  if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); saveField("notes"); }
+                }}
+                rows={3}
+                className="resize-none"
+                placeholder="Adicionar observações..."
+              />
+              <p className="text-xs text-muted-foreground">Ctrl+Enter para salvar, Esc para cancelar</p>
+            </div>
+          ) : (
+            <div
+              className="rounded-lg border border-border bg-muted/50 p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => startEditing("notes")}
+            >
               <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{deal.notes}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">
+                {deal.notes || <span className="italic text-muted-foreground">Clique para adicionar observações...</span>}
+              </p>
             </div>
           )}
 
@@ -379,13 +495,13 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { onEdit(deal); onOpenChange(false); }}>
-              <Pencil className="h-4 w-4 mr-1" />
-              Editar
+            <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
+              <XCircle className="h-4 w-4 mr-1" />
+              Perdida
             </Button>
             <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle2 className="h-4 w-4 mr-1" />
-              Marcar como Vendido
+              Vendido
             </Button>
           </div>
         </div>
