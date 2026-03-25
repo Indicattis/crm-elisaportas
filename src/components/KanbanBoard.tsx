@@ -3,6 +3,7 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragOve
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
+import { DealDetailDialog } from "./DealDetailDialog";
 import { DealCard } from "./DealCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,8 @@ export function KanbanBoard() {
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewingDeal, setViewingDeal] = useState<DealWithClient | null>(null);
   const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
@@ -109,6 +112,11 @@ export function KanbanBoard() {
     setDialogOpen(true);
   };
 
+  const handleViewDeal = (deal: DealWithClient) => {
+    setViewingDeal(deal);
+    setDetailOpen(true);
+  };
+
   const handleEditDeal = (deal: DealWithClient) => {
     setEditingDeal(deal);
     setDialogOpen(true);
@@ -138,7 +146,7 @@ export function KanbanBoard() {
               color={col.color}
               deals={deals.filter((d) => d.status === col.name)}
               onAddDeal={handleAddDeal}
-              onEditDeal={handleEditDeal}
+              onEditDeal={handleViewDeal}
             />
           ))}
         </div>
@@ -146,6 +154,15 @@ export function KanbanBoard() {
           {activeDeal && <DealCard deal={activeDeal} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
+
+      <DealDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        deal={viewingDeal}
+        statuses={columns.map((c) => c.name)}
+        onEdit={handleEditDeal}
+        onUpdated={() => fetchDeals()}
+      />
 
       <DealDialog
         open={dialogOpen}

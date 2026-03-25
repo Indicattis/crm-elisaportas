@@ -41,11 +41,44 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_comments: {
+        Row: {
+          content: string
+          created_at: string
+          deal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_comments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           client_id: string | null
           created_at: string
           funnel_id: string | null
+          heat: number
           id: string
           notes: string | null
           status: string
@@ -58,6 +91,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           funnel_id?: string | null
+          heat?: number
           id?: string
           notes?: string | null
           status?: string
@@ -70,6 +104,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           funnel_id?: string | null
+          heat?: number
           id?: string
           notes?: string | null
           status?: string
