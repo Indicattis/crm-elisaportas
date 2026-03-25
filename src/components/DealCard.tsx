@@ -29,18 +29,13 @@ export function DealCard({ deal, onClick }: DealCardProps) {
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className="glass group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow"
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
         <h4 className="text-sm font-semibold text-foreground leading-tight">{deal.title}</h4>
-        <button
-          {...attributes}
-          {...listeners}
-          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab text-muted-foreground"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
       </div>
       {deal.clients && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
