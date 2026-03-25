@@ -57,6 +57,18 @@ export function DealCard({ deal, tags = [], onClick }: DealCardProps) {
           <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
         </div>
       )}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {tags.slice(0, 3).map((tag) => (
+            <Badge key={tag.id} className="text-[10px] px-1.5 py-0" style={{ backgroundColor: tag.color, color: "#fff" }}>
+              {tag.name}
+            </Badge>
+          ))}
+          {tags.length > 3 && (
+            <span className="text-[10px] text-muted-foreground">+{tags.length - 3}</span>
+          )}
+        </div>
+      )}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
@@ -70,9 +82,9 @@ export function DealCard({ deal, tags = [], onClick }: DealCardProps) {
             </span>
           </div>
         </div>
-        {(deal as any).heat > 0 && (
+        {deal.heat > 0 && (
           <div className="flex items-center gap-0.5">
-            {Array.from({ length: (deal as any).heat }, (_, i) => (
+            {Array.from({ length: deal.heat }, (_, i) => (
               <Flame key={i} className="h-3 w-3 text-orange-500 fill-orange-500" />
             ))}
           </div>
