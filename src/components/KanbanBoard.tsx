@@ -152,6 +152,23 @@ export function KanbanBoard() {
     setDialogOpen(true);
   };
 
+  const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
+    if (checked) {
+      const { error } = await supabase.from("deal_tags").insert({ deal_id: dealId, tag_id: tagId });
+      if (error) {
+        toast({ title: "Erro ao adicionar tag", description: error.message, variant: "destructive" });
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("deal_tags").delete().eq("deal_id", dealId).eq("tag_id", tagId);
+      if (error) {
+        toast({ title: "Erro ao remover tag", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    fetchDealTags();
+  };
+
   return (
     <>
       <div className="px-6 pt-4">
