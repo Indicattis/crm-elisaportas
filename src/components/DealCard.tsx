@@ -115,21 +115,21 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
             </Popover>
           )}
           {(deal as any).assigned_to && assignedProfile ? (
-            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
+            <Avatar className="h-8 w-8" title={assignedProfile.full_name || "Responsável"}>
               {assignedProfile.avatar_url ? (
                 <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
               ) : null}
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+              <AvatarFallback className="text-xs bg-primary/10 text-primary">
                 {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
               </AvatarFallback>
             </Avatar>
           ) : (
             <button
-              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
+              className="h-8 w-8 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
               title="Capturar negociação"
               onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
             >
-              <UserPlus className="h-3 w-3 text-muted-foreground" />
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
         </div>
