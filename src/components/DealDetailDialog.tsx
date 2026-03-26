@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -817,6 +818,33 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 })()}
               </span>
             </div>
+          </div>
+
+          {/* Acquisition channel */}
+          <div className="flex flex-col gap-1 rounded-lg border border-border bg-card px-2.5 py-2">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Canal de Aquisição</span>
+            <Select
+              value={(deal as any).acquisition_channel || "none"}
+              onValueChange={async (val) => {
+                const newVal = val === "none" ? null : val;
+                const { error } = await supabase.from("deals").update({ acquisition_channel: newVal } as any).eq("id", deal.id);
+                if (error) {
+                  toast({ title: "Erro", description: error.message, variant: "destructive" });
+                } else {
+                  onUpdated();
+                }
+              }}
+            >
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue placeholder="Sem canal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem canal</SelectItem>
+                {["Google", "Facebook", "Instagram", "Tiktok", "Indicação", "Cliente fidelizado", "Autorizado"].map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Notes - inline editable */}

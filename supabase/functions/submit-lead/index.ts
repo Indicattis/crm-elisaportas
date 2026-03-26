@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, phone, email, estado, cidade, funnel_id, status } = await req.json();
+    const { name, phone, email, estado, cidade, funnel_id, status, canal_aquisicao } = await req.json();
 
     if (!name || !funnel_id) {
       return new Response(
@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
         user_id: funnel.user_id,
         heat: 0,
         notes: notes || null,
+        acquisition_channel: canal_aquisicao || null,
       })
       .select("id")
       .single();

@@ -132,6 +132,31 @@ export default function Dashboard() {
       .filter((d) => d.value > 0);
   }, [deals, columns]);
 
+  const channelData = useMemo(() => {
+    if (!deals) return [];
+    const active = deals.filter((d) => !d.archived);
+    const countByChannel: Record<string, number> = {};
+    active.forEach((d) => {
+      const ch = (d as any).acquisition_channel || "Sem canal";
+      countByChannel[ch] = (countByChannel[ch] || 0) + 1;
+    });
+    const channelColors: Record<string, string> = {
+      "Google": "#4285F4",
+      "Facebook": "#1877F2",
+      "Instagram": "#E4405F",
+      "Tiktok": "#000000",
+      "Indicação": "#10b981",
+      "Cliente fidelizado": "#f59e0b",
+      "Autorizado": "#8b5cf6",
+      "Sem canal": "#94a3b8",
+    };
+    return Object.entries(countByChannel).map(([ch, count]) => ({
+      name: ch,
+      value: count,
+      color: channelColors[ch] || "#6b7280",
+    }));
+  }, [deals]);
+
   const lossReasonData = useMemo(() => {
     if (!deals) return [];
     const lost = deals.filter((d) => d.status === "Perdida");
@@ -170,6 +195,9 @@ export default function Dashboard() {
   );
   const lossReasonChartConfig = Object.fromEntries(
     lossReasonData.map((d) => [d.name, { label: d.name, color: d.color }])
+  );
+  const channelChartConfig = Object.fromEntries(
+    channelData.map((d) => [d.name, { label: d.name, color: d.color }])
   );
 
   return (
@@ -247,7 +275,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="glass-strong">
           <CardHeader>
             <CardTitle className="text-base">Negociações por Etapa</CardTitle>
@@ -325,6 +353,28 @@ export default function Dashboard() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Pie data={lossReasonData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {lossReasonData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para exibir</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-strong">
+          <CardHeader>
+            <CardTitle className="text-base">Canal de Aquisição</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {channelData.length > 0 ? (
+              <ChartContainer config={channelChartConfig} className="mx-auto aspect-square max-h-[300px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie data={channelData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {channelData.map((d, i) => (
                       <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>

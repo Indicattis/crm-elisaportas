@@ -34,6 +34,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
+  const [channel, setChannel] = useState("");
   const [loading, setLoading] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientName, setNewClientName] = useState("");
@@ -85,6 +86,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue(deal.value ? String(deal.value) : "");
       setStatus(deal.status);
       setNotes(deal.notes || "");
+      setChannel((deal as any).acquisition_channel || "");
     } else {
       setTitle("");
       setClientId("");
@@ -92,6 +94,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue("");
       setStatus(defaultStatus || statuses[0] || "");
       setNotes("");
+      setChannel("");
     }
     setShowNewClient(false);
     setNewClientName("");
@@ -126,9 +129,10 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         value: value ? parseFloat(value) : 0,
         status,
         notes: notes || null,
+        acquisition_channel: channel || null,
         user_id: user.id,
         funnel_id: funnelId,
-      };
+      } as any;
 
       if (deal) {
         const { error } = await supabase.from("deals").update(payload).eq("id", deal.id);
@@ -296,6 +300,18 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Canal de Aquisição</Label>
+            <Select value={channel} onValueChange={setChannel}>
+              <SelectTrigger><SelectValue placeholder="Selecionar canal..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem canal</SelectItem>
+                {["Google", "Facebook", "Instagram", "Tiktok", "Indicação", "Cliente fidelizado", "Autorizado"].map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2 justify-end">
             {deal && (
