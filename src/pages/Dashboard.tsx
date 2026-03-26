@@ -103,11 +103,30 @@ export default function Dashboard() {
     });
   }, [deals, profiles]);
 
+  const stageValueData = useMemo(() => {
+    if (!deals || !columns) return [];
+    const active = deals.filter((d) => !d.archived && d.status !== "Vendido" && d.status !== "Perdida");
+    const valueByStatus: Record<string, number> = {};
+    active.forEach((d) => {
+      valueByStatus[d.status] = (valueByStatus[d.status] || 0) + (Number(d.value) || 0);
+    });
+    return columns
+      .map((col) => ({
+        name: col.name,
+        value: valueByStatus[col.name] || 0,
+        color: col.color,
+      }))
+      .filter((d) => d.value > 0);
+  }, [deals, columns]);
+
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const stageChartConfig = Object.fromEntries(
     stageData.map((d) => [d.name, { label: d.name, color: d.color }])
+  );
+  const stageValueChartConfig = Object.fromEntries(
+    stageValueData.map((d) => [d.name, { label: d.name, color: d.color }])
   );
   const sellerChartConfig = Object.fromEntries(
     sellerData.map((d) => [d.name, { label: d.name, color: d.color }])
@@ -159,7 +178,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card className="glass-strong">
           <CardHeader>
             <CardTitle className="text-base">Negociações por Etapa</CardTitle>
@@ -193,6 +212,28 @@ export default function Dashboard() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Pie data={sellerData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {sellerData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para exibir</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-strong">
+          <CardHeader>
+            <CardTitle className="text-base">Valor por Etapa</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stageValueData.length > 0 ? (
+              <ChartContainer config={stageValueChartConfig} className="mx-auto aspect-square max-h-[300px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => fmt(Number(value))} />} />
+                  <Pie data={stageValueData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {stageValueData.map((d, i) => (
                       <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>
