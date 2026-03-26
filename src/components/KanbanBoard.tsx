@@ -223,6 +223,14 @@ export function KanbanBoard() {
     if (error) {
       toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
     } else {
+      const deal = deals.find(d => d.id === dealId);
+      await createNotification({
+        userId: user.id,
+        dealId,
+        type: "deal_assigned",
+        title: "Negociação atribuída",
+        message: `A negociação "${deal?.title || ""}" foi atribuída a você.`,
+      });
       toast({ title: "Negociação capturada!" });
       fetchDeals();
     }
