@@ -178,7 +178,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card className="glass-strong">
           <CardHeader>
             <CardTitle className="text-base">Negociações por Etapa</CardTitle>
