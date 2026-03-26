@@ -84,6 +84,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [clientSearchLoading, setClientSearchLoading] = useState(false);
   const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
+  const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
   const { toast } = useToast();
