@@ -390,6 +390,20 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         content: newComment.trim(),
       });
       if (error) throw error;
+      // Notify deal owner and assigned user about comment
+      const notifyUserIds = new Set<string>();
+      if (deal.user_id) notifyUserIds.add(deal.user_id);
+      if ((deal as any).assigned_to) notifyUserIds.add((deal as any).assigned_to);
+      notifyUserIds.delete(user.id); // don't notify self
+      for (const uid of notifyUserIds) {
+        await createNotification({
+          userId: uid,
+          dealId: deal.id,
+          type: "comment",
+          title: "Novo comentário",
+          message: `Comentário em "${deal.title}": ${newComment.trim().slice(0, 80)}`,
+        });
+      }
       setNewComment("");
       fetchComments();
     } catch (error: any) {
