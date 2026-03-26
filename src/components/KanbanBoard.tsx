@@ -42,6 +42,7 @@ export function KanbanBoard() {
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
