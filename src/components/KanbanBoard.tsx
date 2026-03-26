@@ -203,18 +203,34 @@ export function KanbanBoard() {
   return (
     <>
       <div className="px-6 pt-4">
-        <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Selecionar funil" />
-          </SelectTrigger>
-          <SelectContent>
-            {funnels.map((f) => (
-              <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {funnels.length === 0 && loading ? (
+          <Skeleton className="h-10 w-56" />
+        ) : (
+          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Selecionar funil" />
+            </SelectTrigger>
+            <SelectContent>
+              {funnels.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
+      {loading ? (
+        <div className="flex gap-4 overflow-x-auto p-6 pb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex-shrink-0 w-72 space-y-3">
+              <Skeleton className="h-8 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
+      ) : (
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto p-6 pb-8">
           {columns.map((col) => (
