@@ -11,6 +11,7 @@ import Clients from "./pages/Clients";
 import CrmConfig from "./pages/CrmConfig";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import LeadForm from "./pages/LeadForm";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/lead-form" element={<LeadForm />} />
         <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route path="/" element={<Index />} />
           <Route path="/clients" element={<Clients />} />
