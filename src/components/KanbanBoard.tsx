@@ -48,6 +48,7 @@ export function KanbanBoard() {
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
 
   // Grab-to-scroll state
