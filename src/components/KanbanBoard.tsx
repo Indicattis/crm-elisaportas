@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
+import { createNotification } from "@/lib/notifications";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -197,6 +198,18 @@ export function KanbanBoard() {
           description: `Moveu de "${oldStatus}" para "${newStatus}"`,
           metadata: { from: oldStatus, to: newStatus },
         } as any);
+
+        // Notify assigned user about column change
+        const assignedTo = (deal as any).assigned_to;
+        if (assignedTo) {
+          await createNotification({
+            userId: assignedTo,
+            dealId,
+            type: "column_change",
+            title: "Negociação movida",
+            message: `"${deal.title}" foi movida de "${oldStatus}" para "${newStatus}".`,
+          });
+        }
       }
     }
   };
@@ -222,6 +235,14 @@ export function KanbanBoard() {
     if (error) {
       toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
     } else {
+      const deal = deals.find(d => d.id === dealId);
+      await createNotification({
+        userId: user.id,
+        dealId,
+        type: "deal_assigned",
+        title: "Negociação atribuída",
+        message: `A negociação "${deal?.title || ""}" foi atribuída a você.`,
+      });
       toast({ title: "Negociação capturada!" });
       fetchDeals();
     }

@@ -4,6 +4,7 @@ import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User } from "lucid
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
+import { NotificationBell } from "./NotificationBell";
 import logo from "@/assets/logo.png";
 import logoWhite from "@/assets/logo-white.png";
 
@@ -64,6 +65,7 @@ export function Header() {
         )}
 
         <div className="flex items-center justify-end gap-2">
+          <NotificationBell />
           <button
             onClick={() => navigate("/profile")}
             className="flex items-center justify-center rounded-full border border-border p-2 text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
