@@ -1,38 +1,20 @@
 
 
-# Motivo de Perda + Gráfico de Perdas no Dashboard
+# Filtro por Período no Dashboard
 
-## 1. Migração — Adicionar coluna `loss_reason` na tabela `deals`
+## Alteração em `src/pages/Dashboard.tsx`
 
-```sql
-ALTER TABLE public.deals ADD COLUMN loss_reason text;
-```
+Adicionar dois date pickers (Data Início e Data Fim) ao lado do seletor de funil, filtrando os deals pelo campo `created_at`:
 
-Valores possíveis: `Desqualificado`, `Perca por orçamento`, `Perca por prazo`, `Perca por qualidade`, `Perca por logística`, `Perca por atendimento`.
+- Importar `Popover`, `PopoverTrigger`, `PopoverContent`, `Calendar`, `Button`, `CalendarIcon`, `format`
+- Dois estados: `startDate` e `endDate` (ambos `Date | undefined`)
+- Na query de deals, adicionar `.gte("created_at", startDate)` e `.lte("created_at", endDate)` quando definidos
+- Adicionar `startDate` e `endDate` como dependências da queryKey
+- Layout: date pickers inline ao lado do seletor de funil na barra de filtros
 
-## 2. `src/components/DealDetailDialog.tsx` — Modal de motivo ao marcar como perdida
-
-- Ao clicar "Perdida", em vez de marcar direto, abrir um dialog/estado interno pedindo o motivo
-- Exibir 6 opções como `RadioGroup` com os motivos listados
-- Botão "Confirmar" executa o update com `status: "Perdida"` e `loss_reason: motivoSelecionado`
-- Não permitir confirmar sem selecionar motivo
-
-## 3. `src/pages/Dashboard.tsx` — Gráfico de pizza "Motivos de Perda"
-
-- Novo `useMemo` filtrando deals com `status === "Perdida"` e agrupando por `loss_reason`
-- Cores fixas para cada motivo (vermelho, laranja, amarelo, etc.)
-- Adicionar como 4º card na grid de gráficos (mudar grid para `md:grid-cols-2 lg:grid-cols-4` ou manter 2x2)
-
-## 4. `src/pages/Results.tsx` — Exibir motivo na aba Perdidas
-
-- Na tabela/lista de perdidas, mostrar coluna/badge com o `loss_reason`
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar coluna `loss_reason` em `deals` |
-| `src/components/DealDetailDialog.tsx` | Adicionar seleção de motivo antes de marcar como perdida |
-| `src/pages/Dashboard.tsx` | Adicionar gráfico de motivos de perda |
-| `src/pages/Results.tsx` | Exibir motivo na listagem de perdidas |
+| `src/pages/Dashboard.tsx` | Adicionar filtros de data início/fim |
 
