@@ -59,13 +59,13 @@ export default function Clients() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-          <span className="text-sm text-muted-foreground">{totalCount} cliente(s)</span>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Clientes</h1>
+          <span className="text-xs md:text-sm text-muted-foreground">{totalCount} cliente(s)</span>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => setDialogOpen(true)} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1" /> Novo Cliente
         </Button>
       </div>
@@ -80,7 +80,47 @@ export default function Clients() {
         />
       </div>
 
-      <div className="glass-strong rounded-2xl overflow-hidden">
+      {/* Mobile: cards */}
+      <div className="block md:hidden space-y-3">
+        {loading ? (
+          [1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="glass-strong rounded-xl p-4 space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          ))
+        ) : clients.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</div>
+        ) : (
+          clients.map((client) => (
+            <div key={client.id} className="glass-strong rounded-xl p-4 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm text-foreground">{client.nome}</span>
+                <div className="flex gap-1">
+                  {client.fidelizado && <Badge variant="default" className="text-[10px] px-1.5 py-0">Fidelizado</Badge>}
+                  {client.parceiro && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Parceiro</Badge>}
+                </div>
+              </div>
+              {client.telefone && <p className="text-xs text-muted-foreground">{client.telefone}</p>}
+              {client.email && <p className="text-xs text-muted-foreground truncate">{client.email}</p>}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {(client.cidade || client.estado) && (
+                  <span>
+                    {client.cidade && client.estado
+                      ? `${client.cidade}/${client.estado}`
+                      : client.cidade || client.estado}
+                  </span>
+                )}
+                {client.tipo_cliente && <span>• {client.tipo_cliente}</span>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block glass-strong rounded-2xl overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -95,19 +135,17 @@ export default function Clients() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                  </TableRow>
-                ))}
-              </>
+              [1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                </TableRow>
+              ))
             ) : clients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
@@ -129,12 +167,8 @@ export default function Clients() {
                   <TableCell>{client.tipo_cliente || "—"}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      {client.fidelizado && (
-                        <Badge variant="default" className="text-xs">Fidelizado</Badge>
-                      )}
-                      {client.parceiro && (
-                        <Badge variant="secondary" className="text-xs">Parceiro</Badge>
-                      )}
+                      {client.fidelizado && <Badge variant="default" className="text-xs">Fidelizado</Badge>}
+                      {client.parceiro && <Badge variant="secondary" className="text-xs">Parceiro</Badge>}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -146,15 +180,17 @@ export default function Clients() {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs md:text-sm text-muted-foreground">
             Página {page + 1} de {totalPages}
           </span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Anterior</span>
             </Button>
             <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-              Próxima <ChevronRight className="h-4 w-4 ml-1" />
+              <span className="hidden sm:inline mr-1">Próxima</span>
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
