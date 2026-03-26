@@ -652,6 +652,24 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 {daysInStage === 0 ? "Hoje" : `${daysInStage} dias`}
               </span>
             </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Tempo total:</span>
+              <span className="font-medium text-foreground">
+                {(() => {
+                  const totalDays = Math.floor((Date.now() - new Date(deal.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                  if (totalDays === 0) return "Hoje";
+                  if (totalDays === 1) return "1 dia";
+                  if (totalDays < 30) return `${totalDays} dias`;
+                  const months = Math.floor(totalDays / 30);
+                  const remainDays = totalDays % 30;
+                  if (months === 1 && remainDays === 0) return "1 mês";
+                  if (months === 1) return `1 mês e ${remainDays}d`;
+                  if (remainDays === 0) return `${months} meses`;
+                  return `${months} meses e ${remainDays}d`;
+                })()}
+              </span>
+            </div>
           </div>
 
           {/* Notes - inline editable */}
