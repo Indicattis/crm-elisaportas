@@ -1101,6 +1101,29 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             ))}
           </div>
           <div className="flex items-center gap-2">
+            {role === "admin" && deal && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const isArchived = (deal as any).archived;
+                  const { error } = await (supabase.from("deals") as any).update({ archived: !isArchived }).eq("id", deal.id);
+                  if (error) {
+                    toast({ title: "Erro", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: isArchived ? "Negociação desarquivada!" : "Negociação arquivada!" });
+                    onUpdated();
+                    onOpenChange(false);
+                  }
+                }}
+              >
+                {(deal as any).archived ? (
+                  <><ArchiveRestore className="h-4 w-4 mr-1" /> Desarquivar</>
+                ) : (
+                  <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
+                )}
+              </Button>
+            )}
             <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
               <XCircle className="h-4 w-4 mr-1" />
               Perdida

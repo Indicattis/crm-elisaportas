@@ -101,6 +101,7 @@ export function KanbanBoard() {
       .from("deals")
       .select("*")
       .eq("funnel_id", selectedFunnelId)
+      .eq("archived", false)
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Erro ao carregar negociações", description: error.message, variant: "destructive" });
