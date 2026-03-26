@@ -279,10 +279,19 @@ export function TaskGroupManager() {
                     <TypeIcon type={task.type} />
                     <div>
                       <span className="text-sm font-medium">{task.description || typeLabel(task.type)}</span>
-                      <div className="flex gap-2 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
                         <span>{typeLabel(task.type)}</span>
                         <span>•</span>
                         <span>Prazo: {formatDeadline(task.deadline_hours)}</span>
+                        {task.recurrence_type && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                              <Repeat className="h-3 w-3" />
+                              Recorrente
+                            </Badge>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
