@@ -1,20 +1,24 @@
 
 
-# Filtro por Período no Dashboard
+# Colunas Translúcidas no Modo Escuro
 
-## Alteração em `src/pages/Dashboard.tsx`
+## Alteração em `src/components/KanbanColumn.tsx`
 
-Adicionar dois date pickers (Data Início e Data Fim) ao lado do seletor de funil, filtrando os deals pelo campo `created_at`:
+Detectar o tema atual (verificando `document.documentElement.classList.contains('dark')` ou usando o hook `useTheme`) e, no modo escuro, aplicar a cor da coluna com opacidade reduzida em vez de sólida:
 
-- Importar `Popover`, `PopoverTrigger`, `PopoverContent`, `Calendar`, `Button`, `CalendarIcon`, `format`
-- Dois estados: `startDate` e `endDate` (ambos `Date | undefined`)
-- Na query de deals, adicionar `.gte("created_at", startDate)` e `.lte("created_at", endDate)` quando definidos
-- Adicionar `startDate` e `endDate` como dependências da queryKey
-- Layout: date pickers inline ao lado do seletor de funil na barra de filtros
+- **Corpo da coluna**: cor com ~20% de opacidade (ex: `rgba(r, g, b, 0.2)`)
+- **Header da coluna**: cor com ~35% de opacidade (em vez do `darkenHex`)
+
+### Implementação
+
+- Criar helper `hexToRgba(hex, alpha)` para converter hex em rgba
+- Importar `useTheme` de `@/hooks/use-theme`
+- No modo escuro: `backgroundColor: hexToRgba(color, 0.2)` para corpo e `hexToRgba(color, 0.35)` para header
+- No modo claro: manter comportamento atual (cor sólida)
 
 ## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Dashboard.tsx` | Adicionar filtros de data início/fim |
+| `src/components/KanbanColumn.tsx` | Aplicar cores translúcidas no modo escuro |
 
