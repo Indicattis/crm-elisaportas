@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { externalSupabase, type ExternalClient } from "@/integrations/external-supabase";
-import { Header } from "@/components/Header";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
