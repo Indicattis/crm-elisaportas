@@ -132,6 +132,31 @@ export default function Dashboard() {
       .filter((d) => d.value > 0);
   }, [deals, columns]);
 
+  const channelData = useMemo(() => {
+    if (!deals) return [];
+    const active = deals.filter((d) => !d.archived);
+    const countByChannel: Record<string, number> = {};
+    active.forEach((d) => {
+      const ch = (d as any).acquisition_channel || "Sem canal";
+      countByChannel[ch] = (countByChannel[ch] || 0) + 1;
+    });
+    const channelColors: Record<string, string> = {
+      "Google": "#4285F4",
+      "Facebook": "#1877F2",
+      "Instagram": "#E4405F",
+      "Tiktok": "#000000",
+      "Indicação": "#10b981",
+      "Cliente fidelizado": "#f59e0b",
+      "Autorizado": "#8b5cf6",
+      "Sem canal": "#94a3b8",
+    };
+    return Object.entries(countByChannel).map(([ch, count]) => ({
+      name: ch,
+      value: count,
+      color: channelColors[ch] || "#6b7280",
+    }));
+  }, [deals]);
+
   const lossReasonData = useMemo(() => {
     if (!deals) return [];
     const lost = deals.filter((d) => d.status === "Perdida");
