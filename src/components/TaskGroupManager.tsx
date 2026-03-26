@@ -211,20 +211,9 @@ export function TaskGroupManager() {
     const deadlineHours = deadlineUnit === "days" ? deadlineValue * 24 : deadlineValue;
     const desc = taskType === "personalizada" ? taskDescription.trim() : (taskType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");
 
-    const recType = isRecurrent ? recurrenceType : null;
-    let recVal: number | null = null;
-    if (isRecurrent) {
-      if (recurrenceType === "interval") {
-        recVal = recurrenceUnit === "days" ? recurrenceValue * 24 : recurrenceValue;
-      } else {
-        recVal = recurrenceValue;
-      }
-    }
-
     if (editingTask) {
       const { error } = await supabase.from("task_templates").update({
         type: taskType, description: desc, deadline_hours: deadlineHours,
-        recurrence_type: recType, recurrence_value: recVal,
       } as any).eq("id", editingTask.id);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else toast({ title: "Tarefa atualizada!" });
@@ -233,7 +222,6 @@ export function TaskGroupManager() {
       const { error } = await supabase.from("task_templates").insert({
         group_id: taskGroupId, user_id: user.id, type: taskType,
         description: desc, deadline_hours: deadlineHours, position: groupTemplates.length,
-        recurrence_type: recType, recurrence_value: recVal,
       } as any);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else toast({ title: "Tarefa criada!" });
