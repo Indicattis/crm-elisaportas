@@ -71,11 +71,14 @@ export function TaskGroupManager() {
   const [taskDescription, setTaskDescription] = useState("");
   const [deadlineValue, setDeadlineValue] = useState(1);
   const [deadlineUnit, setDeadlineUnit] = useState<"hours" | "days">("days");
+  const [saving, setSaving] = useState(false);
+  // Recurrence modal state
+  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
+  const [recurrenceTask, setRecurrenceTask] = useState<TaskTemplate | null>(null);
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState<"interval" | "weekday" | "monthday">("interval");
   const [recurrenceValue, setRecurrenceValue] = useState(1);
   const [recurrenceUnit, setRecurrenceUnit] = useState<"hours" | "days">("days");
-  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
@@ -130,10 +133,6 @@ export function TaskGroupManager() {
     setTaskDescription("");
     setDeadlineValue(1);
     setDeadlineUnit("days");
-    setIsRecurrent(false);
-    setRecurrenceType("interval");
-    setRecurrenceValue(1);
-    setRecurrenceUnit("days");
     setTaskDialogOpen(true);
   };
 
@@ -149,6 +148,11 @@ export function TaskGroupManager() {
       setDeadlineValue(t.deadline_hours);
       setDeadlineUnit("hours");
     }
+    setTaskDialogOpen(true);
+  };
+
+  const openRecurrence = (t: TaskTemplate) => {
+    setRecurrenceTask(t);
     if (t.recurrence_type) {
       setIsRecurrent(true);
       setRecurrenceType(t.recurrence_type as "interval" | "weekday" | "monthday");
@@ -170,7 +174,29 @@ export function TaskGroupManager() {
       setRecurrenceValue(1);
       setRecurrenceUnit("days");
     }
-    setTaskDialogOpen(true);
+    setRecurrenceDialogOpen(true);
+  };
+
+  const saveRecurrence = async () => {
+    if (!recurrenceTask) return;
+    setSaving(true);
+    const recType = isRecurrent ? recurrenceType : null;
+    let recVal: number | null = null;
+    if (isRecurrent) {
+      if (recurrenceType === "interval") {
+        recVal = recurrenceUnit === "days" ? recurrenceValue * 24 : recurrenceValue;
+      } else {
+        recVal = recurrenceValue;
+      }
+    }
+    const { error } = await supabase.from("task_templates").update({
+      recurrence_type: recType, recurrence_value: recVal,
+    } as any).eq("id", recurrenceTask.id);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else toast({ title: "Recorrência atualizada!" });
+    setSaving(false);
+    setRecurrenceDialogOpen(false);
+    fetchData();
   };
 
   const saveTask = async () => {
@@ -185,20 +211,9 @@ export function TaskGroupManager() {
     const deadlineHours = deadlineUnit === "days" ? deadlineValue * 24 : deadlineValue;
     const desc = taskType === "personalizada" ? taskDescription.trim() : (taskType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");
 
-    const recType = isRecurrent ? recurrenceType : null;
-    let recVal: number | null = null;
-    if (isRecurrent) {
-      if (recurrenceType === "interval") {
-        recVal = recurrenceUnit === "days" ? recurrenceValue * 24 : recurrenceValue;
-      } else {
-        recVal = recurrenceValue;
-      }
-    }
-
     if (editingTask) {
       const { error } = await supabase.from("task_templates").update({
         type: taskType, description: desc, deadline_hours: deadlineHours,
-        recurrence_type: recType, recurrence_value: recVal,
       } as any).eq("id", editingTask.id);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else toast({ title: "Tarefa atualizada!" });
@@ -207,7 +222,6 @@ export function TaskGroupManager() {
       const { error } = await supabase.from("task_templates").insert({
         group_id: taskGroupId, user_id: user.id, type: taskType,
         description: desc, deadline_hours: deadlineHours, position: groupTemplates.length,
-        recurrence_type: recType, recurrence_value: recVal,
       } as any);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else toast({ title: "Tarefa criada!" });
@@ -296,9 +310,12 @@ export function TaskGroupManager() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className={`h-7 w-7 ${task.recurrence_type ? "text-primary" : "text-muted-foreground"}`} onClick={() => openRecurrence(task)}>
+                      <Repeat className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteTask(task.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -371,71 +388,82 @@ export function TaskGroupManager() {
                 </Select>
               </div>
             </div>
-
-            <Separator className="my-2" />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Recorrente</Label>
-                <Switch checked={isRecurrent} onCheckedChange={setIsRecurrent} />
-              </div>
-
-              {isRecurrent && (
-                <div className="space-y-3 pl-1">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Tipo de recorrência</Label>
-                    <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="interval">Intervalo de tempo</SelectItem>
-                        <SelectItem value="weekday">Dia da semana</SelectItem>
-                        <SelectItem value="monthday">Dia do mês</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {recurrenceType === "interval" && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Recriar a cada</Label>
-                      <div className="flex gap-2">
-                        <Input type="number" min={1} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, parseInt(e.target.value) || 1))} className="w-24" />
-                        <Select value={recurrenceUnit} onValueChange={(v) => setRecurrenceUnit(v as "hours" | "days")}>
-                          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="hours">Hora(s)</SelectItem>
-                            <SelectItem value="days">Dia(s)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {recurrenceType === "weekday" && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Dia da semana</Label>
-                      <Select value={String(recurrenceValue)} onValueChange={(v) => setRecurrenceValue(parseInt(v))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {WEEKDAYS.map((day, i) => (
-                            <SelectItem key={i} value={String(i)}>{day}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {recurrenceType === "monthday" && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Dia do mês</Label>
-                      <Input type="number" min={1} max={31} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))} className="w-24" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
           <DialogFooter>
             <Button onClick={saveTask} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recurrence Dialog */}
+      <Dialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurar Recorrência</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Recorrente</Label>
+              <Switch checked={isRecurrent} onCheckedChange={setIsRecurrent} />
+            </div>
+
+            {isRecurrent && (
+              <div className="space-y-3 pl-1">
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo de recorrência</Label>
+                  <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="interval">Intervalo de tempo</SelectItem>
+                      <SelectItem value="weekday">Dia da semana</SelectItem>
+                      <SelectItem value="monthday">Dia do mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {recurrenceType === "interval" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Recriar a cada</Label>
+                    <div className="flex gap-2">
+                      <Input type="number" min={1} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, parseInt(e.target.value) || 1))} className="w-24" />
+                      <Select value={recurrenceUnit} onValueChange={(v) => setRecurrenceUnit(v as "hours" | "days")}>
+                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">Hora(s)</SelectItem>
+                          <SelectItem value="days">Dia(s)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                {recurrenceType === "weekday" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Dia da semana</Label>
+                    <Select value={String(recurrenceValue)} onValueChange={(v) => setRecurrenceValue(parseInt(v))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {WEEKDAYS.map((day, i) => (
+                          <SelectItem key={i} value={String(i)}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {recurrenceType === "monthday" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Dia do mês</Label>
+                    <Input type="number" min={1} max={31} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))} className="w-24" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={saveRecurrence} disabled={saving}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
