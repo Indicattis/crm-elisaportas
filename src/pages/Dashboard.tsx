@@ -222,6 +222,28 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        <Card className="glass-strong">
+          <CardHeader>
+            <CardTitle className="text-base">Valor por Etapa</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stageValueData.length > 0 ? (
+              <ChartContainer config={stageValueChartConfig} className="mx-auto aspect-square max-h-[300px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => fmt(Number(value))} />} />
+                  <Pie data={stageValueData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {stageValueData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para exibir</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
