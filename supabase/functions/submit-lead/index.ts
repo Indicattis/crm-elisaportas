@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, phone, email, estado, cidade, funnel_id, status } = await req.json();
+    const { name, phone, email, estado, cidade, funnel_id, status, canal_aquisicao } = await req.json();
 
     if (!name || !funnel_id) {
       return new Response(
