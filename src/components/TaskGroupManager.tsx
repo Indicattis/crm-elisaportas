@@ -148,6 +148,27 @@ export function TaskGroupManager() {
       setDeadlineValue(t.deadline_hours);
       setDeadlineUnit("hours");
     }
+    if (t.recurrence_type) {
+      setIsRecurrent(true);
+      setRecurrenceType(t.recurrence_type as "interval" | "weekday" | "monthday");
+      if (t.recurrence_type === "interval" && t.recurrence_value) {
+        if (t.recurrence_value >= 24 && t.recurrence_value % 24 === 0) {
+          setRecurrenceValue(t.recurrence_value / 24);
+          setRecurrenceUnit("days");
+        } else {
+          setRecurrenceValue(t.recurrence_value);
+          setRecurrenceUnit("hours");
+        }
+      } else {
+        setRecurrenceValue(t.recurrence_value || 1);
+        setRecurrenceUnit("days");
+      }
+    } else {
+      setIsRecurrent(false);
+      setRecurrenceType("interval");
+      setRecurrenceValue(1);
+      setRecurrenceUnit("days");
+    }
     setTaskDialogOpen(true);
   };
 
