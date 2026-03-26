@@ -1,9 +1,9 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
-import { useTheme } from "@/hooks/use-theme";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -48,8 +48,15 @@ function hexToRgba(hex: string, alpha: number): string {
 
 export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
   const headerBg = color
