@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,6 +44,16 @@ interface DealTask {
   completed_by: string | null;
 }
 
+interface DealHistoryEvent {
+  id: string;
+  deal_id: string;
+  user_id: string;
+  event_type: string;
+  description: string;
+  metadata: any;
+  created_at: string;
+}
+
 interface CommentProfile {
   full_name: string | null;
   avatar_url: string | null;
@@ -74,6 +84,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [clientSearchLoading, setClientSearchLoading] = useState(false);
   const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
+  const [history, setHistory] = useState<DealHistoryEvent[]>([]);
+  const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
   const { toast } = useToast();
 
   // Inline editing state
@@ -186,6 +198,25 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setDealTasks((data as DealTask[]) || []);
   }, [deal]);
 
+  const fetchHistory = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_history")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("created_at", { ascending: false }) as { data: DealHistoryEvent[] | null };
+    const events = data || [];
+    setHistory(events);
+
+    const userIds = [...new Set(events.map(e => e.user_id))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds);
+      const map: Record<string, CommentProfile> = {};
+      (profiles || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
+      setHistoryProfiles(prev => ({ ...prev, ...map }));
+    }
+  }, [deal]);
+
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
     const updateData: any = { completed };
@@ -197,7 +228,22 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       updateData.completed_by = null;
     }
     await supabase.from("deal_tasks").update(updateData).eq("id", taskId);
+
+    // Log history for task completion
+    if (completed && deal && user) {
+      const task = dealTasks.find(t => t.id === taskId);
+      const taskDesc = task?.description || (task?.type === "mensagem" ? "Enviar mensagem" : task?.type === "ligacao" ? "Realizar ligação" : "Tarefa");
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        event_type: "task_completed",
+        description: `Concluiu tarefa: ${taskDesc}`,
+        metadata: { task_id: taskId, task_type: task?.type },
+      } as any);
+    }
+
     fetchDealTasks();
+    fetchHistory();
   };
 
   useEffect(() => {
@@ -210,8 +256,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchAssignedProfile();
       fetchExternalClient();
       fetchDealTasks();
+      fetchHistory();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks, fetchHistory]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
@@ -732,6 +779,39 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* History timeline */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Histórico
+            </h3>
+            {history.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Nenhum evento registrado.</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {history.map((event) => {
+                  const profile = historyProfiles[event.user_id] || profilesMap[event.user_id];
+                  const icon = event.event_type === "column_change" 
+                    ? <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />
+                    : <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />;
+                  return (
+                    <div key={event.id} className="flex items-start gap-2.5 text-sm">
+                      <div className="mt-0.5 shrink-0">{icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground/80">{event.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {profile?.full_name || "Usuário"} · {format(new Date(event.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
