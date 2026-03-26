@@ -48,16 +48,22 @@ function hexToRgba(hex: string, alpha: number): string {
 
 export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
-  const headerBg = color ? darkenHex(color, 0.25) : undefined;
+  const headerBg = color
+    ? isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)
+    : undefined;
+
+  const columnBg = color
+    ? isDark ? hexToRgba(color, 0.2) : color
+    : (isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)');
 
   return (
     <div
       className="flex w-80 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors h-full"
-      style={{
-        backgroundColor: color || (isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)'),
-      }}
+      style={{ backgroundColor: columnBg }}
     >
       {/* Header */}
       <div
