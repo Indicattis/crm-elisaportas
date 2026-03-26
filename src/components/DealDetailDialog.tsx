@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,6 +48,8 @@ interface DealTask {
   completed: boolean;
   completed_at: string | null;
   completed_by: string | null;
+  template_id: string | null;
+  next_recurrence_at: string | null;
 }
 
 interface DealHistoryEvent {
@@ -901,6 +903,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                           <span className="text-xs font-medium leading-tight text-foreground">
                             {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
                           </span>
+                          {task.template_id && task.next_recurrence_at !== undefined && task.next_recurrence_at !== null && (
+                            <Repeat className="h-3 w-3 text-primary" />
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />

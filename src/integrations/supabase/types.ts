@@ -149,6 +149,7 @@ export type Database = {
           deal_id: string
           description: string | null
           id: string
+          next_recurrence_at: string | null
           template_id: string | null
           type: string
         }
@@ -161,6 +162,7 @@ export type Database = {
           deal_id: string
           description?: string | null
           id?: string
+          next_recurrence_at?: string | null
           template_id?: string | null
           type?: string
         }
@@ -173,6 +175,7 @@ export type Database = {
           deal_id?: string
           description?: string | null
           id?: string
+          next_recurrence_at?: string | null
           template_id?: string | null
           type?: string
         }
@@ -420,6 +423,8 @@ export type Database = {
           group_id: string
           id: string
           position: number
+          recurrence_type: string | null
+          recurrence_value: number | null
           type: string
           user_id: string
         }
@@ -430,6 +435,8 @@ export type Database = {
           group_id: string
           id?: string
           position?: number
+          recurrence_type?: string | null
+          recurrence_value?: number | null
           type?: string
           user_id: string
         }
@@ -440,6 +447,8 @@ export type Database = {
           group_id?: string
           id?: string
           position?: number
+          recurrence_type?: string | null
+          recurrence_value?: number | null
           type?: string
           user_id?: string
         }
