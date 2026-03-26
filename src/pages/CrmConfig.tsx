@@ -34,6 +34,7 @@ export default function CrmConfig() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFunnel, setEditingFunnel] = useState<Funnel | null>(null);
   const [activeSection, setActiveSection] = useState<null | "funnels" | "tags" | "team">(null);
+  const [loadingFunnels, setLoadingFunnels] = useState(true);
   const { toast } = useToast();
 
   const fetchFunnels = useCallback(async () => {
