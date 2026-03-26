@@ -1,50 +1,47 @@
 
-# Corrigir opção de “baixar app” no domínio (PWA)
 
-## Diagnóstico (com base no código atual)
-O projeto já tem:
-- `vite-plugin-pwa` configurado em `vite.config.ts`
-- `manifest.json` e ícones
+# Canal de Aquisição nas Negociações
 
-Mas em `src/main.tsx` **não há registro do service worker** (`registerSW`), então o navegador não ativa o PWA completo e não exibe a instalação de forma confiável.
+## Visão geral
 
-## Plano de implementação
+Adicionar campo `acquisition_channel` na tabela `deals` com os valores: Google, Facebook, Instagram, Tiktok, Indicação, Cliente fidelizado, Autorizado. Integrar nos formulários de criação/edição e no dashboard.
 
-1. **Registrar o service worker em produção**
-   - Arquivo: `src/main.tsx`
-   - Adicionar `import { registerSW } from "virtual:pwa-register"`.
-   - Manter o guard atual de preview/iframe:
-     - Se `isPreviewHost || isInIframe`: continuar desregistrando SW.
-     - Caso contrário: chamar `registerSW({ immediate: true })`.
+## 1. Migração SQL
 
-2. **Garantir tipagem do módulo virtual**
-   - Arquivo: `src/vite-env.d.ts`
-   - Adicionar referência:
-     - `/// <reference types="vite-plugin-pwa/client" />`
-   - Evita erro de TypeScript ao importar `virtual:pwa-register`.
+```sql
+ALTER TABLE public.deals ADD COLUMN acquisition_channel text;
+```
 
-3. **Adicionar opção explícita de instalação no app (recomendado)**
-   - Criar hook `usePwaInstall` (ex.: `src/hooks/use-pwa-install.ts`) para capturar `beforeinstallprompt` e `appinstalled`.
-   - Integrar no `src/components/Header.tsx` dentro do menu do usuário:
-     - novo item: **“Baixar App”** (com ícone Download)
-     - mostrar apenas quando `beforeinstallprompt` estiver disponível
-     - ao clicar, chamar `prompt()` e tratar resultado.
-   - Isso resolve o cenário em que o browser não mostra banner automático.
+Sem constraint — validação feita no frontend.
 
-4. **Validação pós-deploy na Vercel**
-   - Fazer novo deploy e testar em `https://crm.elisaportas.com`.
-   - Confirmar no DevTools > Application:
-     - Service Worker ativo e controlando a página
-     - Manifest válido
-   - Confirmar que o item “Baixar App” aparece e instala o app.
+## 2. `src/components/DealDialog.tsx`
+
+- Novo estado `channel` (string)
+- Select com as 7 opções + "Sem canal"
+- Incluir `acquisition_channel` no payload de insert/update
+- Preencher estado ao editar deal existente
+
+## 3. `src/components/DealDetailDialog.tsx`
+
+- Exibir canal de aquisição no cabeçalho/info da negociação (badge ou texto)
+- Permitir edição inline ou via select
+
+## 4. `src/pages/Dashboard.tsx`
+
+- Novo gráfico de pizza: distribuição de negociações por canal de aquisição
+- Layout passa para 3x2 ou grid adaptável
+
+## 5. `supabase/functions/submit-lead/index.ts`
+
+- Aceitar campo `canal_aquisicao` no body e gravar como `acquisition_channel` no deal
 
 ## Arquivos afetados
-- `src/main.tsx` (registro de SW em produção)
-- `src/vite-env.d.ts` (tipagem do PWA client)
-- `src/hooks/use-pwa-install.ts` (novo hook)
-- `src/components/Header.tsx` (item “Baixar App” no menu)
 
-## Resultado esperado
-- O app passa a exibir uma opção real de instalação/“download” no domínio de produção.
-- Instalação funcional em desktop/mobile compatíveis.
-- Preview do editor continua protegido contra cache de service worker.
+| Arquivo | Ação |
+|---|---|
+| Migração SQL | Adicionar coluna `acquisition_channel` |
+| `src/components/DealDialog.tsx` | Campo select no formulário |
+| `src/components/DealDetailDialog.tsx` | Exibir e editar canal |
+| `src/pages/Dashboard.tsx` | Gráfico por canal de aquisição |
+| `supabase/functions/submit-lead/index.ts` | Aceitar canal no lead |
+
