@@ -617,10 +617,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           </div>
 
           {/* Info section */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Valor:</span>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Valor</span>
+              </div>
               {editingField === "value" ? (
                 <Input
                   type="number"
@@ -629,33 +631,39 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={() => saveField("value")}
                   onKeyDown={(e) => handleEditKeyDown(e, "value")}
-                  className="h-7 w-32 text-sm"
+                  className="h-7 w-full text-sm"
                 />
               ) : (
                 <span
-                  className="font-medium text-foreground cursor-pointer rounded px-1 -mx-1 hover:bg-accent transition-colors"
+                  className="text-lg font-bold text-foreground cursor-pointer rounded px-1 -mx-1 hover:bg-accent transition-colors"
                   onClick={() => startEditing("value")}
                 >
                   R$ {Number(deal.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Criado em:</span>
-              <span className="font-medium text-foreground">{format(new Date(deal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Criado em</span>
+              </div>
+              <span className="text-lg font-bold text-foreground">{format(new Date(deal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Na etapa:</span>
-              <span className={`font-medium ${daysInStage > 7 ? "text-destructive" : "text-foreground"}`}>
+            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Na etapa</span>
+              </div>
+              <span className={`text-lg font-bold ${daysInStage > 7 ? "text-destructive" : "text-foreground"}`}>
                 {daysInStage === 0 ? "Hoje" : `${daysInStage} dias`}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Tempo total:</span>
-              <span className="font-medium text-foreground">
+            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tempo total</span>
+              </div>
+              <span className="text-lg font-bold text-foreground">
                 {(() => {
                    const createdAt = new Date(deal.created_at);
                    const now = new Date();
