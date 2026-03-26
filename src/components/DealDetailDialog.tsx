@@ -863,7 +863,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-muted-foreground">{typeIcon}</span>
-                          <span className={`text-xs font-medium leading-tight ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                          <span className="text-xs font-medium leading-tight text-foreground">
                             {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
                           </span>
                         </div>
