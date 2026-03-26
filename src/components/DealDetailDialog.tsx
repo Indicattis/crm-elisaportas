@@ -269,15 +269,16 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (deal && open) {
       setHeat(deal.heat || 0);
       setEditingField(null);
+      setDealTasks([]);
       fetchComments();
       fetchTags();
       fetchAllTags();
       fetchAssignedProfile();
       fetchExternalClient();
-      fetchDealTasks();
+      fetchDealTasks(deal.id);
       fetchHistory();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks, fetchHistory]);
+  }, [deal?.id, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
