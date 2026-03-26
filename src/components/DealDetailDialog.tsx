@@ -198,6 +198,25 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setDealTasks((data as DealTask[]) || []);
   }, [deal]);
 
+  const fetchHistory = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_history")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("created_at", { ascending: false }) as { data: DealHistoryEvent[] | null };
+    const events = data || [];
+    setHistory(events);
+
+    const userIds = [...new Set(events.map(e => e.user_id))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds);
+      const map: Record<string, CommentProfile> = {};
+      (profiles || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
+      setHistoryProfiles(prev => ({ ...prev, ...map }));
+    }
+  }, [deal]);
+
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
     const updateData: any = { completed };
