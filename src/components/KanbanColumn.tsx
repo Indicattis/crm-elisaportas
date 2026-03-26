@@ -3,6 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
+import { useTheme } from "@/hooks/use-theme";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
