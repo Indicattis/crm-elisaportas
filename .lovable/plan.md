@@ -1,47 +1,81 @@
 
 
-# Transformar em PWA Instalável
+# PWA Instalável com Service Worker (Vercel)
 
-## Visão geral
+## Problema
 
-Tornar o app instalável (Add to Home Screen) em dispositivos móveis e desktop usando um Web App Manifest simples, sem service worker (que causa problemas no preview do Lovable).
+O Chrome exige um **service worker** registrado para mostrar o prompt de instalação. Atualmente o app só tem o `manifest.json`, que não é suficiente.
+
+## Solução
+
+Adicionar `vite-plugin-pwa` com guard para não interferir no preview do Lovable.
+
+## 1. Instalar dependência
+
+```
+npm install vite-plugin-pwa
+```
+
+## 2. `vite.config.ts` — Adicionar VitePWA
+
+Adicionar o plugin com `devOptions: { enabled: false }` e `navigateFallbackDenylist` para evitar conflitos:
+
+```ts
+import { VitePWA } from 'vite-plugin-pwa'
+
+// No array de plugins:
+VitePWA({
+  registerType: 'autoUpdate',
+  devOptions: { enabled: false },
+  workbox: {
+    navigateFallbackDenylist: [/^\/~oauth/],
+  },
+  manifest: {
+    name: 'CRM Elisa',
+    short_name: 'CRM Elisa',
+    start_url: '/',
+    display: 'standalone',
+    theme_color: '#1d76cf',
+    background_color: '#ffffff',
+    icons: [
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+    ]
+  }
+})
+```
+
+## 3. `src/main.tsx` — Guard contra iframe/preview
+
+Adicionar guard no entry point para desregistrar service workers no preview do Lovable:
+
+```ts
+const isInIframe = (() => {
+  try { return window.self !== window.top; }
+  catch { return true; }
+})();
+
+const isPreviewHost =
+  window.location.hostname.includes("id-preview--") ||
+  window.location.hostname.includes("lovableproject.com");
+
+if (isPreviewHost || isInIframe) {
+  navigator.serviceWorker?.getRegistrations().then(regs =>
+    regs.forEach(r => r.unregister())
+  );
+}
+```
 
 ## Nota importante
 
-Funcionalidades PWA (prompt de instalação) só funcionarão na versão publicada, não no preview do editor Lovable.
-
-## 1. `public/manifest.json` — Novo arquivo
-
-Criar manifest com:
-- `name`: "CRM Elisa"
-- `short_name`: "CRM Elisa"
-- `display`: "standalone"
-- `start_url`: "/"
-- `theme_color`: "#1d76cf" (cor do logo)
-- `background_color`: "#ffffff"
-- Ícones: referenciar SVG existente + gerar PNGs (192x192, 512x512)
-
-## 2. `public/` — Ícones PNG
-
-Criar ícones PNG a partir do favicon.svg existente:
-- `icon-192.png` (192x192)
-- `icon-512.png` (512x512)
-
-## 3. `index.html` — Meta tags PWA
-
-Adicionar:
-- `<link rel="manifest" href="/manifest.json">`
-- `<meta name="theme-color" content="#1d76cf">`
-- `<meta name="apple-mobile-web-app-capable" content="yes">`
-- `<meta name="apple-mobile-web-app-status-bar-style" content="default">`
-- `<link rel="apple-touch-icon" href="/icon-192.png">`
+- O prompt de instalação só aparecerá no domínio publicado (`crm.elisaportas.com`), nunca no preview do Lovable
+- Após deploy na Vercel, o service worker será gerado automaticamente pelo build
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `public/manifest.json` | Criar manifest do PWA |
-| `public/icon-192.png` | Criar ícone 192x192 |
-| `public/icon-512.png` | Criar ícone 512x512 |
-| `index.html` | Adicionar meta tags e link do manifest |
+| `package.json` | Adicionar `vite-plugin-pwa` |
+| `vite.config.ts` | Configurar VitePWA |
+| `src/main.tsx` | Adicionar guard de service worker |
 
