@@ -312,6 +312,15 @@ export function KanbanBoard() {
             </div>
           ))}
         </div>
+      ) : viewMode === "list" ? (
+        <DealsListView
+          deals={deals}
+          columns={columns}
+          dealTagsMap={dealTagsMap}
+          profilesMap={profilesMap}
+          onEditDeal={handleViewDeal}
+          onCapture={handleCapture}
+        />
       ) : (
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div
