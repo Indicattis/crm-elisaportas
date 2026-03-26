@@ -95,6 +95,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
+  const [showNewTask, setShowNewTask] = useState(false);
+  const [newTaskDesc, setNewTaskDesc] = useState("");
+  const [newTaskType, setNewTaskType] = useState("personalizada");
+  const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
+  const [creatingTask, setCreatingTask] = useState(false);
   const { toast } = useToast();
 
   // Inline editing state
