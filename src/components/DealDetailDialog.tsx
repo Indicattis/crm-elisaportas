@@ -617,11 +617,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           </div>
 
           {/* Info section */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center gap-1.5">
-                <DollarSign className="h-3.5 w-3.5 text-primary" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Valor</span>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
+              <div className="flex items-center gap-1">
+                <DollarSign className="h-3 w-3 text-primary" />
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Valor</span>
               </div>
               {editingField === "value" ? (
                 <Input
@@ -631,39 +631,39 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={() => saveField("value")}
                   onKeyDown={(e) => handleEditKeyDown(e, "value")}
-                  className="h-7 w-full text-sm"
+                  className="h-6 w-full text-xs"
                 />
               ) : (
                 <span
-                  className="text-lg font-bold text-foreground cursor-pointer rounded px-1 -mx-1 hover:bg-accent transition-colors"
+                  className="text-sm font-bold text-foreground cursor-pointer rounded px-0.5 -mx-0.5 hover:bg-accent transition-colors truncate"
                   onClick={() => startEditing("value")}
                 >
                   R$ {Number(deal.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               )}
             </div>
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-primary" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Criado em</span>
+            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-primary" />
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Criado em</span>
               </div>
-              <span className="text-lg font-bold text-foreground">{format(new Date(deal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+              <span className="text-sm font-bold text-foreground">{format(new Date(deal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
             </div>
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-primary" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Na etapa</span>
+            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-primary" />
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Na etapa</span>
               </div>
-              <span className={`text-lg font-bold ${daysInStage > 7 ? "text-destructive" : "text-foreground"}`}>
+              <span className={`text-sm font-bold ${daysInStage > 7 ? "text-destructive" : "text-foreground"}`}>
                 {daysInStage === 0 ? "Hoje" : `${daysInStage} dias`}
               </span>
             </div>
-            <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-primary" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tempo total</span>
+            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-primary" />
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Tempo total</span>
               </div>
-              <span className="text-lg font-bold text-foreground">
+              <span className="text-sm font-bold text-foreground">
                 {(() => {
                    const createdAt = new Date(deal.created_at);
                    const now = new Date();
