@@ -301,6 +301,71 @@ export type Database = {
         }
         Relationships: []
       }
+      task_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      task_templates: {
+        Row: {
+          created_at: string
+          deadline_hours: number
+          description: string | null
+          group_id: string
+          id: string
+          position: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline_hours?: number
+          description?: string | null
+          group_id: string
+          id?: string
+          position?: number
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline_hours?: number
+          description?: string | null
+          group_id?: string
+          id?: string
+          position?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_templates_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
