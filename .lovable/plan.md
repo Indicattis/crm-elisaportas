@@ -1,29 +1,36 @@
 
 
-# Botões de WhatsApp e Ligação nas Tarefas
+# Corrigir Cálculo de "Tempo Total" — Usar Dias Corridos por Calendário
 
-## Visão geral
+## Problema
 
-Adicionar botões de ação nas tarefas da sidebar: tarefas do tipo "mensagem" terão um botão para abrir conversa no WhatsApp, e tarefas do tipo "ligacao" terão um botão para ligar via WhatsApp — ambos usando o telefone do cliente externo vinculado à negociação (`externalClient.telefone`).
+O cálculo atual usa diferença em milissegundos dividida por 86400000, o que conta apenas blocos completos de 24h. Se a negociação foi criada ontem às 23h e agora são 10h, são menos de 24h → mostra "Hoje" incorretamente.
 
-## Alterações em `src/components/DealDetailDialog.tsx`
+## Solução
 
-### 1. Função auxiliar para formatar telefone
+Comparar datas por dia de calendário (ignorando hora), garantindo que "ontem" sempre seja pelo menos 1 dia.
 
-Criar função `formatPhoneForWhatsapp(phone: string)` que remove caracteres não numéricos e adiciona código do país (55) se necessário.
+## Alteração em `src/components/DealDetailDialog.tsx`
 
-### 2. Botões nas tarefas (sidebar)
+Substituir o cálculo na linha ~660:
 
-Dentro do map de tarefas pendentes (linhas ~845-880), ao lado do checkbox/conteúdo de cada tarefa:
+```tsx
+// De:
+const totalDays = Math.floor((Date.now() - new Date(deal.created_at).getTime()) / (1000 * 60 * 60 * 24));
 
-- **Tipo "mensagem"**: botão com ícone do WhatsApp (ou `MessageSquare`) que abre `https://wa.me/{phone}` em nova aba
-- **Tipo "ligacao"**: botão com ícone de telefone que abre `https://wa.me/{phone}` com intent de chamada, ou `tel:{phone}` como fallback
+// Para:
+const createdAt = new Date(deal.created_at);
+const now = new Date();
+const startOfCreated = new Date(createdAt.getFullYear(), createdAt.getMonth(), createdAt.getDate());
+const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const totalDays = Math.round((startOfNow.getTime() - startOfCreated.getTime()) / 86400000);
+```
 
-Ambos os botões só aparecem se `externalClient?.telefone` existir. Caso contrário, mostrar tooltip "Vincule um cliente para usar esta ação".
+Isso compara início do dia de criação vs início do dia atual, garantindo contagem correta por calendário.
 
 ## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Adicionar botões de WhatsApp/ligação nas tarefas |
+| `src/components/DealDetailDialog.tsx` | Corrigir cálculo de dias para usar calendário |
 
