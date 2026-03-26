@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
@@ -45,6 +45,32 @@ export function KanbanBoard() {
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Grab-to-scroll state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isGrabbing, setIsGrabbing] = useState(false);
+  const grabStartX = useRef(0);
+  const grabScrollLeft = useRef(0);
+
+  const handleGrabMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-deal-card]')) return;
+    if (!scrollContainerRef.current) return;
+    setIsGrabbing(true);
+    grabStartX.current = e.pageX - scrollContainerRef.current.offsetLeft;
+    grabScrollLeft.current = scrollContainerRef.current.scrollLeft;
+  };
+
+  const handleGrabMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isGrabbing || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - grabStartX.current) * 1.5;
+    scrollContainerRef.current.scrollLeft = grabScrollLeft.current - walk;
+  };
+
+  const handleGrabMouseUp = () => setIsGrabbing(false);
+  const handleGrabMouseLeave = () => setIsGrabbing(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } }));
 
@@ -238,9 +264,9 @@ export function KanbanBoard() {
       </div>
 
       {loading ? (
-        <div className="flex gap-4 overflow-x-auto p-6 pb-8">
+        <div className="flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)]">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-shrink-0 w-72 space-y-3">
+            <div key={i} className="flex-shrink-0 w-72 space-y-3 h-full">
               <Skeleton className="h-8 w-full rounded-lg" />
               <Skeleton className="h-24 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
@@ -250,7 +276,14 @@ export function KanbanBoard() {
         </div>
       ) : (
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto p-6 pb-8">
+        <div
+          ref={scrollContainerRef}
+          className={`flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)] ${isGrabbing ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+          onMouseDown={handleGrabMouseDown}
+          onMouseMove={handleGrabMouseMove}
+          onMouseUp={handleGrabMouseUp}
+          onMouseLeave={handleGrabMouseLeave}
+        >
           {columns.map((col) => (
             <KanbanColumn
               key={col.id}

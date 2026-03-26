@@ -46,7 +46,7 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
 
   return (
     <div
-      className="flex w-80 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors"
+      className="flex w-80 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors h-full"
       style={{
         backgroundColor: color || (isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)'),
       }}
@@ -76,7 +76,7 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
       </div>
 
       {/* Cards */}
-      <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 p-3 min-h-[100px]">
+      <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 p-3 min-h-[100px] overflow-y-auto">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
             <DealCard
