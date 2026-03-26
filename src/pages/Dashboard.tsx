@@ -119,6 +119,30 @@ export default function Dashboard() {
       .filter((d) => d.value > 0);
   }, [deals, columns]);
 
+  const lossReasonData = useMemo(() => {
+    if (!deals) return [];
+    const lost = deals.filter((d) => d.status === "Perdida");
+    const countByReason: Record<string, number> = {};
+    lost.forEach((d) => {
+      const reason = (d as any).loss_reason || "Sem motivo";
+      countByReason[reason] = (countByReason[reason] || 0) + 1;
+    });
+    const reasonColors: Record<string, string> = {
+      "Desqualificado": "#ef4444",
+      "Perca por orçamento": "#f97316",
+      "Perca por prazo": "#eab308",
+      "Perca por qualidade": "#8b5cf6",
+      "Perca por logística": "#06b6d4",
+      "Perca por atendimento": "#ec4899",
+      "Sem motivo": "#94a3b8",
+    };
+    return Object.entries(countByReason).map(([reason, count]) => ({
+      name: reason,
+      value: count,
+      color: reasonColors[reason] || "#6b7280",
+    }));
+  }, [deals]);
+
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
