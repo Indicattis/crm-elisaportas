@@ -388,71 +388,82 @@ export function TaskGroupManager() {
                 </Select>
               </div>
             </div>
-
-            <Separator className="my-2" />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Recorrente</Label>
-                <Switch checked={isRecurrent} onCheckedChange={setIsRecurrent} />
-              </div>
-
-              {isRecurrent && (
-                <div className="space-y-3 pl-1">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Tipo de recorrência</Label>
-                    <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="interval">Intervalo de tempo</SelectItem>
-                        <SelectItem value="weekday">Dia da semana</SelectItem>
-                        <SelectItem value="monthday">Dia do mês</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {recurrenceType === "interval" && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Recriar a cada</Label>
-                      <div className="flex gap-2">
-                        <Input type="number" min={1} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, parseInt(e.target.value) || 1))} className="w-24" />
-                        <Select value={recurrenceUnit} onValueChange={(v) => setRecurrenceUnit(v as "hours" | "days")}>
-                          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="hours">Hora(s)</SelectItem>
-                            <SelectItem value="days">Dia(s)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {recurrenceType === "weekday" && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Dia da semana</Label>
-                      <Select value={String(recurrenceValue)} onValueChange={(v) => setRecurrenceValue(parseInt(v))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {WEEKDAYS.map((day, i) => (
-                            <SelectItem key={i} value={String(i)}>{day}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {recurrenceType === "monthday" && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Dia do mês</Label>
-                      <Input type="number" min={1} max={31} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))} className="w-24" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
           <DialogFooter>
             <Button onClick={saveTask} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recurrence Dialog */}
+      <Dialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurar Recorrência</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Recorrente</Label>
+              <Switch checked={isRecurrent} onCheckedChange={setIsRecurrent} />
+            </div>
+
+            {isRecurrent && (
+              <div className="space-y-3 pl-1">
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo de recorrência</Label>
+                  <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="interval">Intervalo de tempo</SelectItem>
+                      <SelectItem value="weekday">Dia da semana</SelectItem>
+                      <SelectItem value="monthday">Dia do mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {recurrenceType === "interval" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Recriar a cada</Label>
+                    <div className="flex gap-2">
+                      <Input type="number" min={1} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, parseInt(e.target.value) || 1))} className="w-24" />
+                      <Select value={recurrenceUnit} onValueChange={(v) => setRecurrenceUnit(v as "hours" | "days")}>
+                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">Hora(s)</SelectItem>
+                          <SelectItem value="days">Dia(s)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                {recurrenceType === "weekday" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Dia da semana</Label>
+                    <Select value={String(recurrenceValue)} onValueChange={(v) => setRecurrenceValue(parseInt(v))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {WEEKDAYS.map((day, i) => (
+                          <SelectItem key={i} value={String(i)}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {recurrenceType === "monthday" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Dia do mês</Label>
+                    <Input type="number" min={1} max={31} value={recurrenceValue} onChange={e => setRecurrenceValue(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))} className="w-24" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={saveRecurrence} disabled={saving}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
