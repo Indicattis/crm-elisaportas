@@ -1,47 +1,52 @@
 
 
-# Adicionar Loading States em Todas as Telas
+# Evitar recarregamento do Header entre páginas
 
-## Visão geral
+## Problema
 
-Adicionar indicadores de carregamento (skeletons e spinners) em todas as telas e componentes onde dados, layout ou permissões estão sendo carregados, garantindo feedback visual consistente.
+Cada rota tem seu próprio `<AuthGuard>` que cria um novo `<RoleProvider>` a cada navegação. O `<Header>` está duplicado dentro de cada página. Isso causa remontagem completa do header (incluindo re-fetch de role) a cada troca de rota.
 
-## Locais que precisam de loading
+## Solução
 
-### 1. `KanbanBoard.tsx` — Sem loading ao carregar funis, colunas e deals
-- Adicionar estado `loading` que fica `true` durante o fetch de funis/colunas/deals
-- Exibir skeletons de colunas enquanto carrega (retângulos simulando as colunas do kanban)
-- Exibir skeleton no seletor de funil enquanto funis carregam
+Criar um layout compartilhado que renderiza `AuthGuard`, `RoleProvider` e `Header` uma única vez, com as páginas renderizadas dentro via `<Outlet />`.
 
-### 2. `Clients.tsx` — Já tem loading básico ("Carregando..." texto)
-- Substituir o texto "Carregando..." por skeletons de linhas da tabela (5-6 linhas com retângulos animados)
+## Alterações
 
-### 3. `CrmConfig.tsx` — Sem loading ao carregar funis e colunas
-- Adicionar estado `loading` no fetch inicial de funis
-- Exibir skeleton nos cards de menu e na lista de funis/colunas
+### 1. Criar `src/components/AppLayout.tsx`
 
-### 4. `FunnelMembersManager.tsx` — Sem loading visual ao carregar membros
-- Adicionar skeleton enquanto membros e usuários disponíveis carregam
+- Componente que renderiza `<Header />` + `<Outlet />` (do react-router)
+- O header fica montado uma única vez e nunca recarrega entre rotas
 
-### 5. `TeamManager.tsx` — Já tem loading com spinner
-- OK, já implementado
+### 2. Atualizar `src/App.tsx`
 
-### 6. `AuthGuard.tsx` e `RoleGuard.tsx` — Já têm spinner
-- OK, já implementados
+- Envolver as rotas autenticadas em uma rota pai com `AuthGuard` + `AppLayout`
+- Usar rotas aninhadas com `<Outlet />`
 
-### 7. `Profile.tsx` — Já tem loading com spinner
-- OK, já implementado
+```text
+<Route element={<AuthGuard><AppLayout /></AuthGuard>}>
+  <Route path="/" element={<Index />} />
+  <Route path="/clients" element={<Clients />} />
+  <Route path="/profile" element={<Profile />} />
+  <Route path="/crm-config" element={<RoleGuard ...><CrmConfig /></RoleGuard>} />
+</Route>
+```
 
-## Implementação
+### 3. Remover `<Header />` de cada página
 
-Usar o componente `Skeleton` existente (`src/components/ui/skeleton.tsx`) para manter consistência visual. Padrão: skeletons que imitam o layout final (linhas de tabela, cards, colunas).
+- Remover import e uso de `<Header />` em: `Index.tsx`, `Clients.tsx`, `CrmConfig.tsx`, `Profile.tsx`
+
+### 4. Mover `RoleProvider` para dentro do `AuthGuard` (já está lá)
+
+- Nenhuma mudança necessária, já funciona corretamente
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Adicionar estado loading + skeletons de colunas |
-| `src/pages/Clients.tsx` | Substituir texto por skeleton rows na tabela |
-| `src/pages/CrmConfig.tsx` | Adicionar loading + skeletons nos cards/funis |
-| `src/components/FunnelMembersManager.tsx` | Adicionar skeleton ao carregar membros |
+| `src/components/AppLayout.tsx` | Criar (Header + Outlet) |
+| `src/App.tsx` | Reestruturar rotas com layout pai |
+| `src/pages/Index.tsx` | Remover Header |
+| `src/pages/Clients.tsx` | Remover Header |
+| `src/pages/CrmConfig.tsx` | Remover Header |
+| `src/pages/Profile.tsx` | Remover Header |
 
