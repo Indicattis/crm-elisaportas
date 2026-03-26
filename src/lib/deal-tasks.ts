@@ -1,5 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 
+function getNextWeekday(from: Date, targetDay: number): Date {
+  const d = new Date(from);
+  const diff = (targetDay - d.getDay() + 7) % 7 || 7;
+  d.setDate(d.getDate() + diff);
+  d.setHours(9, 0, 0, 0);
+  return d;
+}
+
+function getNextMonthday(from: Date, targetDay: number): Date {
+  const d = new Date(from);
+  d.setMonth(d.getMonth() + (d.getDate() >= targetDay ? 1 : 0));
+  d.setDate(Math.min(targetDay, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  d.setHours(9, 0, 0, 0);
+  return d;
+}
+
 /**
  * Create deal tasks based on the task group linked to a funnel column.
  * Call this when a deal is created or moved to a new column.
