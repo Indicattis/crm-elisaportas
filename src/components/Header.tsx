@@ -5,6 +5,13 @@ import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
 import { NotificationBell } from "./NotificationBell";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.png";
 import logoWhite from "@/assets/logo-white.png";
 
