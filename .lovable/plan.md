@@ -1,30 +1,31 @@
 
 
-# Mover "Dias na Etapa" para Acima do Valor com Cores Dinâmicas
+# Toggle Kanban / Lista na Página Inicial
 
-## Alteração em `src/components/DealCard.tsx`
+## Visão geral
 
-Reposicionar o indicador de tempo na etapa: remover do rodapé (linhas 168-173) e colocar como elemento próprio acima da linha de rodapé, com cores baseadas no tempo:
+Adicionar um botão toggle (ícones Kanban/Lista) ao lado direito do seletor de funil, permitindo alternar entre a visualização Kanban atual e uma nova visualização em tabela/lista.
 
-- **Verde** (`text-green-600`): 0-3 dias
-- **Amarelo** (`text-yellow-600`): 4-7 dias  
-- **Vermelho** (`text-destructive`): 8+ dias
+## 1. `src/components/KanbanBoard.tsx` — Toggle e estado
 
-### Layout resultante do card:
-```text
-Título          [tag] [avatar]
-Cliente
-🔥🔥
-[Tags]
-🕐 Xd na etapa  (colorido, acima do rodapé)
-📅 dd/mm/yyyy          R$ valor
-```
+- Adicionar estado `viewMode: "kanban" | "list"` (default `"kanban"`)
+- Na barra superior (div `px-6 pt-4`), adicionar à direita um `ToggleGroup` com dois itens:
+  - `LayoutGrid` icon → valor `"kanban"`
+  - `List` icon → valor `"list"`
+- Quando `viewMode === "list"`, renderizar `<DealsListView>` ao invés do DndContext/Kanban
 
-O bloco de "dias na etapa" vira uma linha independente com `Clock` icon e cor condicional. O rodapé fica apenas com data de criação à esquerda e valor à direita.
+## 2. `src/components/DealsListView.tsx` — Novo componente
 
-## Arquivo afetado
+- Recebe `deals`, `columns`, `dealTagsMap`, `allTags`, `profilesMap`, callbacks
+- Tabela com colunas: Título, Cliente, Status (badge colorida), Responsável, Valor, Dias na Etapa, Tags, Data Criação
+- Cada linha clicável → abre `onEditDeal`
+- Ordenação por coluna (status agrupado pela ordem das colunas do funil)
+- Botão "Capturar" inline quando sem responsável
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealCard.tsx` | Mover dias na etapa para cima do valor, adicionar cores dinâmicas |
+| `src/components/KanbanBoard.tsx` | Adicionar toggle de visualização e renderização condicional |
+| `src/components/DealsListView.tsx` | Criar componente de visualização em lista/tabela |
 
