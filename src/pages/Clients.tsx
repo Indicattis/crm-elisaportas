@@ -61,8 +61,13 @@ export default function Clients() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-        <span className="text-sm text-muted-foreground">{totalCount} cliente(s)</span>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
+          <span className="text-sm text-muted-foreground">{totalCount} cliente(s)</span>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Novo Cliente
+        </Button>
       </div>
 
       <div className="relative">
