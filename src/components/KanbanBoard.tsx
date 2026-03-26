@@ -264,9 +264,9 @@ export function KanbanBoard() {
       </div>
 
       {loading ? (
-        <div className="flex gap-4 overflow-x-auto p-6 pb-8">
+        <div className="flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)]">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-shrink-0 w-72 space-y-3">
+            <div key={i} className="flex-shrink-0 w-72 space-y-3 h-full">
               <Skeleton className="h-8 w-full rounded-lg" />
               <Skeleton className="h-24 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
@@ -276,7 +276,14 @@ export function KanbanBoard() {
         </div>
       ) : (
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto p-6 pb-8">
+        <div
+          ref={scrollContainerRef}
+          className={`flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)] ${isGrabbing ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+          onMouseDown={handleGrabMouseDown}
+          onMouseMove={handleGrabMouseMove}
+          onMouseUp={handleGrabMouseUp}
+          onMouseLeave={handleGrabMouseLeave}
+        >
           {columns.map((col) => (
             <KanbanColumn
               key={col.id}
