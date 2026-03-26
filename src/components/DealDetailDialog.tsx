@@ -378,7 +378,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Header */}
         <DialogHeader
           className="px-6 pt-6 pb-4 rounded-t-lg"
