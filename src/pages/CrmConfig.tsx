@@ -6,9 +6,10 @@ import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList } from "lucide-react";
 import { TeamManager } from "@/components/TeamManager";
 import { FunnelMembersManager } from "@/components/FunnelMembersManager";
+import { TaskGroupManager } from "@/components/TaskGroupManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,7 +33,7 @@ export default function CrmConfig() {
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFunnel, setEditingFunnel] = useState<Funnel | null>(null);
-  const [activeSection, setActiveSection] = useState<null | "funnels" | "tags" | "team">(null);
+  const [activeSection, setActiveSection] = useState<null | "funnels" | "tags" | "team" | "tasks">(null);
   const [loadingFunnels, setLoadingFunnels] = useState(true);
   const { toast } = useToast();
 
@@ -159,6 +160,23 @@ export default function CrmConfig() {
                   </div>
                 </CardHeader>
               </Card>
+
+              <Card
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
+                onClick={() => setActiveSection("tasks")}
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2.5">
+                      <ClipboardList className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Tarefas</CardTitle>
+                      <CardDescription>Gerencie grupos e templates de tarefas</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
             </div>
             )}
           </>
@@ -227,6 +245,15 @@ export default function CrmConfig() {
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <TeamManager />
+          </>
+        )}
+
+        {activeSection === "tasks" && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setActiveSection(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <TaskGroupManager />
           </>
         )}
       </div>
