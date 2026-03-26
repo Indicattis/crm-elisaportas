@@ -735,6 +735,61 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           </div>
         </div>
 
+          {/* Tasks sidebar */}
+          <div className="w-full md:w-72 md:border-l border-t md:border-t-0 border-border overflow-y-auto bg-muted/20 p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Tarefas
+              {dealTasks.filter(t => !t.completed).length > 0 && (
+                <Badge variant="secondary" className="text-xs ml-auto">
+                  {dealTasks.filter(t => !t.completed).length} pendente{dealTasks.filter(t => !t.completed).length !== 1 ? "s" : ""}
+                </Badge>
+              )}
+            </h3>
+            {dealTasks.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
+            ) : (
+              <div className="space-y-2">
+                {dealTasks.map((task) => {
+                  const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
+                  const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
+                    : task.type === "ligacao" ? <PhoneCall className="h-3.5 w-3.5" />
+                    : <ClipboardList className="h-3.5 w-3.5" />;
+                  return (
+                    <div
+                      key={task.id}
+                      className={`flex items-start gap-2 rounded-lg border p-2.5 transition-colors ${
+                        task.completed ? "bg-muted/30 border-border opacity-60" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={task.completed}
+                        onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-muted-foreground">{typeIcon}</span>
+                          <span className={`text-xs font-medium leading-tight ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                            {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className={`text-[10px] ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5" />}
+                            {format(new Date(task.deadline_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
         <Separator />
 
         {/* Footer */}
