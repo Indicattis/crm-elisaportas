@@ -272,7 +272,31 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     fetchHistory();
   };
 
-  useEffect(() => {
+  const handleCreateManualTask = async () => {
+    if (!deal || creatingTask) return;
+    setCreatingTask(true);
+    try {
+      const deadline = new Date(Date.now() + newTaskDeadlineHours * 60 * 60 * 1000);
+      const { error } = await supabase.from("deal_tasks").insert({
+        deal_id: deal.id,
+        type: newTaskType,
+        description: newTaskDesc.trim() || null,
+        deadline_at: deadline.toISOString(),
+      } as any);
+      if (error) throw error;
+      setNewTaskDesc("");
+      setNewTaskType("personalizada");
+      setNewTaskDeadlineHours(24);
+      setShowNewTask(false);
+      fetchDealTasks();
+    } catch (err: any) {
+      toast({ title: "Erro ao criar tarefa", description: err.message, variant: "destructive" });
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
+
     if (deal && open) {
       setHeat(deal.heat || 0);
       setEditingField(null);
