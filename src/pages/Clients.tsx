@@ -25,9 +25,7 @@ export default function Clients() {
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
           <span className="text-sm text-muted-foreground">{clients.length} cliente(s)</span>
