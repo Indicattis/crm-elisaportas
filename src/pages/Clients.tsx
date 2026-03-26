@@ -95,6 +95,5 @@ export default function Clients() {
           </Table>
         </div>
       </div>
-    </div>
   );
 }
