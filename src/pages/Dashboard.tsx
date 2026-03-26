@@ -205,7 +205,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card className="glass-strong">
           <CardHeader>
             <CardTitle className="text-base">Negociações por Etapa</CardTitle>
@@ -261,6 +261,28 @@ export default function Dashboard() {
                   <ChartTooltip content={<ChartTooltipContent formatter={(value) => fmt(Number(value))} />} />
                   <Pie data={stageValueData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {stageValueData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para exibir</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-strong">
+          <CardHeader>
+            <CardTitle className="text-base">Motivos de Perda</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {lossReasonData.length > 0 ? (
+              <ChartContainer config={lossReasonChartConfig} className="mx-auto aspect-square max-h-[300px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie data={lossReasonData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {lossReasonData.map((d, i) => (
                       <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>
