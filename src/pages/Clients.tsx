@@ -6,7 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ExternalClientDialog } from "@/components/ExternalClientDialog";
 
 const PAGE_SIZE = 25;
 
@@ -17,6 +18,7 @@ export default function Clients() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -59,8 +61,13 @@ export default function Clients() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-        <span className="text-sm text-muted-foreground">{totalCount} cliente(s)</span>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
+          <span className="text-sm text-muted-foreground">{totalCount} cliente(s)</span>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Novo Cliente
+        </Button>
       </div>
 
       <div className="relative">
@@ -152,6 +159,8 @@ export default function Clients() {
           </div>
         </div>
       )}
+
+      <ExternalClientDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={fetchClients} />
     </div>
   );
 }
