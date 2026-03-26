@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList } from "lucide-react";
 import { TeamManager } from "@/components/TeamManager";
 import { FunnelMembersManager } from "@/components/FunnelMembersManager";
+import { TaskGroupManager } from "@/components/TaskGroupManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
