@@ -92,6 +92,12 @@ export function Header() {
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 {theme === "dark" ? "Tema Claro" : "Tema Escuro"}
               </DropdownMenuItem>
+              {canInstall && (
+                <DropdownMenuItem onClick={install} className="cursor-pointer gap-2">
+                  <Download className="h-4 w-4" />
+                  Baixar App
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4" />
