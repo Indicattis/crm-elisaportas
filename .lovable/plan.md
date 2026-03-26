@@ -1,45 +1,58 @@
 
 
-# Vendedores Veem Apenas Suas Negociações e Órfãs
+# Formulário Embeddable de Leads para o CRM
 
 ## Visão geral
 
-Alterar a política RLS de SELECT na tabela `deals` para que vendedores vejam apenas negociações atribuídas a eles ou sem responsável (órfãs). Admins continuam vendo tudo.
+Criar um formulário embeddable (iframe) que sites externos podem incorporar para enviar leads diretamente ao CRM como negociações. O formulário terá campos Nome, Telefone, Email, Estado e Cidade, e o funil/coluna de destino será configurável via parâmetros de URL.
 
-## 1. Migração SQL — Atualizar política de SELECT em `deals`
+## Arquitetura
 
-Dropar a política atual `Users can view accessible deals` e criar uma nova que adiciona a restrição:
-
-```sql
-DROP POLICY "Users can view accessible deals" ON public.deals;
-
-CREATE POLICY "Users can view accessible deals" ON public.deals
-FOR SELECT TO authenticated
-USING (
-  (
-    user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM funnel_members fm
-      WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid()
-    )
-  )
-  AND (
-    has_role(auth.uid(), 'admin'::app_role)
-    OR assigned_to IS NULL
-    OR assigned_to = auth.uid()
-  )
-);
+```text
+Site Externo (iframe)
+  └─> /lead-form?funnel_id=xxx&status=Lead
+        └─> Edge Function "submit-lead" (POST, público)
+              ├─> Insert na tabela "clientes" (base externa)
+              └─> Insert na tabela "deals" (base interna)
 ```
 
-Lógica: mantém a verificação base de acesso ao funil, e adiciona que não-admins só veem deals onde `assigned_to` é nulo ou igual ao próprio usuário.
+## 1. Edge Function `submit-lead`
 
-## 2. Sem alterações de código
+Endpoint público (sem JWT) que:
+- Recebe JSON: `{ name, phone, email, estado, cidade, funnel_id, status }`
+- Valida campos obrigatórios (name, funnel_id)
+- Insere cliente na base externa (`externalSupabase.from("clientes").insert(...)`) com `ativo: true`
+- Busca um user_id admin do funil (owner do funnel) para associar ao deal
+- Insere deal na base interna via service role: `{ title: name, client_id, value: 0, status, funnel_id, user_id }`
+- Retorna `{ success: true, deal_id }`
+- CORS headers para permitir chamadas de qualquer origem
 
-A filtragem é feita inteiramente no banco via RLS — nenhum arquivo frontend precisa mudar.
+## 2. Rota pública `/lead-form`
 
-## Arquivo afetado
+Página React acessível sem autenticação:
+- Lê `funnel_id` e `status` dos query params da URL
+- Formulário com campos: Nome*, Telefone, Email, Estado, Cidade
+- Ao submeter, chama a edge function `submit-lead`
+- Exibe mensagem de sucesso/erro
+- Design limpo e minimalista, pensado para iframe
+- Sem header/sidebar do app
+
+## 3. Alterações no App.tsx
+
+- Adicionar rota `/lead-form` fora do `AuthGuard`, renderizando a página pública
+
+## 4. Página de configuração do embed
+
+No `/crm-config` (ou no modal de configuração do funil), mostrar ao admin:
+- Código HTML do iframe pronto para copiar, com os parâmetros do funil selecionado
+- Exemplo: `<iframe src="https://...app/lead-form?funnel_id=xxx&status=Lead" />`
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Atualizar RLS SELECT em `deals` |
+| `supabase/functions/submit-lead/index.ts` | Criar edge function pública |
+| `src/pages/LeadForm.tsx` | Criar página do formulário |
+| `src/App.tsx` | Adicionar rota `/lead-form` fora do AuthGuard |
+| `src/pages/CrmConfig.tsx` | Adicionar seção com código embed copiável |
 
