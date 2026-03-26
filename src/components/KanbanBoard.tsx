@@ -6,6 +6,7 @@ import { DealDialog } from "./DealDialog";
 import { DealDetailDialog } from "./DealDetailDialog";
 import { DealCard } from "./DealCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
