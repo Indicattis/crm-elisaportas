@@ -5,6 +5,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
 import { NotificationBell } from "./NotificationBell";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import {
   DropdownMenu,
   DropdownMenuContent,
