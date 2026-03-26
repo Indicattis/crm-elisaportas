@@ -154,6 +154,8 @@ export default function Clients() {
           </div>
         </div>
       )}
+
+      <ExternalClientDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={fetchClients} />
     </div>
   );
 }
