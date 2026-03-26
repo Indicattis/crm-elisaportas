@@ -1,24 +1,47 @@
 
 
-# Colunas Translúcidas no Modo Escuro
+# Transformar em PWA Instalável
 
-## Alteração em `src/components/KanbanColumn.tsx`
+## Visão geral
 
-Detectar o tema atual (verificando `document.documentElement.classList.contains('dark')` ou usando o hook `useTheme`) e, no modo escuro, aplicar a cor da coluna com opacidade reduzida em vez de sólida:
+Tornar o app instalável (Add to Home Screen) em dispositivos móveis e desktop usando um Web App Manifest simples, sem service worker (que causa problemas no preview do Lovable).
 
-- **Corpo da coluna**: cor com ~20% de opacidade (ex: `rgba(r, g, b, 0.2)`)
-- **Header da coluna**: cor com ~35% de opacidade (em vez do `darkenHex`)
+## Nota importante
 
-### Implementação
+Funcionalidades PWA (prompt de instalação) só funcionarão na versão publicada, não no preview do editor Lovable.
 
-- Criar helper `hexToRgba(hex, alpha)` para converter hex em rgba
-- Importar `useTheme` de `@/hooks/use-theme`
-- No modo escuro: `backgroundColor: hexToRgba(color, 0.2)` para corpo e `hexToRgba(color, 0.35)` para header
-- No modo claro: manter comportamento atual (cor sólida)
+## 1. `public/manifest.json` — Novo arquivo
 
-## Arquivo afetado
+Criar manifest com:
+- `name`: "CRM Elisa"
+- `short_name`: "CRM Elisa"
+- `display`: "standalone"
+- `start_url`: "/"
+- `theme_color`: "#1d76cf" (cor do logo)
+- `background_color`: "#ffffff"
+- Ícones: referenciar SVG existente + gerar PNGs (192x192, 512x512)
+
+## 2. `public/` — Ícones PNG
+
+Criar ícones PNG a partir do favicon.svg existente:
+- `icon-192.png` (192x192)
+- `icon-512.png` (512x512)
+
+## 3. `index.html` — Meta tags PWA
+
+Adicionar:
+- `<link rel="manifest" href="/manifest.json">`
+- `<meta name="theme-color" content="#1d76cf">`
+- `<meta name="apple-mobile-web-app-capable" content="yes">`
+- `<meta name="apple-mobile-web-app-status-bar-style" content="default">`
+- `<link rel="apple-touch-icon" href="/icon-192.png">`
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanColumn.tsx` | Aplicar cores translúcidas no modo escuro |
+| `public/manifest.json` | Criar manifest do PWA |
+| `public/icon-192.png` | Criar ícone 192x192 |
+| `public/icon-512.png` | Criar ícone 512x512 |
+| `index.html` | Adicionar meta tags e link do manifest |
 
