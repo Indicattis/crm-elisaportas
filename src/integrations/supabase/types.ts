@@ -191,6 +191,7 @@ export type Database = {
       }
       deals: {
         Row: {
+          acquisition_channel: string | null
           archived: boolean
           assigned_to: string | null
           client_id: string | null
@@ -207,6 +208,7 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          acquisition_channel?: string | null
           archived?: boolean
           assigned_to?: string | null
           client_id?: string | null
@@ -223,6 +225,7 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          acquisition_channel?: string | null
           archived?: boolean
           assigned_to?: string | null
           client_id?: string | null
