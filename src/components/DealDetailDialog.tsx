@@ -447,8 +447,10 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
         <Separator />
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        {/* Scrollable content with sidebar */}
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+          {/* Main content */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           {/* Client section */}
           <div className="rounded-lg border border-border bg-muted/30 p-4">
             <div className="flex items-center justify-between mb-2">
