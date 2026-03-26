@@ -46,7 +46,7 @@ export function KanbanBoard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } }));
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
