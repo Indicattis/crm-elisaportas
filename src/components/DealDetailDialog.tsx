@@ -176,6 +176,30 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current); };
   }, [clientSearchQuery, clientComboOpen, searchExternalClients]);
 
+  const fetchDealTasks = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_tasks")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("deadline_at", { ascending: true });
+    setDealTasks((data as DealTask[]) || []);
+  }, [deal]);
+
+  const handleToggleTask = async (taskId: string, completed: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const updateData: any = { completed };
+    if (completed) {
+      updateData.completed_at = new Date().toISOString();
+      updateData.completed_by = user?.id || null;
+    } else {
+      updateData.completed_at = null;
+      updateData.completed_by = null;
+    }
+    await supabase.from("deal_tasks").update(updateData).eq("id", taskId);
+    fetchDealTasks();
+  };
+
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
@@ -185,8 +209,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchAllTags();
       fetchAssignedProfile();
       fetchExternalClient();
+      fetchDealTasks();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
