@@ -903,6 +903,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                           <span className="text-xs font-medium leading-tight text-foreground">
                             {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
                           </span>
+                          {task.template_id && task.next_recurrence_at !== undefined && task.next_recurrence_at !== null && (
+                            <Repeat className="h-3 w-3 text-primary" title="Tarefa recorrente" />
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
