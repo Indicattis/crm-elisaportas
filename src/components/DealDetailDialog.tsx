@@ -460,7 +460,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             />
           ) : (
             <DialogTitle
-              className={`text-xl cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors ${columnColor ? 'text-white' : ''}`}
+              className={`text-xl cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors max-w-[50%] truncate ${columnColor ? 'text-white' : ''}`}
               onClick={() => startEditing("title")}
             >
               {deal.title}
