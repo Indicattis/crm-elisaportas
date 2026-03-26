@@ -195,15 +195,16 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current); };
   }, [clientSearchQuery, clientComboOpen, searchExternalClients]);
 
-  const fetchDealTasks = useCallback(async () => {
-    if (!deal) return;
+  const fetchDealTasks = useCallback(async (dealId?: string) => {
+    const id = dealId || deal?.id;
+    if (!id) return;
     const { data } = await supabase
       .from("deal_tasks")
       .select("*")
-      .eq("deal_id", deal.id)
+      .eq("deal_id", id)
       .order("deadline_at", { ascending: true });
     setDealTasks((data as DealTask[]) || []);
-  }, [deal]);
+  }, [deal?.id]);
 
   const fetchHistory = useCallback(async () => {
     if (!deal) return;
