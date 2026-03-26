@@ -25,7 +25,11 @@ interface TaskTemplate {
   description: string | null;
   deadline_hours: number;
   position: number;
+  recurrence_type: string | null;
+  recurrence_value: number | null;
 }
+
+const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 function formatDeadline(hours: number): string {
   if (hours < 24) return `${hours} hora${hours !== 1 ? "s" : ""}`;
