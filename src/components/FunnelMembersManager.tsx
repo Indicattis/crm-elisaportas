@@ -33,6 +33,7 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const { toast } = useToast();
 
   const fetchMembers = useCallback(async () => {
