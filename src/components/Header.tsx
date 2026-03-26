@@ -22,6 +22,7 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const { role } = useUserRole();
+  const { canInstall, install } = usePwaInstall();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
