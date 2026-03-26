@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
 import Results from "./pages/Results";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
