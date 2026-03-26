@@ -6,10 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const EXTERNAL_SUPABASE_URL = "https://zddnvwqhfcqspmxscwyy.supabase.co";
-const EXTERNAL_SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkZG52d3FoZmNxc3BteHNjd3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NjgyMzcsImV4cCI6MjA2NzE0NDIzN30.-DllUGMpirnjRGchwGsc3w2dna8SqSbq-_fKFvXKOfs";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,38 +21,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert client into external database
-    const externalSupabase = createClient(EXTERNAL_SUPABASE_URL, EXTERNAL_SUPABASE_ANON_KEY);
-    const { data: clientData, error: clientError } = await externalSupabase
-      .from("clientes")
-      .insert({
-        nome: name,
-        telefone: phone || null,
-        email: email || null,
-        estado: estado || null,
-        cidade: cidade || null,
-        ativo: true,
-        fidelizado: false,
-        parceiro: false,
-      })
-      .select("id")
-      .single();
-
-    if (clientError) {
-      console.error("Error inserting external client:", clientError);
-      return new Response(
-        JSON.stringify({ error: "Erro ao cadastrar cliente", details: clientError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create deal in internal database using service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const internalSupabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Get funnel owner as user_id for the deal
-    const { data: funnel, error: funnelError } = await internalSupabase
+    const { data: funnel, error: funnelError } = await supabase
       .from("funnels")
       .select("user_id")
       .eq("id", funnel_id)
@@ -69,16 +39,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: deal, error: dealError } = await internalSupabase
+    // Store lead info in deal notes
+    const notes = [
+      phone ? `Tel: ${phone}` : null,
+      email ? `Email: ${email}` : null,
+      estado ? `Estado: ${estado}` : null,
+      cidade ? `Cidade: ${cidade}` : null,
+    ].filter(Boolean).join(" | ");
+
+    const { data: deal, error: dealError } = await supabase
       .from("deals")
       .insert({
         title: name,
-        client_id: clientData.id,
         value: 0,
         status: status || "Lead",
         funnel_id,
         user_id: funnel.user_id,
         heat: 0,
+        notes: notes || null,
       })
       .select("id")
       .single();
