@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { externalSupabase, type ExternalClient } from "@/integrations/external-supabase";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,6 +104,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [newTaskType, setNewTaskType] = useState("personalizada");
   const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
   const [creatingTask, setCreatingTask] = useState(false);
+  const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
+  const [selectedLossReason, setSelectedLossReason] = useState<string>("");
   const { toast } = useToast();
   const { role } = useUserRole();
 
@@ -477,13 +481,28 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
-  const handleMarkAsLost = async () => {
-    if (!deal) return;
-    const { error } = await supabase.from("deals").update({ status: "Perdida" }).eq("id", deal.id);
+  const LOSS_REASONS = [
+    "Desqualificado",
+    "Perca por orçamento",
+    "Perca por prazo",
+    "Perca por qualidade",
+    "Perca por logística",
+    "Perca por atendimento",
+  ];
+
+  const handleMarkAsLost = () => {
+    setSelectedLossReason("");
+    setShowLossReasonDialog(true);
+  };
+
+  const confirmMarkAsLost = async () => {
+    if (!deal || !selectedLossReason) return;
+    const { error } = await supabase.from("deals").update({ status: "Perdida", loss_reason: selectedLossReason } as any).eq("id", deal.id);
     if (error) {
       toast({ title: "Erro ao marcar como perdida", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Negociação marcada como perdida" });
+      setShowLossReasonDialog(false);
       onUpdated();
       onOpenChange(false);
     }
@@ -520,6 +539,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   );
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Header */}
@@ -1138,5 +1158,29 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Loss Reason Dialog */}
+    <Dialog open={showLossReasonDialog} onOpenChange={setShowLossReasonDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Motivo da perda</DialogTitle>
+        </DialogHeader>
+        <RadioGroup value={selectedLossReason} onValueChange={setSelectedLossReason} className="space-y-2">
+          {LOSS_REASONS.map((reason) => (
+            <div key={reason} className="flex items-center space-x-2">
+              <RadioGroupItem value={reason} id={reason} />
+              <Label htmlFor={reason} className="cursor-pointer">{reason}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowLossReasonDialog(false)}>Cancelar</Button>
+          <Button onClick={confirmMarkAsLost} disabled={!selectedLossReason} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -119,6 +119,30 @@ export default function Dashboard() {
       .filter((d) => d.value > 0);
   }, [deals, columns]);
 
+  const lossReasonData = useMemo(() => {
+    if (!deals) return [];
+    const lost = deals.filter((d) => d.status === "Perdida");
+    const countByReason: Record<string, number> = {};
+    lost.forEach((d) => {
+      const reason = (d as any).loss_reason || "Sem motivo";
+      countByReason[reason] = (countByReason[reason] || 0) + 1;
+    });
+    const reasonColors: Record<string, string> = {
+      "Desqualificado": "#ef4444",
+      "Perca por orçamento": "#f97316",
+      "Perca por prazo": "#eab308",
+      "Perca por qualidade": "#8b5cf6",
+      "Perca por logística": "#06b6d4",
+      "Perca por atendimento": "#ec4899",
+      "Sem motivo": "#94a3b8",
+    };
+    return Object.entries(countByReason).map(([reason, count]) => ({
+      name: reason,
+      value: count,
+      color: reasonColors[reason] || "#6b7280",
+    }));
+  }, [deals]);
+
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -130,6 +154,9 @@ export default function Dashboard() {
   );
   const sellerChartConfig = Object.fromEntries(
     sellerData.map((d) => [d.name, { label: d.name, color: d.color }])
+  );
+  const lossReasonChartConfig = Object.fromEntries(
+    lossReasonData.map((d) => [d.name, { label: d.name, color: d.color }])
   );
 
   return (
@@ -178,7 +205,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card className="glass-strong">
           <CardHeader>
             <CardTitle className="text-base">Negociações por Etapa</CardTitle>
@@ -234,6 +261,28 @@ export default function Dashboard() {
                   <ChartTooltip content={<ChartTooltipContent formatter={(value) => fmt(Number(value))} />} />
                   <Pie data={stageValueData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {stageValueData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para exibir</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-strong">
+          <CardHeader>
+            <CardTitle className="text-base">Motivos de Perda</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {lossReasonData.length > 0 ? (
+              <ChartContainer config={lossReasonChartConfig} className="mx-auto aspect-square max-h-[300px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie data={lossReasonData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {lossReasonData.map((d, i) => (
                       <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>

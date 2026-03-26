@@ -198,6 +198,7 @@ export type Database = {
           funnel_id: string | null
           heat: number
           id: string
+          loss_reason: string | null
           notes: string | null
           status: string
           title: string
@@ -213,6 +214,7 @@ export type Database = {
           funnel_id?: string | null
           heat?: number
           id?: string
+          loss_reason?: string | null
           notes?: string | null
           status?: string
           title: string
@@ -228,6 +230,7 @@ export type Database = {
           funnel_id?: string | null
           heat?: number
           id?: string
+          loss_reason?: string | null
           notes?: string | null
           status?: string
           title?: string

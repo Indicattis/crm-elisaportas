@@ -79,7 +79,7 @@ export default function Results() {
 
   const formatDate = (date: string) => format(new Date(date), "dd/MM/yyyy", { locale: ptBR });
 
-  const renderTable = (deals: Deal[]) => {
+  const renderTable = (deals: Deal[], showLossReason = false) => {
     const filtered = filterBySearch(deals);
     if (filtered.length === 0) {
       return <p className="text-muted-foreground text-center py-12">Nenhuma negociação encontrada.</p>;
@@ -92,6 +92,7 @@ export default function Results() {
               <TableHead>Título</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Responsável</TableHead>
+              {showLossReason && <TableHead>Motivo</TableHead>}
               <TableHead>Criação</TableHead>
               <TableHead>Atualização</TableHead>
             </TableRow>
@@ -102,6 +103,13 @@ export default function Results() {
                 <TableCell className="font-medium">{deal.title}</TableCell>
                 <TableCell>{formatCurrency(deal.value)}</TableCell>
                 <TableCell>{deal.assigned_to ? profilesMap[deal.assigned_to] || "—" : "Sem responsável"}</TableCell>
+                {showLossReason && (
+                  <TableCell>
+                    {(deal as any).loss_reason ? (
+                      <Badge variant="outline">{(deal as any).loss_reason}</Badge>
+                    ) : "—"}
+                  </TableCell>
+                )}
                 <TableCell>{formatDate(deal.created_at)}</TableCell>
                 <TableCell>{formatDate(deal.updated_at)}</TableCell>
               </TableRow>
@@ -165,7 +173,7 @@ export default function Results() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
-          <TabsContent value="lost">{renderTable(lostDeals)}</TabsContent>
+          <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
           <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
         </Tabs>
       )}
