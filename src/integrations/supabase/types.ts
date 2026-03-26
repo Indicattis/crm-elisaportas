@@ -109,6 +109,53 @@ export type Database = {
           },
         ]
       }
+      deal_tasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          deadline_at: string
+          deal_id: string
+          description: string | null
+          id: string
+          template_id: string | null
+          type: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          deadline_at: string
+          deal_id: string
+          description?: string | null
+          id?: string
+          template_id?: string | null
+          type?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          deadline_at?: string
+          deal_id?: string
+          description?: string | null
+          id?: string
+          template_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           assigned_to: string | null
@@ -170,6 +217,7 @@ export type Database = {
           id: string
           name: string
           position: number
+          task_group_id: string | null
           user_id: string
         }
         Insert: {
@@ -179,6 +227,7 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          task_group_id?: string | null
           user_id: string
         }
         Update: {
@@ -188,6 +237,7 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          task_group_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -196,6 +246,13 @@ export type Database = {
             columns: ["funnel_id"]
             isOneToOne: false
             referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_columns_task_group_id_fkey"
+            columns: ["task_group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
             referencedColumns: ["id"]
           },
         ]
