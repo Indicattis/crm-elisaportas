@@ -48,6 +48,8 @@ interface DealTask {
   completed: boolean;
   completed_at: string | null;
   completed_by: string | null;
+  template_id: string | null;
+  next_recurrence_at: string | null;
 }
 
 interface DealHistoryEvent {
