@@ -1,26 +1,25 @@
 
 
-# Kanban: Altura 100vh + Scroll Horizontal com Drag do Mouse
+# Desabilitar Seleção de Texto/Imagem nos Cards do Kanban
 
-## Alterações
+## Problema
 
-### 1. `src/components/KanbanBoard.tsx` — Altura 100vh
-- No container `div` (linha 253), trocar classes para `h-[calc(100vh-<header_height>)]` e garantir `overflow-x-auto`
-- As colunas e o container de skeleton também recebem altura completa
+No mobile, o navegador captura o long-press para seleção de texto/imagem, impedindo o drag-and-drop de funcionar corretamente nos cards.
 
-### 2. `src/components/KanbanBoard.tsx` — Scroll horizontal via drag do mouse
-- Implementar lógica de "grab to scroll" no container horizontal: ao pressionar e arrastar o fundo (não um card), o container faz scroll horizontal
-- Adicionar estados `isGrabbing`, `startX`, `scrollLeft` e handlers `onMouseDown`, `onMouseMove`, `onMouseUp`, `onMouseLeave`
-- Cursor muda para `grab`/`grabbing` durante a interação
-- Ignorar o grab quando o target é um card (para não conflitar com DnD)
+## Solução
 
-### 3. `src/components/KanbanColumn.tsx` — Altura completa
-- Colunas recebem `h-full` para ocupar toda a altura disponível, com scroll vertical interno nos cards
+Adicionar classes e atributos no `DealCard.tsx` para desabilitar seleção nativa e comportamentos de touch que conflitam com o dnd-kit.
 
-## Arquivos afetados
+## Alteração em `src/components/DealCard.tsx`
+
+No elemento raiz do card (linha 66), adicionar:
+- Classes: `select-none touch-none` e regras CSS inline para WebKit
+- `draggable={false}` e `onDragStart={e => e.preventDefault()}` para bloquear drag nativo do browser
+- Propagação via `[&_*]:select-none` e `[&_img]:pointer-events-none` para cobrir todos os filhos
+
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Altura 100vh + grab-to-scroll horizontal |
-| `src/components/KanbanColumn.tsx` | Altura completa com scroll vertical |
+| `src/components/DealCard.tsx` | Adicionar classes anti-seleção e touch no card |
 
