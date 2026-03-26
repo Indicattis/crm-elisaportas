@@ -247,6 +247,15 @@ export default function CrmConfig() {
             <TeamManager />
           </>
         )}
+
+        {activeSection === "tasks" && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setActiveSection(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <TaskGroupManager />
+          </>
+        )}
       </div>
 
       <FunnelDialog
