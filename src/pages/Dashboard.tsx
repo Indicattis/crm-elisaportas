@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
 
   const { data: funnels } = useQuery({
     queryKey: ["funnels"],
