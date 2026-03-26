@@ -751,7 +751,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               ) : (
                 <span
                   className="text-sm font-bold text-foreground cursor-pointer rounded px-0.5 -mx-0.5 hover:bg-accent transition-colors truncate"
-                  onClick={() => startEditing("value")}
+                  onClick={(e) => { e.stopPropagation(); startEditing("value"); }}
                 >
                   R$ {Number(deal.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
