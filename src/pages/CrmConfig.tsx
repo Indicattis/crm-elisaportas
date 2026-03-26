@@ -236,6 +236,6 @@ export default function CrmConfig() {
         funnel={editingFunnel}
         onSaved={() => { fetchFunnels(); }}
       />
-    </div>
+    </>
   );
 }
