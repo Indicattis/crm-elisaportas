@@ -11,11 +11,11 @@ export async function createNotification(params: {
   const { data: { user } } = await supabase.auth.getUser();
   if (user && user.id === params.userId) return;
 
-  await supabase.from("notifications").insert({
+  await (supabase.from("notifications") as any).insert({
     user_id: params.userId,
     deal_id: params.dealId || null,
     type: params.type,
     title: params.title,
     message: params.message,
-  } as any);
+  });
 }

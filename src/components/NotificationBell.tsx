@@ -30,8 +30,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    const { data } = await supabase
-      .from("notifications")
+    const { data } = await (supabase.from("notifications") as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
@@ -59,14 +58,14 @@ export function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAsRead = async (id: string) => {
-    await supabase.from("notifications").update({ read: true } as any).eq("id", id);
+    await (supabase.from("notifications") as any).update({ read: true }).eq("id", id);
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const markAllAsRead = async () => {
     const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     if (unreadIds.length === 0) return;
-    await supabase.from("notifications").update({ read: true } as any).in("id", unreadIds);
+    await (supabase.from("notifications") as any).update({ read: true }).in("id", unreadIds);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
