@@ -73,6 +73,36 @@ export type Database = {
           },
         ]
       }
+      deal_history: {
+        Row: {
+          created_at: string
+          deal_id: string
+          description: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          description: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          description?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       deal_tags: {
         Row: {
           created_at: string
