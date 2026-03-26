@@ -880,6 +880,33 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                             {format(new Date(task.deadline_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
                         </div>
+                        {(task.type === "mensagem" || task.type === "ligacao") && (
+                          <div className="mt-1.5">
+                            {externalClient?.telefone ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 text-[10px] px-2 gap-1"
+                                onClick={() => {
+                                  const phone = formatPhoneForWhatsapp(externalClient.telefone!);
+                                  if (task.type === "mensagem") {
+                                    window.open(`https://wa.me/${phone}`, "_blank");
+                                  } else {
+                                    window.open(`tel:+${phone}`);
+                                  }
+                                }}
+                              >
+                                {task.type === "mensagem" ? (
+                                  <><MessageSquare className="h-3 w-3" /> WhatsApp</>
+                                ) : (
+                                  <><PhoneCall className="h-3 w-3" /> Ligar</>
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground italic">Vincule um cliente para usar esta ação</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
