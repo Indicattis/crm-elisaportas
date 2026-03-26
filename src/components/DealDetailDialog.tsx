@@ -224,6 +224,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (completed) {
       updateData.completed_at = new Date().toISOString();
       updateData.completed_by = user?.id || null;
+
+      // Start animation
+      setCompletingTaskIds(prev => new Set(prev).add(taskId));
+
+      // Wait for animation to finish before persisting
+      await new Promise(resolve => setTimeout(resolve, 500));
     } else {
       updateData.completed_at = null;
       updateData.completed_by = null;
@@ -243,6 +249,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       } as any);
     }
 
+    setCompletingTaskIds(prev => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
     fetchDealTasks();
     fetchHistory();
   };
