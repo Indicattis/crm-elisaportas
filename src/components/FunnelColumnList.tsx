@@ -33,7 +33,20 @@ interface Props {
 export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
+  const [taskGroups, setTaskGroups] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
+
+  const fetchTaskGroups = useCallback(async () => {
+    const { data } = await supabase.from("task_groups").select("id, name").order("name");
+    setTaskGroups(data || []);
+  }, []);
+
+  useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
+
+  const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
+    await supabase.from("funnel_columns").update({ task_group_id: taskGroupId } as any).eq("id", colId);
+    onChanged();
+  };
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
