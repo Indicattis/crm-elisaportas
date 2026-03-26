@@ -68,6 +68,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       style={style}
       {...attributes}
       {...listeners}
+      data-deal-card
       className="group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 bg-background"
       onClick={onClick}
     >
