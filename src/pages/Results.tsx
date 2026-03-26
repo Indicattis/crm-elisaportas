@@ -173,7 +173,7 @@ export default function Results() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
-          <TabsContent value="lost">{renderTable(lostDeals)}</TabsContent>
+          <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
           <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
         </Tabs>
       )}
