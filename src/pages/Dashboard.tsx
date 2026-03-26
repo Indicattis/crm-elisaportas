@@ -363,6 +363,28 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        <Card className="glass-strong">
+          <CardHeader>
+            <CardTitle className="text-base">Canal de Aquisição</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {channelData.length > 0 ? (
+              <ChartContainer config={channelChartConfig} className="mx-auto aspect-square max-h-[300px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie data={channelData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {channelData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para exibir</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -301,6 +301,18 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
               </Select>
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Canal de Aquisição</Label>
+            <Select value={channel} onValueChange={setChannel}>
+              <SelectTrigger><SelectValue placeholder="Selecionar canal..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem canal</SelectItem>
+                {["Google", "Facebook", "Instagram", "Tiktok", "Indicação", "Cliente fidelizado", "Autorizado"].map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex gap-2 justify-end">
             {deal && (
               <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>

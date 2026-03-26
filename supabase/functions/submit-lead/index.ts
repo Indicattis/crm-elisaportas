@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
         user_id: funnel.user_id,
         heat: 0,
         notes: notes || null,
+        acquisition_channel: canal_aquisicao || null,
       })
       .select("id")
       .single();
