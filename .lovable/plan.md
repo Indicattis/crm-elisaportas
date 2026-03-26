@@ -1,42 +1,34 @@
 
 
-# Histórico de Movimentações e Conclusão de Tarefas
+# Animação de Conclusão de Tarefa (Fade-out ao Completar)
 
 ## Visão geral
 
-Criar uma tabela `deal_history` que registra automaticamente eventos como movimentação entre colunas e conclusão de tarefas. Exibir esse histórico no modal de detalhes da negociação como uma timeline.
+Quando uma tarefa for marcada como concluída, ela fará uma animação de fade-out + scale-down e será removida visualmente da lista após a animação terminar. Tarefas concluídas não aparecerão mais na lista (apenas pendentes).
 
-## Banco de dados
+## Alterações em `src/components/DealDetailDialog.tsx`
 
-### Migration: criar tabela `deal_history`
+### 1. Estado para controlar animação
 
-- `id` uuid PK
-- `deal_id` uuid NOT NULL
-- `user_id` uuid NOT NULL
-- `event_type` text NOT NULL (`column_change`, `task_completed`)
-- `description` text NOT NULL (ex: "Moveu de Lead para Proposta", "Concluiu tarefa: Enviar mensagem")
-- `metadata` jsonb (dados extras: coluna anterior, nova coluna, task_id, etc.)
-- `created_at` timestamptz default now()
+- Adicionar state `completingTaskIds` (`Set<string>`) para rastrear quais tarefas estão animando.
 
-**RLS**: mesma lógica de `deal_tasks` — acesso baseado no deal via `funnel_members`.
+### 2. Modificar `handleToggleTask`
 
-## Frontend
+- Ao marcar como concluída: adicionar o `taskId` ao set, aguardar ~400ms (duração da animação), depois executar o update no banco e refetch.
+- Ao desmarcar: comportamento normal (sem animação).
 
-### 1. Registrar eventos automaticamente
+### 3. Animação CSS no item da tarefa
 
-**`KanbanBoard.tsx`** — no `handleDragEnd`, após mover o deal, inserir registro em `deal_history` com `event_type = 'column_change'` e descrição "Moveu de X para Y".
+- Aplicar classes de transição: `transition-all duration-400 ease-out`
+- Quando o `taskId` estiver em `completingTaskIds`: aplicar `opacity-0 scale-95 max-h-0 overflow-hidden` para colapsar suavemente.
 
-**`DealDetailDialog.tsx`** — ao marcar tarefa como concluída (`handleToggleTask`), inserir registro com `event_type = 'task_completed'` e descrição da tarefa.
+### 4. Filtrar tarefas concluídas da lista
 
-### 2. Exibir histórico no modal
+- Exibir apenas tarefas com `completed = false` na lista principal, já que concluídas "somem" após a animação.
 
-**`DealDetailDialog.tsx`** — adicionar seção "Histórico" abaixo dos comentários (ou em tab/accordion), mostrando timeline com ícone por tipo de evento, descrição, autor e data/hora.
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Criar `deal_history` com RLS |
-| `src/components/KanbanBoard.tsx` | Inserir histórico ao mover deal |
-| `src/components/DealDetailDialog.tsx` | Inserir histórico ao concluir tarefa + exibir timeline |
+| `src/components/DealDetailDialog.tsx` | Adicionar animação de fade-out e filtro de concluídas |
 
