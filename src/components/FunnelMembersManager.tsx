@@ -148,11 +148,17 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
         Vendedores vinculados
       </h3>
 
-      {members.length === 0 && (
+      {loadingMembers ? (
+        <div className="flex flex-wrap gap-2">
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="h-6 w-24 rounded-full" />
+          ))}
+        </div>
+      ) : members.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Nenhum vendedor vinculado a este funil.
         </p>
-      )}
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {members.map((m) => (

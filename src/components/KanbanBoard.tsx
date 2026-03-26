@@ -253,6 +253,7 @@ export function KanbanBoard() {
           {activeDeal && <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
+      )}
 
       <DealDetailDialog
         open={detailOpen}
