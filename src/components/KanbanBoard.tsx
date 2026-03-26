@@ -5,11 +5,14 @@ import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
 import { DealDetailDialog } from "./DealDetailDialog";
 import { DealCard } from "./DealCard";
+import { DealsListView } from "./DealsListView";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { createNotification } from "@/lib/notifications";
+import { LayoutGrid, List } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -45,6 +48,7 @@ export function KanbanBoard() {
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
 
   // Grab-to-scroll state
@@ -270,21 +274,31 @@ export function KanbanBoard() {
 
   return (
     <>
-      <div className="px-6 pt-4">
-        {funnels.length === 0 && loading ? (
-          <Skeleton className="h-10 w-56" />
-        ) : (
-          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Selecionar funil" />
-            </SelectTrigger>
-            <SelectContent>
-              {funnels.map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+      <div className="px-6 pt-4 flex items-center justify-between">
+        <div>
+          {funnels.length === 0 && loading ? (
+            <Skeleton className="h-10 w-56" />
+          ) : (
+            <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Selecionar funil" />
+              </SelectTrigger>
+              <SelectContent>
+                {funnels.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "kanban" | "list")}>
+          <ToggleGroupItem value="kanban" aria-label="Kanban" size="sm">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" aria-label="Lista" size="sm">
+            <List className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {loading ? (
@@ -298,6 +312,15 @@ export function KanbanBoard() {
             </div>
           ))}
         </div>
+      ) : viewMode === "list" ? (
+        <DealsListView
+          deals={deals}
+          columns={columns}
+          dealTagsMap={dealTagsMap}
+          profilesMap={profilesMap}
+          onEditDeal={handleViewDeal}
+          onCapture={handleCapture}
+        />
       ) : (
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div
