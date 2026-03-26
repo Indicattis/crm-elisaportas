@@ -4,6 +4,7 @@ import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User } from "lucid
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
+import { NotificationBell } from "./NotificationBell";
 import logo from "@/assets/logo.png";
 import logoWhite from "@/assets/logo-white.png";
 
