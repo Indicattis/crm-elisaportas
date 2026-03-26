@@ -1,86 +1,34 @@
 
 
-# Sistema de Notificações
+# Adicionar Botão "Arquivar" para Administradores
 
 ## Visão geral
 
-Criar uma tabela `notifications` no banco, disparar notificações nos 4 eventos selecionados, e exibir um ícone de sino no header com dropdown listando as notificações com marcação de lida/não lida.
+Adicionar uma coluna `archived` na tabela `deals` e um botão "Arquivar" no footer do modal de detalhes, visível apenas para administradores. Negociações arquivadas ficam ocultas do Kanban por padrão.
 
-## 1. Banco de dados — Nova tabela `notifications`
+## 1. Migração SQL
 
-```sql
-CREATE TABLE public.notifications (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  deal_id uuid,
-  type text NOT NULL, -- 'task_overdue', 'column_change', 'comment', 'deal_assigned'
-  title text NOT NULL,
-  message text NOT NULL,
-  read boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+- Adicionar coluna `archived boolean NOT NULL DEFAULT false` na tabela `deals`
+- Criar index parcial para queries de deals não arquivados
 
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+## 2. `src/components/DealDetailDialog.tsx`
 
--- Users can only see/update their own notifications
-CREATE POLICY "Users can view own notifications" ON public.notifications
-  FOR SELECT TO authenticated USING (user_id = auth.uid());
+- Importar `useUserRole` do `RoleContext`
+- Adicionar botão "Arquivar" (ícone `Archive`) no footer, entre o heat e os botões Perdida/Vendido
+- Visível apenas quando `role === 'admin'`
+- Ao clicar: `supabase.from("deals").update({ archived: true }).eq("id", deal.id)`
+- Fecha o modal e chama `onUpdated()`
+- Se já arquivada, mostrar botão "Desarquivar"
 
-CREATE POLICY "Users can update own notifications" ON public.notifications
-  FOR UPDATE TO authenticated USING (user_id = auth.uid());
+## 3. `src/components/KanbanBoard.tsx`
 
-CREATE POLICY "Users can delete own notifications" ON public.notifications
-  FOR DELETE TO authenticated USING (user_id = auth.uid());
-
--- Allow authenticated inserts (for in-app creation)
-CREATE POLICY "Authenticated can insert notifications" ON public.notifications
-  FOR INSERT TO authenticated WITH CHECK (true);
-
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-```
-
-## 2. Disparos de notificação (client-side)
-
-Inserir notificações nos pontos existentes do código:
-
-| Evento | Arquivo | Onde |
-|---|---|---|
-| **Negociação atribuída** | `KanbanBoard.tsx` | `handleCapture` — notificar o usuário atribuído |
-| **Coluna movida** | `KanbanBoard.tsx` | `handleDragEnd` — notificar `assigned_to` da deal |
-| **Comentário** | `DealDetailDialog.tsx` | Ao criar comentário — notificar `assigned_to` e `user_id` da deal (exceto autor) |
-| **Tarefa vencida** | `DealDetailDialog.tsx` | Ao carregar tarefas, verificar vencidas e criar notificação (com dedup por deal_task.id) |
-
-## 3. Componente `NotificationBell` no Header
-
-- Ícone `Bell` com badge vermelho mostrando contagem de não lidas
-- Dropdown (Popover) com lista de notificações, ordenadas por `created_at` desc
-- Cada item: ícone por tipo, título, mensagem, tempo relativo, indicador de não lida
-- Botão "Marcar todas como lidas"
-- Clique em notificação: marca como lida e navega para a deal (abre modal ou rota)
-- Realtime subscription para atualizar em tempo real
-
-## 4. Helper `src/lib/notifications.ts`
-
-Função utilitária para criar notificação:
-```typescript
-export async function createNotification(params: {
-  userId: string;
-  dealId?: string;
-  type: string;
-  title: string;
-  message: string;
-}) { ... }
-```
+- No `fetchDeals`, adicionar filtro `.eq("archived", false)` para ocultar deals arquivados do Kanban
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar tabela `notifications` com RLS e realtime |
-| `src/lib/notifications.ts` | Criar helper de criação de notificação |
-| `src/components/NotificationBell.tsx` | Criar componente sino + dropdown |
-| `src/components/Header.tsx` | Integrar NotificationBell |
-| `src/components/KanbanBoard.tsx` | Disparar notificações em capture e drag |
-| `src/components/DealDetailDialog.tsx` | Disparar notificações em comentários e tarefas vencidas |
+| Migração SQL | Adicionar coluna `archived` em `deals` |
+| `src/components/DealDetailDialog.tsx` | Botão Arquivar/Desarquivar (admin only) |
+| `src/components/KanbanBoard.tsx` | Filtrar deals arquivados |
 
