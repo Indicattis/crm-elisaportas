@@ -508,6 +508,41 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               </Button>
             )}
           </div>
+          {/* Tags in header */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+            {dealTags.map((tag) => (
+              <Badge key={tag.id} style={{ backgroundColor: tag.color, color: "#fff" }} className="gap-1 pr-1 text-[11px] h-5">
+                {tag.name}
+                <button onClick={() => handleRemoveTag(tag.id)} className="ml-0.5 hover:opacity-70">
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </Badge>
+            ))}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="ghost" className={`h-5 w-5 ${columnColor ? 'text-white/70 hover:text-white hover:bg-white/15' : ''}`}>
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="start">
+                <div className="space-y-1">
+                  {allTags.filter((t) => !dealTags.some((dt) => dt.id === t.id)).map((tag) => (
+                    <button
+                      key={tag.id}
+                      className="flex items-center gap-2 w-full rounded px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+                      onClick={() => handleAddTag(tag.id)}
+                    >
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tag.color }} />
+                      {tag.name}
+                    </button>
+                  ))}
+                  {allTags.filter((t) => !dealTags.some((dt) => dt.id === t.id)).length === 0 && (
+                    <p className="text-xs text-muted-foreground px-2 py-1">Nenhuma tag disponível</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </DialogHeader>
 
         <Separator />
