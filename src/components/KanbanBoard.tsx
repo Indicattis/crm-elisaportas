@@ -108,7 +108,14 @@ export function KanbanBoard() {
   }, []);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
-  useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true);
+      await Promise.all([fetchColumns(), fetchDeals(), fetchDealTags()]);
+      setLoading(false);
+    };
+    loadAll();
+  }, [fetchColumns, fetchDeals, fetchDealTags]);
   // Fetch profiles for assigned deals
   const fetchProfiles = useCallback(async () => {
     const assignedIds = [...new Set(deals.filter(d => (d as any).assigned_to).map(d => (d as any).assigned_to as string))];
