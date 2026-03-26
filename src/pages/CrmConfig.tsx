@@ -88,6 +88,7 @@ export default function CrmConfig() {
   return (
     <>
       <div className="mx-auto max-w-3xl p-6 space-y-6">
+        {activeSection === null && (
           <>
             <h1 className="text-2xl font-bold text-foreground">Configuração do CRM</h1>
             {loadingFunnels ? (
