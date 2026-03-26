@@ -79,7 +79,7 @@ export default function Results() {
 
   const formatDate = (date: string) => format(new Date(date), "dd/MM/yyyy", { locale: ptBR });
 
-  const renderTable = (deals: Deal[]) => {
+  const renderTable = (deals: Deal[], showLossReason = false) => {
     const filtered = filterBySearch(deals);
     if (filtered.length === 0) {
       return <p className="text-muted-foreground text-center py-12">Nenhuma negociação encontrada.</p>;
