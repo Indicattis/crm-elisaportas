@@ -27,10 +27,16 @@ export default function Dashboard() {
   });
 
   const { data: deals, isLoading: dealsLoading } = useQuery({
-    queryKey: ["dashboard-deals", selectedFunnel],
+    queryKey: ["dashboard-deals", selectedFunnel, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       let q = supabase.from("deals").select("*");
       if (selectedFunnel !== "all") q = q.eq("funnel_id", selectedFunnel);
+      if (startDate) q = q.gte("created_at", startDate.toISOString());
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        q = q.lte("created_at", end.toISOString());
+      }
       const { data } = await q;
       return data ?? [];
     },
