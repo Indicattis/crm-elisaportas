@@ -38,6 +38,7 @@ export default function CrmConfig() {
   const { toast } = useToast();
 
   const fetchFunnels = useCallback(async () => {
+    setLoadingFunnels(true);
     const { data, error } = await supabase
       .from("funnels")
       .select("*")
@@ -50,6 +51,7 @@ export default function CrmConfig() {
         setSelectedFunnelId(data[0].id);
       }
     }
+    setLoadingFunnels(false);
   }, [toast, selectedFunnelId]);
 
   const fetchColumns = useCallback(async () => {
