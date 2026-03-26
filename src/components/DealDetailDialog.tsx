@@ -73,6 +73,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [clientSearchResults, setClientSearchResults] = useState<ExternalClient[]>([]);
   const [clientSearchLoading, setClientSearchLoading] = useState(false);
   const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const { toast } = useToast();
 
   // Inline editing state
