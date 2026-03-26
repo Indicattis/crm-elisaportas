@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/Header";
 import { FunnelColumnList } from "@/components/FunnelColumnList";
 import { FunnelDialog } from "@/components/FunnelDialog";
 import { TagManager } from "@/components/TagManager";
