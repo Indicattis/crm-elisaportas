@@ -1,55 +1,42 @@
 
 
-# Sidebar de Tarefas no Modal de Negociação
+# Histórico de Movimentações e Conclusão de Tarefas
 
 ## Visão geral
 
-Transformar o layout do `DealDetailDialog` de coluna única para um layout com sidebar à direita dedicada às tarefas da negociação. A área principal mantém o conteúdo atual (cliente, info, tags, comentários) e a sidebar exibe a lista de tarefas com checkboxes, prazos e indicadores de atraso.
+Criar uma tabela `deal_history` que registra automaticamente eventos como movimentação entre colunas e conclusão de tarefas. Exibir esse histórico no modal de detalhes da negociação como uma timeline.
 
-## Alterações em `src/components/DealDetailDialog.tsx`
+## Banco de dados
 
-### 1. Expandir largura do modal
+### Migration: criar tabela `deal_history`
 
-- Alterar `sm:max-w-2xl` para `sm:max-w-5xl` para acomodar o layout lado a lado.
+- `id` uuid PK
+- `deal_id` uuid NOT NULL
+- `user_id` uuid NOT NULL
+- `event_type` text NOT NULL (`column_change`, `task_completed`)
+- `description` text NOT NULL (ex: "Moveu de Lead para Proposta", "Concluiu tarefa: Enviar mensagem")
+- `metadata` jsonb (dados extras: coluna anterior, nova coluna, task_id, etc.)
+- `created_at` timestamptz default now()
 
-### 2. Layout flex horizontal no conteúdo
+**RLS**: mesma lógica de `deal_tasks` — acesso baseado no deal via `funnel_members`.
 
-Dividir a área scrollável em duas colunas:
+## Frontend
 
-```text
-┌──────────────────────────────────────────────────┐
-│  Header (título, status, avatar)                 │
-├────────────────────────┬─────────────────────────┤
-│  Conteúdo principal    │  Sidebar Tarefas        │
-│  (cliente, valor,      │  ☐ Enviar mensagem      │
-│   tags, observações,   │    📅 28/03 às 14:00    │
-│   comentários)         │  ☑ Realizar ligação     │
-│                        │    ✓ Concluída          │
-│                        │                         │
-│                        │  (ou "Sem tarefas")     │
-├────────────────────────┴─────────────────────────┤
-│  Footer (calor, perdida, vendido)                │
-└──────────────────────────────────────────────────┘
-```
+### 1. Registrar eventos automaticamente
 
-- Coluna esquerda: `flex-1` com todo o conteúdo atual (client, info, notes, tags, comments)
-- Coluna direita (sidebar): `w-72 border-l` com a lista de tarefas, removida da posição atual no conteúdo principal
+**`KanbanBoard.tsx`** — no `handleDragEnd`, após mover o deal, inserir registro em `deal_history` com `event_type = 'column_change'` e descrição "Moveu de X para Y".
 
-### 3. Sidebar de tarefas
+**`DealDetailDialog.tsx`** — ao marcar tarefa como concluída (`handleToggleTask`), inserir registro com `event_type = 'task_completed'` e descrição da tarefa.
 
-- Título "Tarefas" com ícone `ClipboardList` e contador de pendentes
-- Lista de tarefas com checkbox, tipo (ícone), descrição e prazo
-- Indicador visual de atraso (vermelho) para tarefas vencidas
-- Exibir "Sem tarefas para esta etapa" quando vazio (sempre visível, diferente do atual que esconde a seção)
-- Scroll independente na sidebar
+### 2. Exibir histórico no modal
 
-### 4. Responsividade
-
-- Em telas pequenas, a sidebar fica abaixo do conteúdo principal (flex-col) em vez de ao lado
+**`DealDetailDialog.tsx`** — adicionar seção "Histórico" abaixo dos comentários (ou em tab/accordion), mostrando timeline com ícone por tipo de evento, descrição, autor e data/hora.
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Reestruturar layout com sidebar de tarefas |
+| Migration SQL | Criar `deal_history` com RLS |
+| `src/components/KanbanBoard.tsx` | Inserir histórico ao mover deal |
+| `src/components/DealDetailDialog.tsx` | Inserir histórico ao concluir tarefa + exibir timeline |
 
