@@ -6,7 +6,7 @@ import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList } from "lucide-react";
 import { TeamManager } from "@/components/TeamManager";
 import { FunnelMembersManager } from "@/components/FunnelMembersManager";
 import { Skeleton } from "@/components/ui/skeleton";
