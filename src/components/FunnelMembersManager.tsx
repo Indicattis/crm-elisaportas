@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus, X } from "lucide-react";
 import {
   Select,
@@ -32,9 +33,11 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const { toast } = useToast();
 
   const fetchMembers = useCallback(async () => {
+    setLoadingMembers(true);
     const { data, error } = await supabase
       .from("funnel_members")
       .select("id, user_id")
@@ -66,6 +69,7 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
         full_name: profileMap.get(m.user_id) || "Sem nome",
       }))
     );
+    setLoadingMembers(false);
   }, [funnelId]);
 
   const fetchAvailableUsers = useCallback(async () => {
@@ -144,11 +148,17 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
         Vendedores vinculados
       </h3>
 
-      {members.length === 0 && (
+      {loadingMembers ? (
+        <div className="flex flex-wrap gap-2">
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="h-6 w-24 rounded-full" />
+          ))}
+        </div>
+      ) : members.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Nenhum vendedor vinculado a este funil.
         </p>
-      )}
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {members.map((m) => (

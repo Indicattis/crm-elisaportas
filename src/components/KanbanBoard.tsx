@@ -6,6 +6,7 @@ import { DealDialog } from "./DealDialog";
 import { DealDetailDialog } from "./DealDetailDialog";
 import { DealCard } from "./DealCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -41,6 +42,7 @@ export function KanbanBoard() {
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 5 } }));
@@ -106,7 +108,14 @@ export function KanbanBoard() {
   }, []);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
-  useEffect(() => { fetchColumns(); fetchDeals(); fetchDealTags(); }, [fetchColumns, fetchDeals, fetchDealTags]);
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true);
+      await Promise.all([fetchColumns(), fetchDeals(), fetchDealTags()]);
+      setLoading(false);
+    };
+    loadAll();
+  }, [fetchColumns, fetchDeals, fetchDealTags]);
   // Fetch profiles for assigned deals
   const fetchProfiles = useCallback(async () => {
     const assignedIds = [...new Set(deals.filter(d => (d as any).assigned_to).map(d => (d as any).assigned_to as string))];
@@ -194,18 +203,34 @@ export function KanbanBoard() {
   return (
     <>
       <div className="px-6 pt-4">
-        <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Selecionar funil" />
-          </SelectTrigger>
-          <SelectContent>
-            {funnels.map((f) => (
-              <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {funnels.length === 0 && loading ? (
+          <Skeleton className="h-10 w-56" />
+        ) : (
+          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Selecionar funil" />
+            </SelectTrigger>
+            <SelectContent>
+              {funnels.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
+      {loading ? (
+        <div className="flex gap-4 overflow-x-auto p-6 pb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex-shrink-0 w-72 space-y-3">
+              <Skeleton className="h-8 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
+      ) : (
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto p-6 pb-8">
           {columns.map((col) => (
@@ -228,6 +253,7 @@ export function KanbanBoard() {
           {activeDeal && <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
+      )}
 
       <DealDetailDialog
         open={detailOpen}

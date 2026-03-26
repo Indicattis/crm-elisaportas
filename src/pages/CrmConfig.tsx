@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users } from "lucide-react";
 import { TeamManager } from "@/components/TeamManager";
 import { FunnelMembersManager } from "@/components/FunnelMembersManager";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 interface Funnel {
@@ -33,9 +34,11 @@ export default function CrmConfig() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFunnel, setEditingFunnel] = useState<Funnel | null>(null);
   const [activeSection, setActiveSection] = useState<null | "funnels" | "tags" | "team">(null);
+  const [loadingFunnels, setLoadingFunnels] = useState(true);
   const { toast } = useToast();
 
   const fetchFunnels = useCallback(async () => {
+    setLoadingFunnels(true);
     const { data, error } = await supabase
       .from("funnels")
       .select("*")
@@ -48,6 +51,7 @@ export default function CrmConfig() {
         setSelectedFunnelId(data[0].id);
       }
     }
+    setLoadingFunnels(false);
   }, [toast, selectedFunnelId]);
 
   const fetchColumns = useCallback(async () => {
@@ -89,6 +93,23 @@ export default function CrmConfig() {
         {activeSection === null && (
           <>
             <h1 className="text-2xl font-bold text-foreground">Configuração do CRM</h1>
+            {loadingFunnels ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-lg" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-24" />
+                          <Skeleton className="h-4 w-40" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card
                 className="cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
@@ -141,6 +162,7 @@ export default function CrmConfig() {
                 </CardHeader>
               </Card>
             </div>
+            )}
           </>
         )}
 
