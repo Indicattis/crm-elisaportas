@@ -904,7 +904,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                             {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
                           </span>
                           {task.template_id && task.next_recurrence_at !== undefined && task.next_recurrence_at !== null && (
-                            <Repeat className="h-3 w-3 text-primary" title="Tarefa recorrente" />
+                            <Repeat className="h-3 w-3 text-primary" />
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-1">
