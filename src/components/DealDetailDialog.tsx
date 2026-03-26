@@ -103,6 +103,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
   const [creatingTask, setCreatingTask] = useState(false);
   const { toast } = useToast();
+  const { role } = useUserRole();
 
   // Inline editing state
   const [editingField, setEditingField] = useState<"title" | "value" | "notes" | null>(null);
