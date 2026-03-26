@@ -81,10 +81,10 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <button
-                  className="p-1 rounded-md hover:bg-background/60 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-1.5 rounded-md hover:bg-background/60 transition-colors opacity-0 group-hover:opacity-100"
                   onClick={(e) => { e.stopPropagation(); }}
                 >
-                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Tag className="h-4.5 w-4.5 text-muted-foreground" />
                 </button>
               </PopoverTrigger>
               <PopoverContent
