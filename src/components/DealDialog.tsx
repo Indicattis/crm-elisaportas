@@ -86,6 +86,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue(deal.value ? String(deal.value) : "");
       setStatus(deal.status);
       setNotes(deal.notes || "");
+      setChannel((deal as any).acquisition_channel || "");
     } else {
       setTitle("");
       setClientId("");
@@ -93,6 +94,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue("");
       setStatus(defaultStatus || statuses[0] || "");
       setNotes("");
+      setChannel("");
     }
     setShowNewClient(false);
     setNewClientName("");
