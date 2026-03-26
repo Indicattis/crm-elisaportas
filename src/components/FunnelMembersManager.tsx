@@ -69,6 +69,7 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
         full_name: profileMap.get(m.user_id) || "Sem nome",
       }))
     );
+    setLoadingMembers(false);
   }, [funnelId]);
 
   const fetchAvailableUsers = useCallback(async () => {
