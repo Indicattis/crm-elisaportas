@@ -34,6 +34,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
+  const [channel, setChannel] = useState("");
   const [loading, setLoading] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientName, setNewClientName] = useState("");
