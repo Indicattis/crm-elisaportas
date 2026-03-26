@@ -147,6 +147,22 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               }}
             />
 
+            <Select
+              value={(col as any).task_group_id || "none"}
+              onValueChange={(v) => handleUpdateTaskGroup(col.id, v === "none" ? null : v)}
+            >
+              <SelectTrigger className="w-40 h-8 text-xs">
+                <ClipboardList className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue placeholder="Grupo de tarefas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem grupo</SelectItem>
+                {taskGroups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
