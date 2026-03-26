@@ -1,52 +1,36 @@
 
 
-# Evitar recarregamento do Header entre páginas
+# Paginação e Pesquisa na Página de Clientes
 
-## Problema
+## Visão geral
 
-Cada rota tem seu próprio `<AuthGuard>` que cria um novo `<RoleProvider>` a cada navegação. O `<Header>` está duplicado dentro de cada página. Isso causa remontagem completa do header (incluindo re-fetch de role) a cada troca de rota.
+Adicionar barra de pesquisa (por nome ou telefone) e paginação server-side de 25 registros por página na página `/clients`.
 
-## Solução
+## Alterações em `src/pages/Clients.tsx`
 
-Criar um layout compartilhado que renderiza `AuthGuard`, `RoleProvider` e `Header` uma única vez, com as páginas renderizadas dentro via `<Outlet />`.
+### 1. Novos estados
+- `search` (string) — termo de busca
+- `page` (number) — página atual (começa em 0)
+- `totalCount` (number) — total de registros para calcular páginas
+- Constante `PAGE_SIZE = 25`
 
-## Alterações
+### 2. Busca server-side com filtro e paginação
+- Usar `.or('nome.ilike.%termo%,telefone.ilike.%termo%')` quando houver texto de pesquisa
+- Usar `.range(page * 25, (page + 1) * 25 - 1)` para paginação
+- Usar `{ count: 'exact', head: false }` no select para obter o total
+- Resetar `page` para 0 quando `search` mudar
+- Debounce de ~300ms no input de pesquisa
 
-### 1. Criar `src/components/AppLayout.tsx`
+### 3. Barra de pesquisa
+- Input com ícone de busca acima da tabela, placeholder "Buscar por nome ou telefone..."
 
-- Componente que renderiza `<Header />` + `<Outlet />` (do react-router)
-- O header fica montado uma única vez e nunca recarrega entre rotas
-
-### 2. Atualizar `src/App.tsx`
-
-- Envolver as rotas autenticadas em uma rota pai com `AuthGuard` + `AppLayout`
-- Usar rotas aninhadas com `<Outlet />`
-
-```text
-<Route element={<AuthGuard><AppLayout /></AuthGuard>}>
-  <Route path="/" element={<Index />} />
-  <Route path="/clients" element={<Clients />} />
-  <Route path="/profile" element={<Profile />} />
-  <Route path="/crm-config" element={<RoleGuard ...><CrmConfig /></RoleGuard>} />
-</Route>
-```
-
-### 3. Remover `<Header />` de cada página
-
-- Remover import e uso de `<Header />` em: `Index.tsx`, `Clients.tsx`, `CrmConfig.tsx`, `Profile.tsx`
-
-### 4. Mover `RoleProvider` para dentro do `AuthGuard` (já está lá)
-
-- Nenhuma mudança necessária, já funciona corretamente
+### 4. Paginação
+- Abaixo da tabela, exibir controles de página anterior/próxima com indicador "Página X de Y"
+- Usar os componentes `Pagination*` já existentes
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/AppLayout.tsx` | Criar (Header + Outlet) |
-| `src/App.tsx` | Reestruturar rotas com layout pai |
-| `src/pages/Index.tsx` | Remover Header |
-| `src/pages/Clients.tsx` | Remover Header |
-| `src/pages/CrmConfig.tsx` | Remover Header |
-| `src/pages/Profile.tsx` | Remover Header |
+| `src/pages/Clients.tsx` | Adicionar search, paginação server-side e controles de UI |
 
