@@ -10,7 +10,6 @@ import { Camera, Save, Loader2, Shield, ShieldCheck, Lock, ArrowLeft } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 
 export default function Profile() {
   const [profile, setProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
