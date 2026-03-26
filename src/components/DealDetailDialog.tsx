@@ -197,7 +197,22 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       updateData.completed_by = null;
     }
     await supabase.from("deal_tasks").update(updateData).eq("id", taskId);
+
+    // Log history for task completion
+    if (completed && deal && user) {
+      const task = dealTasks.find(t => t.id === taskId);
+      const taskDesc = task?.description || (task?.type === "mensagem" ? "Enviar mensagem" : task?.type === "ligacao" ? "Realizar ligação" : "Tarefa");
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        event_type: "task_completed",
+        description: `Concluiu tarefa: ${taskDesc}`,
+        metadata: { task_id: taskId, task_type: task?.type },
+      } as any);
+    }
+
     fetchDealTasks();
+    fetchHistory();
   };
 
   useEffect(() => {

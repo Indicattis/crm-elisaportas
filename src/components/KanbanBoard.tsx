@@ -151,6 +151,7 @@ export function KanbanBoard() {
 
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, status: newStatus } : d)));
 
+    const oldStatus = deal.status;
     const { error } = await supabase.from("deals").update({ status: newStatus }).eq("id", dealId);
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
@@ -159,6 +160,18 @@ export function KanbanBoard() {
       // Delete pending tasks from old column, create new ones for new column
       await deletePendingDealTasks(dealId);
       await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
+
+      // Log history
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("deal_history").insert({
+          deal_id: dealId,
+          user_id: user.id,
+          event_type: "column_change",
+          description: `Moveu de "${oldStatus}" para "${newStatus}"`,
+          metadata: { from: oldStatus, to: newStatus },
+        } as any);
+      }
     }
   };
 
