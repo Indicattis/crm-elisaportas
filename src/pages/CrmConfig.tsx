@@ -178,6 +178,22 @@ export default function CrmConfig() {
                   </div>
                 </CardHeader>
               </Card>
+              <Card
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/40"
+                onClick={() => setActiveSection("embed")}
+              >
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2.5">
+                      <Code className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Formulários</CardTitle>
+                      <CardDescription>Código embed para captura de leads</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
             </div>
             )}
           </>
