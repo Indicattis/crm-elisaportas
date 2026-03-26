@@ -479,13 +479,28 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
-  const handleMarkAsLost = async () => {
-    if (!deal) return;
-    const { error } = await supabase.from("deals").update({ status: "Perdida" }).eq("id", deal.id);
+  const LOSS_REASONS = [
+    "Desqualificado",
+    "Perca por orçamento",
+    "Perca por prazo",
+    "Perca por qualidade",
+    "Perca por logística",
+    "Perca por atendimento",
+  ];
+
+  const handleMarkAsLost = () => {
+    setSelectedLossReason("");
+    setShowLossReasonDialog(true);
+  };
+
+  const confirmMarkAsLost = async () => {
+    if (!deal || !selectedLossReason) return;
+    const { error } = await supabase.from("deals").update({ status: "Perdida", loss_reason: selectedLossReason } as any).eq("id", deal.id);
     if (error) {
       toast({ title: "Erro ao marcar como perdida", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Negociação marcada como perdida" });
+      setShowLossReasonDialog(false);
       onUpdated();
       onOpenChange(false);
     }
