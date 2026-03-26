@@ -3,6 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
+import { useTheme } from "@/hooks/use-theme";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -38,18 +39,31 @@ function darkenHex(hex: string, amount: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
-  const headerBg = color ? darkenHex(color, 0.25) : undefined;
+  const headerBg = color
+    ? isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)
+    : undefined;
+
+  const columnBg = color
+    ? isDark ? hexToRgba(color, 0.2) : color
+    : (isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)');
 
   return (
     <div
       className="flex w-80 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors h-full"
-      style={{
-        backgroundColor: color || (isOver ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--muted) / 0.3)'),
-      }}
+      style={{ backgroundColor: columnBg }}
     >
       {/* Header */}
       <div
