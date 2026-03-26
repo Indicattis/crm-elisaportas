@@ -134,6 +134,18 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
           )}
         </div>
       </div>
+      <div className="flex items-center justify-between text-xs">
+        <div className={`flex items-center gap-1 ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
+          <Clock className="h-3 w-3" />
+          <span>{daysInStage === 0 ? "Hoje" : `${daysInStage}d na etapa`}</span>
+        </div>
+        {deal.value && deal.value > 0 && (
+          <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
+      </div>
       {deal.clients && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <User className="h-3 w-3" />
@@ -159,24 +171,10 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
           )}
         </div>
       )}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Calendar className="h-3 w-3" />
-          <span>{format(new Date(deal.created_at), "dd/MM/yyyy")}</span>
-        </div>
-        <div className={`flex items-center gap-1 ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
-          <Clock className="h-3 w-3" />
-          <span>{daysInStage === 0 ? "Hoje" : `${daysInStage}d`}</span>
-        </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Calendar className="h-3 w-3" />
+        <span>{format(new Date(deal.created_at), "dd/MM/yyyy")}</span>
       </div>
-      {deal.value && deal.value > 0 && (
-        <div className="flex justify-end">
-          <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
-            <DollarSign className="h-3 w-3" />
-            <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
