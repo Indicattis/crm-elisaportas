@@ -37,6 +37,7 @@ export function FunnelMembersManager({ funnelId }: FunnelMembersManagerProps) {
   const { toast } = useToast();
 
   const fetchMembers = useCallback(async () => {
+    setLoadingMembers(true);
     const { data, error } = await supabase
       .from("funnel_members")
       .select("id, user_id")
