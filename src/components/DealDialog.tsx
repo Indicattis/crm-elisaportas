@@ -129,9 +129,10 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         value: value ? parseFloat(value) : 0,
         status,
         notes: notes || null,
+        acquisition_channel: channel || null,
         user_id: user.id,
         funnel_id: funnelId,
-      };
+      } as any;
 
       if (deal) {
         const { error } = await supabase.from("deals").update(payload).eq("id", deal.id);
