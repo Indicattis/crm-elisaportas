@@ -780,6 +780,39 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               </Button>
             </div>
           </div>
+
+          <Separator />
+
+          {/* History timeline */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Histórico
+            </h3>
+            {history.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Nenhum evento registrado.</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {history.map((event) => {
+                  const profile = historyProfiles[event.user_id] || profilesMap[event.user_id];
+                  const icon = event.event_type === "column_change" 
+                    ? <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />
+                    : <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />;
+                  return (
+                    <div key={event.id} className="flex items-start gap-2.5 text-sm">
+                      <div className="mt-0.5 shrink-0">{icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground/80">{event.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {profile?.full_name || "Usuário"} · {format(new Date(event.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
           {/* Tasks sidebar */}
