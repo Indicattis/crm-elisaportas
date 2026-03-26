@@ -256,8 +256,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchAssignedProfile();
       fetchExternalClient();
       fetchDealTasks();
+      fetchHistory();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks, fetchHistory]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
