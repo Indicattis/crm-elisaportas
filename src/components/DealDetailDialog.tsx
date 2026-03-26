@@ -479,9 +479,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   const handleMarkAsLost = async () => {
     if (!deal) return;
-    const { error } = await supabase.from("deals").delete().eq("id", deal.id);
+    const { error } = await supabase.from("deals").update({ status: "Perdida" }).eq("id", deal.id);
     if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao marcar como perdida", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Negociação marcada como perdida" });
       onUpdated();

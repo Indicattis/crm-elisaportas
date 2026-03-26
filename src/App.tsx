@@ -12,6 +12,7 @@ import CrmConfig from "./pages/CrmConfig";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
+import Results from "./pages/Results";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route path="/" element={<Index />} />
           <Route path="/clients" element={<Clients />} />
+          <Route path="/results" element={<Results />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/crm-config" element={<RoleGuard allowedRoles={["admin"]}><CrmConfig /></RoleGuard>} />
         </Route>

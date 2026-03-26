@@ -102,6 +102,8 @@ export function KanbanBoard() {
       .select("*")
       .eq("funnel_id", selectedFunnelId)
       .eq("archived", false)
+      .neq("status", "Perdida")
+      .neq("status", "Vendido")
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Erro ao carregar negociações", description: error.message, variant: "destructive" });

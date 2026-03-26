@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User, BarChart3 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -23,6 +23,7 @@ export function Header() {
   const allNavItems = [
     { path: "/", label: "Kanban", icon: LayoutDashboard },
     { path: "/clients", label: "Clientes", icon: Users },
+    { path: "/results", label: "Resultados", icon: BarChart3 },
     { path: "/crm-config", label: "Configurações", icon: Settings, adminOnly: true },
   ];
 
