@@ -132,9 +132,7 @@ export default function Profile() {
     .split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <>
-      <Header />
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
