@@ -297,6 +297,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   };
 
 
+  useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
       setEditingField(null);
