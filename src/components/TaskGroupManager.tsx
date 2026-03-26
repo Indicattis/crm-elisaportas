@@ -310,9 +310,12 @@ export function TaskGroupManager() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className={`h-7 w-7 ${task.recurrence_type ? "text-primary" : "text-muted-foreground"}`} onClick={() => openRecurrence(task)}>
+                      <Repeat className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteTask(task.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
