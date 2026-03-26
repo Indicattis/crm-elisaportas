@@ -1,71 +1,55 @@
 
 
-# Vincular Grupos de Tarefas a Colunas de Funis + Criacao Automatica
+# Sidebar de Tarefas no Modal de Negociação
 
-## Visao geral
+## Visão geral
 
-Quando uma negociacao for criada ou movida para uma coluna que tem um grupo de tarefas vinculado, as tarefas do grupo sao instanciadas automaticamente com prazos calculados. Ao mover para outra coluna, tarefas pendentes sao excluidas e novas sao criadas (se a nova coluna tiver grupo vinculado).
+Transformar o layout do `DealDetailDialog` de coluna única para um layout com sidebar à direita dedicada às tarefas da negociação. A área principal mantém o conteúdo atual (cliente, info, tags, comentários) e a sidebar exibe a lista de tarefas com checkboxes, prazos e indicadores de atraso.
 
-## Banco de dados
+## Alterações em `src/components/DealDetailDialog.tsx`
 
-### Migration: 3 alteracoes
+### 1. Expandir largura do modal
 
-**1. Tabela `column_task_groups`** — vinculo entre colunas de funil e grupos de tarefas
-- `id` uuid PK
-- `column_id` uuid NOT NULL (referencia funnel_columns)
-- `task_group_id` uuid NOT NULL (referencia task_groups)
-- `created_at` timestamptz default now()
-- UNIQUE(column_id, task_group_id)
-- RLS: admins podem CRUD, authenticated podem SELECT
+- Alterar `sm:max-w-2xl` para `sm:max-w-5xl` para acomodar o layout lado a lado.
 
-**2. Tabela `deal_tasks`** — instancias de tarefas criadas para cada negociacao
-- `id` uuid PK
-- `deal_id` uuid NOT NULL
-- `template_id` uuid (referencia task_template de origem, nullable)
-- `type` text NOT NULL ('mensagem', 'ligacao', 'personalizada')
-- `description` text
-- `deadline_at` timestamptz NOT NULL (data/hora limite calculada)
-- `completed` boolean default false
-- `completed_at` timestamptz
-- `completed_by` uuid
-- `created_at` timestamptz default now()
-- RLS: mesma logica de deals (via funnel_members)
+### 2. Layout flex horizontal no conteúdo
 
-### 3. Adicionar coluna `task_group_id` na `funnel_columns` (opcional, alternativa mais simples)
+Dividir a área scrollável em duas colunas:
 
-Alternativa: em vez de tabela de vinculo, adicionar `task_group_id uuid` diretamente em `funnel_columns` (relacao 1:1 coluna->grupo). Isso simplifica bastante a logica.
+```text
+┌──────────────────────────────────────────────────┐
+│  Header (título, status, avatar)                 │
+├────────────────────────┬─────────────────────────┤
+│  Conteúdo principal    │  Sidebar Tarefas        │
+│  (cliente, valor,      │  ☐ Enviar mensagem      │
+│   tags, observações,   │    📅 28/03 às 14:00    │
+│   comentários)         │  ☑ Realizar ligação     │
+│                        │    ✓ Concluída          │
+│                        │                         │
+│                        │  (ou "Sem tarefas")     │
+├────────────────────────┴─────────────────────────┤
+│  Footer (calor, perdida, vendido)                │
+└──────────────────────────────────────────────────┘
+```
 
-Vou usar esta abordagem (1 grupo por coluna).
+- Coluna esquerda: `flex-1` com todo o conteúdo atual (client, info, notes, tags, comments)
+- Coluna direita (sidebar): `w-72 border-l` com a lista de tarefas, removida da posição atual no conteúdo principal
 
-## Frontend
+### 3. Sidebar de tarefas
 
-### 1. `FunnelColumnList.tsx` — adicionar select de grupo de tarefas em cada coluna
+- Título "Tarefas" com ícone `ClipboardList` e contador de pendentes
+- Lista de tarefas com checkbox, tipo (ícone), descrição e prazo
+- Indicador visual de atraso (vermelho) para tarefas vencidas
+- Exibir "Sem tarefas para esta etapa" quando vazio (sempre visível, diferente do atual que esconde a seção)
+- Scroll independente na sidebar
 
-Na UI de configuracao de colunas, adicionar um dropdown para vincular um grupo de tarefas a cada coluna. Buscar os grupos da tabela `task_groups` e salvar o `task_group_id` na `funnel_columns`.
+### 4. Responsividade
 
-### 2. `KanbanBoard.tsx` — logica ao criar/mover deal
-
-**Ao criar deal (DealDialog.onSaved):**
-- Apos insert do deal, verificar se a coluna de destino tem `task_group_id`
-- Se sim, buscar templates do grupo e inserir `deal_tasks` com `deadline_at = now() + deadline_hours`
-
-**Ao mover deal (handleDragEnd):**
-- Apos update do status, deletar `deal_tasks` pendentes (completed = false) do deal
-- Se a nova coluna tem `task_group_id`, criar novas `deal_tasks`
-
-### 3. Exibicao das tarefas no `DealDetailDialog`
-
-- Adicionar secao "Tarefas" no modal de detalhes da negociacao
-- Listar tarefas pendentes e concluidas com checkbox para marcar como feita
-- Exibir prazo (deadline_at) com indicador de atraso se vencida
+- Em telas pequenas, a sidebar fica abaixo do conteúdo principal (flex-col) em vez de ao lado
 
 ## Arquivos afetados
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---|---|
-| Migration SQL | Adicionar `task_group_id` em `funnel_columns`, criar `deal_tasks` |
-| `src/components/FunnelColumnList.tsx` | Adicionar select de grupo de tarefas |
-| `src/components/KanbanBoard.tsx` | Logica de criacao/exclusao de tarefas ao criar/mover deals |
-| `src/components/DealDetailDialog.tsx` | Exibir e gerenciar tarefas do deal |
-| `src/components/DealDialog.tsx` | Apos criar deal, instanciar tarefas |
+| `src/components/DealDetailDialog.tsx` | Reestruturar layout com sidebar de tarefas |
 
