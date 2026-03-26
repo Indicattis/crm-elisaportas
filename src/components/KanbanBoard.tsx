@@ -46,6 +46,32 @@ export function KanbanBoard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Grab-to-scroll state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isGrabbing, setIsGrabbing] = useState(false);
+  const grabStartX = useRef(0);
+  const grabScrollLeft = useRef(0);
+
+  const handleGrabMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-deal-card]')) return;
+    if (!scrollContainerRef.current) return;
+    setIsGrabbing(true);
+    grabStartX.current = e.pageX - scrollContainerRef.current.offsetLeft;
+    grabScrollLeft.current = scrollContainerRef.current.scrollLeft;
+  };
+
+  const handleGrabMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isGrabbing || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - grabStartX.current) * 1.5;
+    scrollContainerRef.current.scrollLeft = grabScrollLeft.current - walk;
+  };
+
+  const handleGrabMouseUp = () => setIsGrabbing(false);
+  const handleGrabMouseLeave = () => setIsGrabbing(false);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } }));
 
   const fetchFunnels = useCallback(async () => {
