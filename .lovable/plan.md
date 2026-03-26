@@ -1,34 +1,29 @@
 
 
-# Animação de Conclusão de Tarefa (Fade-out ao Completar)
+# Botões de WhatsApp e Ligação nas Tarefas
 
 ## Visão geral
 
-Quando uma tarefa for marcada como concluída, ela fará uma animação de fade-out + scale-down e será removida visualmente da lista após a animação terminar. Tarefas concluídas não aparecerão mais na lista (apenas pendentes).
+Adicionar botões de ação nas tarefas da sidebar: tarefas do tipo "mensagem" terão um botão para abrir conversa no WhatsApp, e tarefas do tipo "ligacao" terão um botão para ligar via WhatsApp — ambos usando o telefone do cliente externo vinculado à negociação (`externalClient.telefone`).
 
 ## Alterações em `src/components/DealDetailDialog.tsx`
 
-### 1. Estado para controlar animação
+### 1. Função auxiliar para formatar telefone
 
-- Adicionar state `completingTaskIds` (`Set<string>`) para rastrear quais tarefas estão animando.
+Criar função `formatPhoneForWhatsapp(phone: string)` que remove caracteres não numéricos e adiciona código do país (55) se necessário.
 
-### 2. Modificar `handleToggleTask`
+### 2. Botões nas tarefas (sidebar)
 
-- Ao marcar como concluída: adicionar o `taskId` ao set, aguardar ~400ms (duração da animação), depois executar o update no banco e refetch.
-- Ao desmarcar: comportamento normal (sem animação).
+Dentro do map de tarefas pendentes (linhas ~845-880), ao lado do checkbox/conteúdo de cada tarefa:
 
-### 3. Animação CSS no item da tarefa
+- **Tipo "mensagem"**: botão com ícone do WhatsApp (ou `MessageSquare`) que abre `https://wa.me/{phone}` em nova aba
+- **Tipo "ligacao"**: botão com ícone de telefone que abre `https://wa.me/{phone}` com intent de chamada, ou `tel:{phone}` como fallback
 
-- Aplicar classes de transição: `transition-all duration-400 ease-out`
-- Quando o `taskId` estiver em `completingTaskIds`: aplicar `opacity-0 scale-95 max-h-0 overflow-hidden` para colapsar suavemente.
-
-### 4. Filtrar tarefas concluídas da lista
-
-- Exibir apenas tarefas com `completed = false` na lista principal, já que concluídas "somem" após a animação.
+Ambos os botões só aparecem se `externalClient?.telefone` existir. Caso contrário, mostrar tooltip "Vincule um cliente para usar esta ação".
 
 ## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Adicionar animação de fade-out e filtro de concluídas |
+| `src/components/DealDetailDialog.tsx` | Adicionar botões de WhatsApp/ligação nas tarefas |
 
