@@ -12,6 +12,7 @@ import CrmConfig from "./pages/CrmConfig";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
+import Results from "./pages/Results";
 
 const queryClient = new QueryClient();
 
