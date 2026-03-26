@@ -1,31 +1,24 @@
 
 
-# Toggle Kanban / Lista na Página Inicial
+# Agrupar Botões do Header em Menu Dropdown
 
-## Visão geral
+## Alteração em `src/components/Header.tsx`
 
-Adicionar um botão toggle (ícones Kanban/Lista) ao lado direito do seletor de funil, permitindo alternar entre a visualização Kanban atual e uma nova visualização em tabela/lista.
+Substituir os 3 botões separados (Perfil, Tema, Sair) por um único `DropdownMenu` com trigger de ícone de usuário (Avatar):
 
-## 1. `src/components/KanbanBoard.tsx` — Toggle e estado
+- **Trigger**: Botão redondo com ícone `User` (mesmo estilo atual)
+- **Menu items**:
+  1. **Meu Perfil** — ícone `User`, navega para `/profile`
+  2. **Tema Claro/Escuro** — ícone `Sun`/`Moon`, chama `toggleTheme`
+  3. Separador
+  4. **Sair** — ícone `LogOut`, chama `handleLogout`, estilo destructive
 
-- Adicionar estado `viewMode: "kanban" | "list"` (default `"kanban"`)
-- Na barra superior (div `px-6 pt-4`), adicionar à direita um `ToggleGroup` com dois itens:
-  - `LayoutGrid` icon → valor `"kanban"`
-  - `List` icon → valor `"list"`
-- Quando `viewMode === "list"`, renderizar `<DealsListView>` ao invés do DndContext/Kanban
+- Manter o `NotificationBell` fora do dropdown (continua separado)
+- Importar `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuSeparator`, `DropdownMenuTrigger` de `@/components/ui/dropdown-menu`
 
-## 2. `src/components/DealsListView.tsx` — Novo componente
-
-- Recebe `deals`, `columns`, `dealTagsMap`, `allTags`, `profilesMap`, callbacks
-- Tabela com colunas: Título, Cliente, Status (badge colorida), Responsável, Valor, Dias na Etapa, Tags, Data Criação
-- Cada linha clicável → abre `onEditDeal`
-- Ordenação por coluna (status agrupado pela ordem das colunas do funil)
-- Botão "Capturar" inline quando sem responsável
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Adicionar toggle de visualização e renderização condicional |
-| `src/components/DealsListView.tsx` | Criar componente de visualização em lista/tabela |
+| `src/components/Header.tsx` | Substituir 3 botões por DropdownMenu |
 
