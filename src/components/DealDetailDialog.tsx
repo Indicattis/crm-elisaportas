@@ -1157,5 +1157,29 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Loss Reason Dialog */}
+    <Dialog open={showLossReasonDialog} onOpenChange={setShowLossReasonDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Motivo da perda</DialogTitle>
+        </DialogHeader>
+        <RadioGroup value={selectedLossReason} onValueChange={setSelectedLossReason} className="space-y-2">
+          {LOSS_REASONS.map((reason) => (
+            <div key={reason} className="flex items-center space-x-2">
+              <RadioGroupItem value={reason} id={reason} />
+              <Label htmlFor={reason} className="cursor-pointer">{reason}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowLossReasonDialog(false)}>Cancelar</Button>
+          <Button onClick={confirmMarkAsLost} disabled={!selectedLossReason} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
