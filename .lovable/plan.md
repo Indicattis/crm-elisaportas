@@ -1,34 +1,45 @@
 
 
-# Adicionar Botão "Arquivar" para Administradores
+# Vendedores Veem Apenas Suas Negociações e Órfãs
 
 ## Visão geral
 
-Adicionar uma coluna `archived` na tabela `deals` e um botão "Arquivar" no footer do modal de detalhes, visível apenas para administradores. Negociações arquivadas ficam ocultas do Kanban por padrão.
+Alterar a política RLS de SELECT na tabela `deals` para que vendedores vejam apenas negociações atribuídas a eles ou sem responsável (órfãs). Admins continuam vendo tudo.
 
-## 1. Migração SQL
+## 1. Migração SQL — Atualizar política de SELECT em `deals`
 
-- Adicionar coluna `archived boolean NOT NULL DEFAULT false` na tabela `deals`
-- Criar index parcial para queries de deals não arquivados
+Dropar a política atual `Users can view accessible deals` e criar uma nova que adiciona a restrição:
 
-## 2. `src/components/DealDetailDialog.tsx`
+```sql
+DROP POLICY "Users can view accessible deals" ON public.deals;
 
-- Importar `useUserRole` do `RoleContext`
-- Adicionar botão "Arquivar" (ícone `Archive`) no footer, entre o heat e os botões Perdida/Vendido
-- Visível apenas quando `role === 'admin'`
-- Ao clicar: `supabase.from("deals").update({ archived: true }).eq("id", deal.id)`
-- Fecha o modal e chama `onUpdated()`
-- Se já arquivada, mostrar botão "Desarquivar"
+CREATE POLICY "Users can view accessible deals" ON public.deals
+FOR SELECT TO authenticated
+USING (
+  (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM funnel_members fm
+      WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid()
+    )
+  )
+  AND (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR assigned_to IS NULL
+    OR assigned_to = auth.uid()
+  )
+);
+```
 
-## 3. `src/components/KanbanBoard.tsx`
+Lógica: mantém a verificação base de acesso ao funil, e adiciona que não-admins só veem deals onde `assigned_to` é nulo ou igual ao próprio usuário.
 
-- No `fetchDeals`, adicionar filtro `.eq("archived", false)` para ocultar deals arquivados do Kanban
+## 2. Sem alterações de código
 
-## Arquivos afetados
+A filtragem é feita inteiramente no banco via RLS — nenhum arquivo frontend precisa mudar.
+
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar coluna `archived` em `deals` |
-| `src/components/DealDetailDialog.tsx` | Botão Arquivar/Desarquivar (admin only) |
-| `src/components/KanbanBoard.tsx` | Filtrar deals arquivados |
+| Migração SQL | Atualizar RLS SELECT em `deals` |
 
