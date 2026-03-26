@@ -1,46 +1,38 @@
 
 
-# Dashboard de Indicadores do CRM (`/dashboard`)
+# Motivo de Perda + Gráfico de Perdas no Dashboard
 
-## Visão geral
+## 1. Migração — Adicionar coluna `loss_reason` na tabela `deals`
 
-Nova página `/dashboard` com KPIs do CRM e gráficos de pizza mostrando distribuição de negociações por etapa do funil e por vendedor.
+```sql
+ALTER TABLE public.deals ADD COLUMN loss_reason text;
+```
 
-## 1. `src/pages/Dashboard.tsx` — Nova página
+Valores possíveis: `Desqualificado`, `Perca por orçamento`, `Perca por prazo`, `Perca por qualidade`, `Perca por logística`, `Perca por atendimento`.
 
-### KPIs (cards no topo)
-- **Total de negociações ativas** (não arquivadas, status != Vendido/Perdida)
-- **Valor total no pipeline** (soma dos values das ativas)
-- **Negociações vendidas** (count + valor total)
-- **Negociações perdidas** (count)
-- **Taxa de conversão** (vendidas / (vendidas + perdidas) × 100)
-- **Ticket médio** (valor médio das vendidas)
+## 2. `src/components/DealDetailDialog.tsx` — Modal de motivo ao marcar como perdida
 
-### Filtros
-- Seletor de funil (igual ao existente em Results)
+- Ao clicar "Perdida", em vez de marcar direto, abrir um dialog/estado interno pedindo o motivo
+- Exibir 6 opções como `RadioGroup` com os motivos listados
+- Botão "Confirmar" executa o update com `status: "Perdida"` e `loss_reason: motivoSelecionado`
+- Não permitir confirmar sem selecionar motivo
 
-### Gráficos de pizza (usando Recharts via componentes chart.tsx existentes)
-1. **Por etapa do funil** — conta de deals agrupados por `status` (colunas do funil), cores das colunas
-2. **Por vendedor** — conta de deals agrupados por `assigned_to`, usando nomes do profiles
+## 3. `src/pages/Dashboard.tsx` — Gráfico de pizza "Motivos de Perda"
 
-### Dados
-- Query `deals` filtrando por funil selecionado
-- Query `funnel_columns` para nomes/cores das etapas
-- Query `profiles` para nomes dos vendedores
+- Novo `useMemo` filtrando deals com `status === "Perdida"` e agrupando por `loss_reason`
+- Cores fixas para cada motivo (vermelho, laranja, amarelo, etc.)
+- Adicionar como 4º card na grid de gráficos (mudar grid para `md:grid-cols-2 lg:grid-cols-4` ou manter 2x2)
 
-## 2. `src/components/Header.tsx` — Novo item no menu
+## 4. `src/pages/Results.tsx` — Exibir motivo na aba Perdidas
 
-Adicionar item `{ path: "/dashboard", label: "Dashboard", icon: PieChart }` no array `allNavItems`, antes de "Configurações".
-
-## 3. `src/App.tsx` — Nova rota
-
-Adicionar `<Route path="/dashboard" element={<Dashboard />} />` dentro do AuthGuard.
+- Na tabela/lista de perdidas, mostrar coluna/badge com o `loss_reason`
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Dashboard.tsx` | Criar página com KPIs e gráficos |
-| `src/components/Header.tsx` | Adicionar item "Dashboard" no menu |
-| `src/App.tsx` | Adicionar rota `/dashboard` |
+| Migração SQL | Adicionar coluna `loss_reason` em `deals` |
+| `src/components/DealDetailDialog.tsx` | Adicionar seleção de motivo antes de marcar como perdida |
+| `src/pages/Dashboard.tsx` | Adicionar gráfico de motivos de perda |
+| `src/pages/Results.tsx` | Exibir motivo na listagem de perdidas |
 
