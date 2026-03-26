@@ -133,10 +133,6 @@ export function TaskGroupManager() {
     setTaskDescription("");
     setDeadlineValue(1);
     setDeadlineUnit("days");
-    setIsRecurrent(false);
-    setRecurrenceType("interval");
-    setRecurrenceValue(1);
-    setRecurrenceUnit("days");
     setTaskDialogOpen(true);
   };
 
@@ -152,6 +148,11 @@ export function TaskGroupManager() {
       setDeadlineValue(t.deadline_hours);
       setDeadlineUnit("hours");
     }
+    setTaskDialogOpen(true);
+  };
+
+  const openRecurrence = (t: TaskTemplate) => {
+    setRecurrenceTask(t);
     if (t.recurrence_type) {
       setIsRecurrent(true);
       setRecurrenceType(t.recurrence_type as "interval" | "weekday" | "monthday");
@@ -173,7 +174,29 @@ export function TaskGroupManager() {
       setRecurrenceValue(1);
       setRecurrenceUnit("days");
     }
-    setTaskDialogOpen(true);
+    setRecurrenceDialogOpen(true);
+  };
+
+  const saveRecurrence = async () => {
+    if (!recurrenceTask) return;
+    setSaving(true);
+    const recType = isRecurrent ? recurrenceType : null;
+    let recVal: number | null = null;
+    if (isRecurrent) {
+      if (recurrenceType === "interval") {
+        recVal = recurrenceUnit === "days" ? recurrenceValue * 24 : recurrenceValue;
+      } else {
+        recVal = recurrenceValue;
+      }
+    }
+    const { error } = await supabase.from("task_templates").update({
+      recurrence_type: recType, recurrence_value: recVal,
+    } as any).eq("id", recurrenceTask.id);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else toast({ title: "Recorrência atualizada!" });
+    setSaving(false);
+    setRecurrenceDialogOpen(false);
+    fetchData();
   };
 
   const saveTask = async () => {
