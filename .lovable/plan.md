@@ -1,81 +1,50 @@
 
+# Corrigir opção de “baixar app” no domínio (PWA)
 
-# PWA Instalável com Service Worker (Vercel)
+## Diagnóstico (com base no código atual)
+O projeto já tem:
+- `vite-plugin-pwa` configurado em `vite.config.ts`
+- `manifest.json` e ícones
 
-## Problema
+Mas em `src/main.tsx` **não há registro do service worker** (`registerSW`), então o navegador não ativa o PWA completo e não exibe a instalação de forma confiável.
 
-O Chrome exige um **service worker** registrado para mostrar o prompt de instalação. Atualmente o app só tem o `manifest.json`, que não é suficiente.
+## Plano de implementação
 
-## Solução
+1. **Registrar o service worker em produção**
+   - Arquivo: `src/main.tsx`
+   - Adicionar `import { registerSW } from "virtual:pwa-register"`.
+   - Manter o guard atual de preview/iframe:
+     - Se `isPreviewHost || isInIframe`: continuar desregistrando SW.
+     - Caso contrário: chamar `registerSW({ immediate: true })`.
 
-Adicionar `vite-plugin-pwa` com guard para não interferir no preview do Lovable.
+2. **Garantir tipagem do módulo virtual**
+   - Arquivo: `src/vite-env.d.ts`
+   - Adicionar referência:
+     - `/// <reference types="vite-plugin-pwa/client" />`
+   - Evita erro de TypeScript ao importar `virtual:pwa-register`.
 
-## 1. Instalar dependência
+3. **Adicionar opção explícita de instalação no app (recomendado)**
+   - Criar hook `usePwaInstall` (ex.: `src/hooks/use-pwa-install.ts`) para capturar `beforeinstallprompt` e `appinstalled`.
+   - Integrar no `src/components/Header.tsx` dentro do menu do usuário:
+     - novo item: **“Baixar App”** (com ícone Download)
+     - mostrar apenas quando `beforeinstallprompt` estiver disponível
+     - ao clicar, chamar `prompt()` e tratar resultado.
+   - Isso resolve o cenário em que o browser não mostra banner automático.
 
-```
-npm install vite-plugin-pwa
-```
-
-## 2. `vite.config.ts` — Adicionar VitePWA
-
-Adicionar o plugin com `devOptions: { enabled: false }` e `navigateFallbackDenylist` para evitar conflitos:
-
-```ts
-import { VitePWA } from 'vite-plugin-pwa'
-
-// No array de plugins:
-VitePWA({
-  registerType: 'autoUpdate',
-  devOptions: { enabled: false },
-  workbox: {
-    navigateFallbackDenylist: [/^\/~oauth/],
-  },
-  manifest: {
-    name: 'CRM Elisa',
-    short_name: 'CRM Elisa',
-    start_url: '/',
-    display: 'standalone',
-    theme_color: '#1d76cf',
-    background_color: '#ffffff',
-    icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
-    ]
-  }
-})
-```
-
-## 3. `src/main.tsx` — Guard contra iframe/preview
-
-Adicionar guard no entry point para desregistrar service workers no preview do Lovable:
-
-```ts
-const isInIframe = (() => {
-  try { return window.self !== window.top; }
-  catch { return true; }
-})();
-
-const isPreviewHost =
-  window.location.hostname.includes("id-preview--") ||
-  window.location.hostname.includes("lovableproject.com");
-
-if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then(regs =>
-    regs.forEach(r => r.unregister())
-  );
-}
-```
-
-## Nota importante
-
-- O prompt de instalação só aparecerá no domínio publicado (`crm.elisaportas.com`), nunca no preview do Lovable
-- Após deploy na Vercel, o service worker será gerado automaticamente pelo build
+4. **Validação pós-deploy na Vercel**
+   - Fazer novo deploy e testar em `https://crm.elisaportas.com`.
+   - Confirmar no DevTools > Application:
+     - Service Worker ativo e controlando a página
+     - Manifest válido
+   - Confirmar que o item “Baixar App” aparece e instala o app.
 
 ## Arquivos afetados
+- `src/main.tsx` (registro de SW em produção)
+- `src/vite-env.d.ts` (tipagem do PWA client)
+- `src/hooks/use-pwa-install.ts` (novo hook)
+- `src/components/Header.tsx` (item “Baixar App” no menu)
 
-| Arquivo | Ação |
-|---|---|
-| `package.json` | Adicionar `vite-plugin-pwa` |
-| `vite.config.ts` | Configurar VitePWA |
-| `src/main.tsx` | Adicionar guard de service worker |
-
+## Resultado esperado
+- O app passa a exibir uma opção real de instalação/“download” no domínio de produção.
+- Instalação funcional em desktop/mobile compatíveis.
+- Preview do editor continua protegido contra cache de service worker.
