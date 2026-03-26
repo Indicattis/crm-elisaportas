@@ -103,11 +103,30 @@ export default function Dashboard() {
     });
   }, [deals, profiles]);
 
+  const stageValueData = useMemo(() => {
+    if (!deals || !columns) return [];
+    const active = deals.filter((d) => !d.archived && d.status !== "Vendido" && d.status !== "Perdida");
+    const valueByStatus: Record<string, number> = {};
+    active.forEach((d) => {
+      valueByStatus[d.status] = (valueByStatus[d.status] || 0) + (Number(d.value) || 0);
+    });
+    return columns
+      .map((col) => ({
+        name: col.name,
+        value: valueByStatus[col.name] || 0,
+        color: col.color,
+      }))
+      .filter((d) => d.value > 0);
+  }, [deals, columns]);
+
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const stageChartConfig = Object.fromEntries(
     stageData.map((d) => [d.name, { label: d.name, color: d.color }])
+  );
+  const stageValueChartConfig = Object.fromEntries(
+    stageValueData.map((d) => [d.name, { label: d.name, color: d.color }])
   );
   const sellerChartConfig = Object.fromEntries(
     sellerData.map((d) => [d.name, { label: d.name, color: d.color }])
