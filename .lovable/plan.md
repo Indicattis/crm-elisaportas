@@ -1,40 +1,34 @@
 
 
-# Adicionar Criação de Tarefa Manual na Sidebar
+# Separar Botão de Recorrência ao Lado do Editar
 
 ## Visão geral
 
-Adicionar um botão "+" no header da sidebar de tarefas que expande um mini-formulário inline para o usuário criar uma tarefa personalizada diretamente na negociação.
+Mover a configuração de recorrência para um modal separado, com um botão de ícone `Repeat` ao lado do botão de editar em cada tarefa. Ao clicar, abre um dialog dedicado apenas para configurar recorrência.
 
-## Alterações em `src/components/DealDetailDialog.tsx`
+## Alterações em `src/components/TaskGroupManager.tsx`
 
-### 1. Novo estado
-- `showNewTask` (boolean) — controla visibilidade do formulário
-- `newTaskDesc` (string) — descrição da tarefa
-- `newTaskType` (string) — tipo: `personalizada`, `mensagem`, `ligacao`
-- `newTaskDeadlineHours` (number) — prazo em horas (default 24)
+### 1. Novo estado para modal de recorrência
+- `recurrenceDialogOpen` (boolean)
+- `recurrenceTask` (TaskTemplate | null) — tarefa sendo configurada
 
-### 2. Botão "+" no header das tarefas
-- Ao lado do placar pendentes/concluídas, adicionar um botão `Plus` que toggle `showNewTask`
+### 2. Botão de recorrência na lista de tarefas (linha ~299-305)
+- Adicionar botão com ícone `Repeat` entre o botão de editar e o de excluir
+- Cor diferenciada se já tem recorrência ativa (ex: `text-primary` vs `text-muted-foreground`)
+- Ao clicar: seta `recurrenceTask` e abre `recurrenceDialogOpen`
 
-### 3. Formulário inline (colapsável)
-- Aparece abaixo do header quando `showNewTask = true`
-- Campos:
-  - Select para tipo (Personalizada / Mensagem / Ligação)
-  - Input para descrição
-  - Input numérico para prazo em horas
-- Botão "Criar" que insere na tabela `deal_tasks` com:
-  - `deal_id`: deal atual
-  - `type`, `description`, `deadline_at` (now + hours)
-  - `template_id`: null (tarefa manual)
-- Após insert, chama `fetchDealTasks()` e reseta o formulário
+### 3. Novo Dialog de recorrência
+- Header: "Configurar Recorrência"
+- Conteúdo: reutilizar os mesmos campos que já existem no task dialog (Switch recorrente, tipo, valor)
+- Botão salvar: faz update apenas dos campos `recurrence_type` e `recurrence_value` no template
 
-### 4. Sem alterações de banco
-A tabela `deal_tasks` já suporta todos os campos necessários. `template_id` é nullable, então tarefas manuais funcionam sem template.
+### 4. Remover seção de recorrência do task dialog principal
+- Remover o `Separator` e toda a seção de recorrência (linhas ~375-445) do dialog de criação/edição de tarefa
+- O task dialog fica mais enxuto, focado em tipo/descrição/prazo
 
 ## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Adicionar formulário de criação de tarefa na sidebar |
+| `src/components/TaskGroupManager.tsx` | Separar recorrência em modal próprio com botão dedicado |
 
