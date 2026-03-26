@@ -44,6 +44,16 @@ interface DealTask {
   completed_by: string | null;
 }
 
+interface DealHistoryEvent {
+  id: string;
+  deal_id: string;
+  user_id: string;
+  event_type: string;
+  description: string;
+  metadata: any;
+  created_at: string;
+}
+
 interface CommentProfile {
   full_name: string | null;
   avatar_url: string | null;
