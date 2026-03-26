@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
@@ -30,6 +31,17 @@ interface DealComment {
   user_id: string;
   content: string;
   created_at: string;
+}
+
+interface DealTask {
+  id: string;
+  deal_id: string;
+  type: string;
+  description: string | null;
+  deadline_at: string;
+  completed: boolean;
+  completed_at: string | null;
+  completed_by: string | null;
 }
 
 interface CommentProfile {
@@ -61,6 +73,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [clientSearchResults, setClientSearchResults] = useState<ExternalClient[]>([]);
   const [clientSearchLoading, setClientSearchLoading] = useState(false);
   const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const { toast } = useToast();
 
   // Inline editing state
@@ -163,6 +176,30 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current); };
   }, [clientSearchQuery, clientComboOpen, searchExternalClients]);
 
+  const fetchDealTasks = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_tasks")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("deadline_at", { ascending: true });
+    setDealTasks((data as DealTask[]) || []);
+  }, [deal]);
+
+  const handleToggleTask = async (taskId: string, completed: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const updateData: any = { completed };
+    if (completed) {
+      updateData.completed_at = new Date().toISOString();
+      updateData.completed_by = user?.id || null;
+    } else {
+      updateData.completed_at = null;
+      updateData.completed_by = null;
+    }
+    await supabase.from("deal_tasks").update(updateData).eq("id", taskId);
+    fetchDealTasks();
+  };
+
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
@@ -172,8 +209,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchAllTags();
       fetchAssignedProfile();
       fetchExternalClient();
+      fetchDealTasks();
     }
-  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient]);
+  }, [deal, open, fetchComments, fetchTags, fetchAllTags, fetchAssignedProfile, fetchExternalClient, fetchDealTasks]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
@@ -623,6 +661,53 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               )}
             </div>
           </div>
+
+          {/* Tasks section */}
+          {dealTasks.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Tarefas
+              </h3>
+              <div className="space-y-2">
+                {dealTasks.map((task) => {
+                  const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
+                  const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
+                    : task.type === "ligacao" ? <PhoneCall className="h-3.5 w-3.5" />
+                    : <ClipboardList className="h-3.5 w-3.5" />;
+                  return (
+                    <div
+                      key={task.id}
+                      className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${
+                        task.completed ? "bg-muted/30 border-border opacity-60" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={task.completed}
+                        onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{typeIcon}</span>
+                          <span className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                            {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-1" />}
+                            {format(new Date(task.deadline_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <Separator />
 

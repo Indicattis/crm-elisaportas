@@ -1,0 +1,51 @@
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Create deal tasks based on the task group linked to a funnel column.
+ * Call this when a deal is created or moved to a new column.
+ */
+export async function createDealTasksForColumn(dealId: string, columnName: string, funnelId: string) {
+  // Find the column and its task_group_id
+  const { data: col } = await supabase
+    .from("funnel_columns")
+    .select("id, task_group_id")
+    .eq("funnel_id", funnelId)
+    .eq("name", columnName)
+    .single();
+
+  if (!col || !(col as any).task_group_id) return;
+
+  const taskGroupId = (col as any).task_group_id as string;
+
+  // Fetch templates for this group
+  const { data: templates } = await supabase
+    .from("task_templates")
+    .select("id, type, description, deadline_hours")
+    .eq("group_id", taskGroupId)
+    .order("position");
+
+  if (!templates || templates.length === 0) return;
+
+  const now = new Date();
+  const tasks = templates.map((t) => ({
+    deal_id: dealId,
+    template_id: t.id,
+    type: t.type,
+    description: t.description,
+    deadline_at: new Date(now.getTime() + t.deadline_hours * 60 * 60 * 1000).toISOString(),
+  }));
+
+  await supabase.from("deal_tasks").insert(tasks);
+}
+
+/**
+ * Delete pending (not completed) deal tasks for a deal.
+ * Call this before creating new tasks when moving between columns.
+ */
+export async function deletePendingDealTasks(dealId: string) {
+  await supabase
+    .from("deal_tasks")
+    .delete()
+    .eq("deal_id", dealId)
+    .eq("completed", false);
+}

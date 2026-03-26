@@ -8,6 +8,7 @@ import { DealCard } from "./DealCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -154,6 +155,10 @@ export function KanbanBoard() {
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
       fetchDeals();
+    } else {
+      // Delete pending tasks from old column, create new ones for new column
+      await deletePendingDealTasks(dealId);
+      await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
     }
   };
 

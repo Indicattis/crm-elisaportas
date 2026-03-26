@@ -12,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, X, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createDealTasksForColumn } from "@/lib/deal-tasks";
 import type { Tables } from "@/integrations/supabase/types";
 
 type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
@@ -134,9 +135,13 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         if (error) throw error;
         toast({ title: "Negociação atualizada!" });
       } else {
-        const { error } = await supabase.from("deals").insert(payload);
+        const { data: newDeal, error } = await supabase.from("deals").insert(payload).select("id").single();
         if (error) throw error;
         toast({ title: "Negociação criada!" });
+        // Create tasks for the column if it has a task group
+        if (newDeal) {
+          await createDealTasksForColumn(newDeal.id, status, funnelId);
+        }
       }
 
       onSaved();

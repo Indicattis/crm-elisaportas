@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const COLOR_OPTIONS = [
@@ -32,7 +33,20 @@ interface Props {
 export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
+  const [taskGroups, setTaskGroups] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
+
+  const fetchTaskGroups = useCallback(async () => {
+    const { data } = await supabase.from("task_groups").select("id, name").order("name");
+    setTaskGroups(data || []);
+  }, []);
+
+  useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
+
+  const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
+    await supabase.from("funnel_columns").update({ task_group_id: taskGroupId } as any).eq("id", colId);
+    onChanged();
+  };
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
@@ -132,6 +146,22 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 if (e.target.value !== col.name) handleUpdateName(col.id, e.target.value);
               }}
             />
+
+            <Select
+              value={(col as any).task_group_id || "none"}
+              onValueChange={(v) => handleUpdateTaskGroup(col.id, v === "none" ? null : v)}
+            >
+              <SelectTrigger className="w-40 h-8 text-xs">
+                <ClipboardList className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue placeholder="Grupo de tarefas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem grupo</SelectItem>
+                {taskGroups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
