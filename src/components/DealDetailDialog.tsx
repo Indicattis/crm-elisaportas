@@ -857,15 +857,20 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
           {/* Tasks sidebar */}
           <div className="w-full md:w-72 md:border-l border-t md:border-t-0 border-border overflow-y-auto bg-muted/20 p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" />
-              Tarefas
-              {dealTasks.filter(t => !t.completed).length > 0 && (
-                <Badge variant="secondary" className="text-xs ml-auto">
-                  {dealTasks.filter(t => !t.completed).length} pendente{dealTasks.filter(t => !t.completed).length !== 1 ? "s" : ""}
-                </Badge>
-              )}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Tarefas
+              </h3>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
+                  {dealTasks.filter(t => !t.completed).length} <span className="font-normal opacity-70">pendente{dealTasks.filter(t => !t.completed).length !== 1 ? "s" : ""}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                  {dealTasks.filter(t => t.completed).length} <span className="font-normal opacity-70">concluída{dealTasks.filter(t => t.completed).length !== 1 ? "s" : ""}</span>
+                </span>
+              </div>
+            </div>
             {dealTasks.length === 0 ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
