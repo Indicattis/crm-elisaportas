@@ -135,9 +135,13 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         if (error) throw error;
         toast({ title: "Negociação atualizada!" });
       } else {
-        const { error } = await supabase.from("deals").insert(payload);
+        const { data: newDeal, error } = await supabase.from("deals").insert(payload).select("id").single();
         if (error) throw error;
         toast({ title: "Negociação criada!" });
+        // Create tasks for the column if it has a task group
+        if (newDeal) {
+          await createDealTasksForColumn(newDeal.id, status, funnelId);
+        }
       }
 
       onSaved();

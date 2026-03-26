@@ -155,6 +155,10 @@ export function KanbanBoard() {
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
       fetchDeals();
+    } else {
+      // Delete pending tasks from old column, create new ones for new column
+      await deletePendingDealTasks(dealId);
+      await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
     }
   };
 
