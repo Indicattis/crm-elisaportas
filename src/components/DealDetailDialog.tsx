@@ -84,6 +84,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [clientSearchLoading, setClientSearchLoading] = useState(false);
   const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
+  const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
   const { toast } = useToast();
@@ -223,6 +224,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (completed) {
       updateData.completed_at = new Date().toISOString();
       updateData.completed_by = user?.id || null;
+
+      // Start animation
+      setCompletingTaskIds(prev => new Set(prev).add(taskId));
+
+      // Wait for animation to finish before persisting
+      await new Promise(resolve => setTimeout(resolve, 500));
     } else {
       updateData.completed_at = null;
       updateData.completed_by = null;
@@ -242,6 +249,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       } as any);
     }
 
+    setCompletingTaskIds(prev => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
     fetchDealTasks();
     fetchHistory();
   };
@@ -830,16 +842,17 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
               <div className="space-y-2">
-                {dealTasks.map((task) => {
-                  const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
+                {dealTasks.filter(t => !t.completed).map((task) => {
+                  const isOverdue = new Date(task.deadline_at) < new Date();
+                  const isCompleting = completingTaskIds.has(task.id);
                   const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
                     : task.type === "ligacao" ? <PhoneCall className="h-3.5 w-3.5" />
                     : <ClipboardList className="h-3.5 w-3.5" />;
                   return (
                     <div
                       key={task.id}
-                      className={`flex items-start gap-2 rounded-lg border p-2.5 transition-colors ${
-                        task.completed ? "bg-muted/30 border-border opacity-60" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
+                      className={`flex items-start gap-2 rounded-lg border p-2.5 transition-all duration-500 ease-out ${
+                        isCompleting ? "opacity-0 scale-95 max-h-0 overflow-hidden border-transparent p-0 m-0" : isOverdue ? "border-destructive/50 bg-destructive/5 max-h-40" : "border-border bg-card max-h-40"
                       }`}
                     >
                       <Checkbox
@@ -850,7 +863,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-muted-foreground">{typeIcon}</span>
-                          <span className={`text-xs font-medium leading-tight ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                          <span className="text-xs font-medium leading-tight text-foreground">
                             {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
                           </span>
                         </div>
