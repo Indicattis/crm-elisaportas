@@ -196,6 +196,9 @@ export default function Dashboard() {
   const lossReasonChartConfig = Object.fromEntries(
     lossReasonData.map((d) => [d.name, { label: d.name, color: d.color }])
   );
+  const channelChartConfig = Object.fromEntries(
+    channelData.map((d) => [d.name, { label: d.name, color: d.color }])
+  );
 
   return (
     <div className="space-y-6 p-4 md:p-6">
