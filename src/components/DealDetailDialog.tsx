@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -102,6 +103,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
   const [creatingTask, setCreatingTask] = useState(false);
   const { toast } = useToast();
+  const { role } = useUserRole();
 
   // Inline editing state
   const [editingField, setEditingField] = useState<"title" | "value" | "notes" | null>(null);
@@ -1099,6 +1101,29 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             ))}
           </div>
           <div className="flex items-center gap-2">
+            {role === "admin" && deal && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const isArchived = (deal as any).archived;
+                  const { error } = await (supabase.from("deals") as any).update({ archived: !isArchived }).eq("id", deal.id);
+                  if (error) {
+                    toast({ title: "Erro", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: isArchived ? "Negociação desarquivada!" : "Negociação arquivada!" });
+                    onUpdated();
+                    onOpenChange(false);
+                  }
+                }}
+              >
+                {(deal as any).archived ? (
+                  <><ArchiveRestore className="h-4 w-4 mr-1" /> Desarquivar</>
+                ) : (
+                  <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
+                )}
+              </Button>
+            )}
             <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
               <XCircle className="h-4 w-4 mr-1" />
               Perdida
