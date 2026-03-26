@@ -211,8 +211,35 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       .select("*")
       .eq("deal_id", id)
       .order("deadline_at", { ascending: true });
-    setDealTasks((data as DealTask[]) || []);
-  }, [deal?.id]);
+    const tasks = (data as DealTask[]) || [];
+    setDealTasks(tasks);
+
+    // Check for overdue tasks and create notifications (dedup by task id)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const overdueTasks = tasks.filter(t => !t.completed && new Date(t.deadline_at) < new Date());
+      for (const task of overdueTasks) {
+        const taskDesc = task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa");
+        // Check if we already notified for this task
+        const { data: existing } = await (supabase.from("notifications") as any)
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("type", "task_overdue")
+          .eq("deal_id", id)
+          .ilike("message", `%${task.id.slice(0, 8)}%`)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await (supabase.from("notifications") as any).insert({
+            user_id: user.id,
+            deal_id: id,
+            type: "task_overdue",
+            title: "Tarefa vencida",
+            message: `"${taskDesc}" venceu em ${deal?.title || "negociação"} [${task.id.slice(0, 8)}]`,
+          });
+        }
+      }
+    }
+  }, [deal?.id, deal?.title]);
 
   const fetchHistory = useCallback(async () => {
     if (!deal) return;
