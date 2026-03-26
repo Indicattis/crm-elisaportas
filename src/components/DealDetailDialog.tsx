@@ -102,6 +102,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [newTaskType, setNewTaskType] = useState("personalizada");
   const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
   const [creatingTask, setCreatingTask] = useState(false);
+  const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
+  const [selectedLossReason, setSelectedLossReason] = useState<string>("");
   const { toast } = useToast();
   const { role } = useUserRole();
 
