@@ -1,29 +1,26 @@
 
 
-# Cadastrar Clientes na Base Externa
-
-## Visão geral
-
-Adicionar um botão "Novo Cliente" na página `/clients` que abre um dialog para cadastrar um novo cliente diretamente na tabela `clientes` da base externa.
+# Kanban: Altura 100vh + Scroll Horizontal com Drag do Mouse
 
 ## Alterações
 
-### 1. `src/pages/Clients.tsx`
-- Adicionar botão "Novo Cliente" ao lado do título
-- Adicionar estados `dialogOpen` e `editingClient`
-- Importar e renderizar o novo `ExternalClientDialog`
-- Chamar `fetchClients()` ao salvar
+### 1. `src/components/KanbanBoard.tsx` — Altura 100vh
+- No container `div` (linha 253), trocar classes para `h-[calc(100vh-<header_height>)]` e garantir `overflow-x-auto`
+- As colunas e o container de skeleton também recebem altura completa
 
-### 2. Novo componente: `src/components/ExternalClientDialog.tsx`
-- Dialog com formulário contendo os campos da tabela externa: `nome` (obrigatório), `telefone`, `email`, `cpf_cnpj`, `cidade`, `estado`, `cep`, `endereco`, `bairro`, `tipo_cliente`, `observacoes`
-- Switches para `fidelizado` e `parceiro`
-- Insert via `externalSupabase.from("clientes").insert(...)` com `ativo: true`
-- Callback `onSaved` para refresh da lista
+### 2. `src/components/KanbanBoard.tsx` — Scroll horizontal via drag do mouse
+- Implementar lógica de "grab to scroll" no container horizontal: ao pressionar e arrastar o fundo (não um card), o container faz scroll horizontal
+- Adicionar estados `isGrabbing`, `startX`, `scrollLeft` e handlers `onMouseDown`, `onMouseMove`, `onMouseUp`, `onMouseLeave`
+- Cursor muda para `grab`/`grabbing` durante a interação
+- Ignorar o grab quando o target é um card (para não conflitar com DnD)
 
-## Arquivo afetado
+### 3. `src/components/KanbanColumn.tsx` — Altura completa
+- Colunas recebem `h-full` para ocupar toda a altura disponível, com scroll vertical interno nos cards
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Clients.tsx` | Adicionar botão e integrar dialog |
-| `src/components/ExternalClientDialog.tsx` | Criar dialog de cadastro de cliente externo |
+| `src/components/KanbanBoard.tsx` | Altura 100vh + grab-to-scroll horizontal |
+| `src/components/KanbanColumn.tsx` | Altura completa com scroll vertical |
 
