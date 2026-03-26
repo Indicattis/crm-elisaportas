@@ -842,16 +842,17 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
               <div className="space-y-2">
-                {dealTasks.map((task) => {
-                  const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
+                {dealTasks.filter(t => !t.completed).map((task) => {
+                  const isOverdue = new Date(task.deadline_at) < new Date();
+                  const isCompleting = completingTaskIds.has(task.id);
                   const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
                     : task.type === "ligacao" ? <PhoneCall className="h-3.5 w-3.5" />
                     : <ClipboardList className="h-3.5 w-3.5" />;
                   return (
                     <div
                       key={task.id}
-                      className={`flex items-start gap-2 rounded-lg border p-2.5 transition-colors ${
-                        task.completed ? "bg-muted/30 border-border opacity-60" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
+                      className={`flex items-start gap-2 rounded-lg border p-2.5 transition-all duration-500 ease-out ${
+                        isCompleting ? "opacity-0 scale-95 max-h-0 overflow-hidden border-transparent p-0 m-0" : isOverdue ? "border-destructive/50 bg-destructive/5 max-h-40" : "border-border bg-card max-h-40"
                       }`}
                     >
                       <Checkbox
