@@ -1,33 +1,47 @@
 
 
-# Corrigir RLS policy de funnels (bug na referência)
+# Adicionar Loading States em Todas as Telas
 
-## Problema
+## Visão geral
 
-A policy SELECT da tabela `funnels` tem um bug: a condição usa `fm.funnel_id = fm.id` (compara duas colunas da mesma tabela `funnel_members`) quando deveria ser `fm.funnel_id = funnels.id`. Por isso, o EXISTS nunca retorna true e vendedores não veem nenhum funil mesmo estando vinculados.
+Adicionar indicadores de carregamento (skeletons e spinners) em todas as telas e componentes onde dados, layout ou permissões estão sendo carregados, garantindo feedback visual consistente.
 
-## Solução
+## Locais que precisam de loading
 
-Uma migration para dropar e recriar a policy com a referência correta:
+### 1. `KanbanBoard.tsx` — Sem loading ao carregar funis, colunas e deals
+- Adicionar estado `loading` que fica `true` durante o fetch de funis/colunas/deals
+- Exibir skeletons de colunas enquanto carrega (retângulos simulando as colunas do kanban)
+- Exibir skeleton no seletor de funil enquanto funis carregam
 
-```sql
-DROP POLICY "Users can view accessible funnels" ON public.funnels;
-CREATE POLICY "Users can view accessible funnels" ON public.funnels
-  FOR SELECT TO authenticated
-  USING (
-    user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.funnel_members fm
-      WHERE fm.funnel_id = funnels.id AND fm.user_id = auth.uid()
-    )
-  );
-```
+### 2. `Clients.tsx` — Já tem loading básico ("Carregando..." texto)
+- Substituir o texto "Carregando..." por skeletons de linhas da tabela (5-6 linhas com retângulos animados)
 
-Também verificar e corrigir as policies de `deal_tags` e `deal_comments` para que membros do funil possam visualizar tags e comentários dos deals aos quais têm acesso (atualmente restrito a `deals.user_id = auth.uid()`).
+### 3. `CrmConfig.tsx` — Sem loading ao carregar funis e colunas
+- Adicionar estado `loading` no fetch inicial de funis
+- Exibir skeleton nos cards de menu e na lista de funis/colunas
 
-### Arquivos afetados
+### 4. `FunnelMembersManager.tsx` — Sem loading visual ao carregar membros
+- Adicionar skeleton enquanto membros e usuários disponíveis carregam
 
-| Arquivo | Acao |
+### 5. `TeamManager.tsx` — Já tem loading com spinner
+- OK, já implementado
+
+### 6. `AuthGuard.tsx` e `RoleGuard.tsx` — Já têm spinner
+- OK, já implementados
+
+### 7. `Profile.tsx` — Já tem loading com spinner
+- OK, já implementado
+
+## Implementação
+
+Usar o componente `Skeleton` existente (`src/components/ui/skeleton.tsx`) para manter consistência visual. Padrão: skeletons que imitam o layout final (linhas de tabela, cards, colunas).
+
+## Arquivos afetados
+
+| Arquivo | Ação |
 |---|---|
-| Migration SQL | Corrigir policy SELECT de funnels, deal_tags e deal_comments |
+| `src/components/KanbanBoard.tsx` | Adicionar estado loading + skeletons de colunas |
+| `src/pages/Clients.tsx` | Substituir texto por skeleton rows na tabela |
+| `src/pages/CrmConfig.tsx` | Adicionar loading + skeletons nos cards/funis |
+| `src/components/FunnelMembersManager.tsx` | Adicionar skeleton ao carregar membros |
 
