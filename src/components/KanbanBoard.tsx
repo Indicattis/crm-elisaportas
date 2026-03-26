@@ -198,6 +198,18 @@ export function KanbanBoard() {
           description: `Moveu de "${oldStatus}" para "${newStatus}"`,
           metadata: { from: oldStatus, to: newStatus },
         } as any);
+
+        // Notify assigned user about column change
+        const assignedTo = (deal as any).assigned_to;
+        if (assignedTo) {
+          await createNotification({
+            userId: assignedTo,
+            dealId,
+            type: "column_change",
+            title: "Negociação movida",
+            message: `"${deal.title}" foi movida de "${oldStatus}" para "${newStatus}".`,
+          });
+        }
       }
     }
   };
