@@ -1,34 +1,29 @@
 
 
-# Separar Botão de Recorrência ao Lado do Editar
+# Cadastrar Clientes na Base Externa
 
 ## Visão geral
 
-Mover a configuração de recorrência para um modal separado, com um botão de ícone `Repeat` ao lado do botão de editar em cada tarefa. Ao clicar, abre um dialog dedicado apenas para configurar recorrência.
+Adicionar um botão "Novo Cliente" na página `/clients` que abre um dialog para cadastrar um novo cliente diretamente na tabela `clientes` da base externa.
 
-## Alterações em `src/components/TaskGroupManager.tsx`
+## Alterações
 
-### 1. Novo estado para modal de recorrência
-- `recurrenceDialogOpen` (boolean)
-- `recurrenceTask` (TaskTemplate | null) — tarefa sendo configurada
+### 1. `src/pages/Clients.tsx`
+- Adicionar botão "Novo Cliente" ao lado do título
+- Adicionar estados `dialogOpen` e `editingClient`
+- Importar e renderizar o novo `ExternalClientDialog`
+- Chamar `fetchClients()` ao salvar
 
-### 2. Botão de recorrência na lista de tarefas (linha ~299-305)
-- Adicionar botão com ícone `Repeat` entre o botão de editar e o de excluir
-- Cor diferenciada se já tem recorrência ativa (ex: `text-primary` vs `text-muted-foreground`)
-- Ao clicar: seta `recurrenceTask` e abre `recurrenceDialogOpen`
-
-### 3. Novo Dialog de recorrência
-- Header: "Configurar Recorrência"
-- Conteúdo: reutilizar os mesmos campos que já existem no task dialog (Switch recorrente, tipo, valor)
-- Botão salvar: faz update apenas dos campos `recurrence_type` e `recurrence_value` no template
-
-### 4. Remover seção de recorrência do task dialog principal
-- Remover o `Separator` e toda a seção de recorrência (linhas ~375-445) do dialog de criação/edição de tarefa
-- O task dialog fica mais enxuto, focado em tipo/descrição/prazo
+### 2. Novo componente: `src/components/ExternalClientDialog.tsx`
+- Dialog com formulário contendo os campos da tabela externa: `nome` (obrigatório), `telefone`, `email`, `cpf_cnpj`, `cidade`, `estado`, `cep`, `endereco`, `bairro`, `tipo_cliente`, `observacoes`
+- Switches para `fidelizado` e `parceiro`
+- Insert via `externalSupabase.from("clientes").insert(...)` com `ativo: true`
+- Callback `onSaved` para refresh da lista
 
 ## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/TaskGroupManager.tsx` | Separar recorrência em modal próprio com botão dedicado |
+| `src/pages/Clients.tsx` | Adicionar botão e integrar dialog |
+| `src/components/ExternalClientDialog.tsx` | Criar dialog de cadastro de cliente externo |
 
