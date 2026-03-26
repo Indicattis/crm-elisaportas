@@ -129,6 +129,10 @@ export function TaskGroupManager() {
     setTaskDescription("");
     setDeadlineValue(1);
     setDeadlineUnit("days");
+    setIsRecurrent(false);
+    setRecurrenceType("interval");
+    setRecurrenceValue(1);
+    setRecurrenceUnit("days");
     setTaskDialogOpen(true);
   };
 
