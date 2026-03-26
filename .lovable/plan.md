@@ -1,48 +1,30 @@
 
 
-# Página "Resultados" — Negociações Vendidas, Perdidas e Arquivadas
+# Mover "Dias na Etapa" para Acima do Valor com Cores Dinâmicas
 
-## Visão geral
+## Alteração em `src/components/DealCard.tsx`
 
-Criar uma nova página `/results` acessível via menu "Resultados" no header, que exibe as negociações finalizadas (vendidas, perdidas e arquivadas) em formato de tabela com abas de filtro.
+Reposicionar o indicador de tempo na etapa: remover do rodapé (linhas 168-173) e colocar como elemento próprio acima da linha de rodapé, com cores baseadas no tempo:
 
-## 1. `src/pages/Results.tsx` — Nova página
+- **Verde** (`text-green-600`): 0-3 dias
+- **Amarelo** (`text-yellow-600`): 4-7 dias  
+- **Vermelho** (`text-destructive`): 8+ dias
 
-- Três abas (Tabs): "Vendidas", "Perdidas", "Arquivadas"
-- Cada aba mostra uma tabela com as negociações correspondentes
-- Colunas: Título, Cliente, Valor, Responsável, Data de criação, Data de atualização
-- **Vendidas**: query `deals` com `status = 'Vendido'` e `archived = false`
-- **Perdidas**: deals que foram removidos — como deals perdidos são deletados fisicamente, buscar do `deal_history` com `event_type = 'lost'` ou considerar adicionar um status "Perdida" em vez de deletar
-- **Arquivadas**: query `deals` com `archived = true`
-- Filtro por funil (select dropdown) similar ao Kanban
-- Busca por nome do deal
+### Layout resultante do card:
+```text
+Título          [tag] [avatar]
+Cliente
+🔥🔥
+[Tags]
+🕐 Xd na etapa  (colorido, acima do rodapé)
+📅 dd/mm/yyyy          R$ valor
+```
 
-**Nota**: Atualmente "Perdida" remove o deal fisicamente. Para listar perdidas, usaremos o `deal_history` (event_type = 'status_change' ou similar) como registro. Alternativamente, podemos mudar a lógica para marcar como status "Perdida" em vez de deletar — isso será mais útil.
+O bloco de "dias na etapa" vira uma linha independente com `Clock` icon e cor condicional. O rodapé fica apenas com data de criação à esquerda e valor à direita.
 
-## 2. Migração SQL — Ajuste na lógica de "Perdida"
-
-- Ao invés de deletar deals marcados como "Perdida", atualizar o status para `"Perdida"` e manter o registro
-- Isso permite que a página de resultados liste as negociações perdidas
-
-## 3. `src/components/Header.tsx` — Novo item de navegação
-
-- Adicionar `{ path: "/results", label: "Resultados", icon: BarChart3 }` no array `allNavItems`, entre "Clientes" e "Configurações"
-
-## 4. `src/App.tsx` — Nova rota
-
-- Adicionar `<Route path="/results" element={<Results />} />` dentro do layout autenticado
-
-## 5. `src/components/KanbanBoard.tsx` — Ajustar lógica de "Perdida"
-
-- Em vez de deletar o deal quando marcado como "Perdida", fazer update do status para `"Perdida"`
-- O filtro existente `.eq("archived", false)` no Kanban já oculta arquivadas; adicionar filtro para excluir status "Perdida" também
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Results.tsx` | Criar página com abas Vendidas/Perdidas/Arquivadas |
-| `src/components/Header.tsx` | Adicionar item "Resultados" no menu |
-| `src/App.tsx` | Adicionar rota `/results` |
-| `src/components/KanbanBoard.tsx` | Mudar "Perdida" de delete para update de status; filtrar no fetch |
+| `src/components/DealCard.tsx` | Mover dias na etapa para cima do valor, adicionar cores dinâmicas |
 
