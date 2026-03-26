@@ -17,6 +17,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
 
+const formatPhoneForWhatsapp = (phone: string): string => {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("55")) return digits;
+  return `55${digits}`;
+};
+
 interface Tag {
   id: string;
   name: string;
