@@ -274,21 +274,31 @@ export function KanbanBoard() {
 
   return (
     <>
-      <div className="px-6 pt-4">
-        {funnels.length === 0 && loading ? (
-          <Skeleton className="h-10 w-56" />
-        ) : (
-          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Selecionar funil" />
-            </SelectTrigger>
-            <SelectContent>
-              {funnels.map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+      <div className="px-6 pt-4 flex items-center justify-between">
+        <div>
+          {funnels.length === 0 && loading ? (
+            <Skeleton className="h-10 w-56" />
+          ) : (
+            <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Selecionar funil" />
+              </SelectTrigger>
+              <SelectContent>
+                {funnels.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "kanban" | "list")}>
+          <ToggleGroupItem value="kanban" aria-label="Kanban" size="sm">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" aria-label="Lista" size="sm">
+            <List className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {loading ? (
