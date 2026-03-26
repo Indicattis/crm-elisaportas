@@ -69,7 +69,9 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       {...attributes}
       {...listeners}
       data-deal-card
-      className="group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 bg-background"
+      className="group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
