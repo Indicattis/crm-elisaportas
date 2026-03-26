@@ -95,6 +95,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
+  const [showNewTask, setShowNewTask] = useState(false);
+  const [newTaskDesc, setNewTaskDesc] = useState("");
+  const [newTaskType, setNewTaskType] = useState("personalizada");
+  const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
+  const [creatingTask, setCreatingTask] = useState(false);
   const { toast } = useToast();
 
   // Inline editing state
@@ -266,6 +271,31 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     fetchDealTasks();
     fetchHistory();
   };
+
+  const handleCreateManualTask = async () => {
+    if (!deal || creatingTask) return;
+    setCreatingTask(true);
+    try {
+      const deadline = new Date(Date.now() + newTaskDeadlineHours * 60 * 60 * 1000);
+      const { error } = await supabase.from("deal_tasks").insert({
+        deal_id: deal.id,
+        type: newTaskType,
+        description: newTaskDesc.trim() || null,
+        deadline_at: deadline.toISOString(),
+      } as any);
+      if (error) throw error;
+      setNewTaskDesc("");
+      setNewTaskType("personalizada");
+      setNewTaskDeadlineHours(24);
+      setShowNewTask(false);
+      fetchDealTasks();
+    } catch (err: any) {
+      toast({ title: "Erro ao criar tarefa", description: err.message, variant: "destructive" });
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
 
   useEffect(() => {
     if (deal && open) {
@@ -873,9 +903,63 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
                   {dealTasks.filter(t => t.completed).length} <span className="font-normal opacity-70">concluída{dealTasks.filter(t => t.completed).length !== 1 ? "s" : ""}</span>
                 </span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => setShowNewTask(!showNewTask)}
+                  title="Criar tarefa"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
-            {dealTasks.length === 0 ? (
+            {showNewTask && (
+              <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                <div className="flex gap-2">
+                  <select
+                    value={newTaskType}
+                    onChange={(e) => setNewTaskType(e.target.value)}
+                    className="flex h-8 rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="personalizada">Personalizada</option>
+                    <option value="mensagem">Mensagem</option>
+                    <option value="ligacao">Ligação</option>
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={newTaskDeadlineHours}
+                      onChange={(e) => setNewTaskDeadlineHours(Number(e.target.value) || 1)}
+                      className="h-8 w-16 text-xs"
+                    />
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">horas</span>
+                  </div>
+                </div>
+                <Input
+                  value={newTaskDesc}
+                  onChange={(e) => setNewTaskDesc(e.target.value)}
+                  placeholder="Descrição da tarefa..."
+                  className="h-8 text-xs"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCreateManualTask();
+                    }
+                  }}
+                />
+                <div className="flex justify-end gap-1.5">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowNewTask(false); setNewTaskDesc(""); }}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" className="h-7 text-xs" disabled={creatingTask} onClick={handleCreateManualTask}>
+                    Criar
+                  </Button>
+                </div>
+              </div>
+            )}
+            {dealTasks.length === 0 && !showNewTask ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
               <div className="space-y-2">
