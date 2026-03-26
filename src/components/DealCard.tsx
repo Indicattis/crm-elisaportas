@@ -69,22 +69,22 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       {...attributes}
       {...listeners}
       data-deal-card
-      className="group cursor-pointer rounded-xl p-3 space-y-2 hover:shadow-md transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
+      className="group cursor-pointer rounded-lg px-2.5 py-2 space-y-1 hover:shadow-md transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between">
-        <h4 className="text-sm font-semibold text-foreground leading-tight flex-1">{deal.title}</h4>
-        <div className="flex items-center gap-1 ml-1">
+      <div className="flex items-start justify-between gap-1">
+        <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">{deal.title}</h4>
+        <div className="flex items-center gap-1 shrink-0">
           {allTags.length > 0 && (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <button
-                  className="p-1.5 rounded-md hover:bg-background/60 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-1 rounded-md hover:bg-background/60 transition-colors opacity-0 group-hover:opacity-100"
                   onClick={(e) => { e.stopPropagation(); }}
                 >
-                  <Tag className="h-4.5 w-4.5 text-muted-foreground" />
+                  <Tag className="h-4 w-4 text-muted-foreground" />
                 </button>
               </PopoverTrigger>
               <PopoverContent
@@ -115,54 +115,50 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
             </Popover>
           )}
           {(deal as any).assigned_to && assignedProfile ? (
-            <Avatar className="h-8 w-8" title={assignedProfile.full_name || "Responsável"}>
+            <Avatar className="h-7 w-7" title={assignedProfile.full_name || "Responsável"}>
               {assignedProfile.avatar_url ? (
                 <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
               ) : null}
-              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
                 {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
               </AvatarFallback>
             </Avatar>
           ) : (
             <button
-              className="h-8 w-8 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
+              className="h-7 w-7 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
               title="Capturar negociação"
               onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
             >
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
+              <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1 text-xs">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          {deal.clients && (
+            <span className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              <span className="truncate max-w-[120px]">{deal.clients.name}</span>
+            </span>
+          )}
+          {deal.heat > 0 && (
+            <span className="flex items-center gap-0.5">
+              {Array.from({ length: deal.heat }, (_, i) => (
+                <Flame key={i} className="h-3 w-3 text-orange-500 fill-orange-500" />
+              ))}
+            </span>
+          )}
+        </div>
         <div className={`flex items-center gap-1 ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
           <Clock className="h-3 w-3" />
-          <span>{daysInStage === 0 ? "Hoje" : `${daysInStage}d na etapa`}</span>
+          <span>{daysInStage === 0 ? "Hoje" : `${daysInStage}d`}</span>
         </div>
-        {deal.value && deal.value > 0 && (
-          <div className="bg-primary/10 text-primary font-bold text-sm rounded px-1.5 py-0.5 flex items-center gap-1">
-            <DollarSign className="h-3 w-3" />
-            <span>R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-          </div>
-        )}
       </div>
-      {deal.clients && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <User className="h-3 w-3" />
-          <span>{deal.clients.name}</span>
-        </div>
-      )}
-      {deal.heat > 0 && (
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: deal.heat }, (_, i) => (
-            <Flame key={i} className="h-3 w-3 text-orange-500 fill-orange-500" />
-          ))}
-        </div>
-      )}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-0.5">
           {tags.slice(0, 3).map((tag) => (
-            <Badge key={tag.id} className="text-[10px] px-1.5 py-0" style={{ backgroundColor: tag.color, color: "#fff" }}>
+            <Badge key={tag.id} className="text-[10px] px-1.5 py-0 leading-4" style={{ backgroundColor: tag.color, color: "#fff" }}>
               {tag.name}
             </Badge>
           ))}
@@ -171,9 +167,17 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
           )}
         </div>
       )}
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Calendar className="h-3 w-3" />
-        <span>{format(new Date(deal.created_at), "dd/MM/yyyy")}</span>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Calendar className="h-3 w-3" />
+          {format(new Date(deal.created_at), "dd/MM/yy")}
+        </span>
+        {deal.value && deal.value > 0 && (
+          <span className="bg-primary/10 text-primary font-bold text-xs rounded px-1.5 py-0.5 flex items-center gap-0.5">
+            <DollarSign className="h-3 w-3" />
+            R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </span>
+        )}
       </div>
     </div>
   );
