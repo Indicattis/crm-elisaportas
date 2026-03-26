@@ -70,6 +70,10 @@ export function TaskGroupManager() {
   const [taskDescription, setTaskDescription] = useState("");
   const [deadlineValue, setDeadlineValue] = useState(1);
   const [deadlineUnit, setDeadlineUnit] = useState<"hours" | "days">("days");
+  const [isRecurrent, setIsRecurrent] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState<"interval" | "weekday" | "monthday">("interval");
+  const [recurrenceValue, setRecurrenceValue] = useState(1);
+  const [recurrenceUnit, setRecurrenceUnit] = useState<"hours" | "days">("days");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
