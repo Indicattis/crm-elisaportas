@@ -10,7 +10,6 @@ import { Camera, Save, Loader2, Shield, ShieldCheck, Lock, ArrowLeft } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 
 export default function Profile() {
   const [profile, setProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
@@ -123,12 +122,9 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
@@ -136,9 +132,7 @@ export default function Profile() {
     .split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <>
-      <Header />
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
@@ -220,6 +214,5 @@ export default function Profile() {
           </CardContent>
         </Card>
       </div>
-    </>
   );
 }

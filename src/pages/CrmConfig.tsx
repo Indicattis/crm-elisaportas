@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/Header";
 import { FunnelColumnList } from "@/components/FunnelColumnList";
 import { FunnelDialog } from "@/components/FunnelDialog";
 import { TagManager } from "@/components/TagManager";
@@ -87,8 +86,7 @@ export default function CrmConfig() {
   const selectedFunnel = funnels.find((f) => f.id === selectedFunnelId) || null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <>
       <div className="mx-auto max-w-3xl p-6 space-y-6">
         {activeSection === null && (
           <>
@@ -239,6 +237,6 @@ export default function CrmConfig() {
         funnel={editingFunnel}
         onSaved={() => { fetchFunnels(); }}
       />
-    </div>
+    </>
   );
 }
