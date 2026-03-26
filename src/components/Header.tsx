@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User, BarChart3, PieChart } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Settings, Sun, Moon, User, BarChart3, PieChart, Download } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
 import { NotificationBell } from "./NotificationBell";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const { role } = useUserRole();
+  const { canInstall, install } = usePwaInstall();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -90,6 +92,12 @@ export function Header() {
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 {theme === "dark" ? "Tema Claro" : "Tema Escuro"}
               </DropdownMenuItem>
+              {canInstall && (
+                <DropdownMenuItem onClick={install} className="cursor-pointer gap-2">
+                  <Download className="h-4 w-4" />
+                  Baixar App
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4" />
