@@ -33,6 +33,17 @@ interface DealComment {
   created_at: string;
 }
 
+interface DealTask {
+  id: string;
+  deal_id: string;
+  type: string;
+  description: string | null;
+  deadline_at: string;
+  completed: boolean;
+  completed_at: string | null;
+  completed_by: string | null;
+}
+
 interface CommentProfile {
   full_name: string | null;
   avatar_url: string | null;
