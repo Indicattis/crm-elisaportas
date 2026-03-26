@@ -657,7 +657,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               <span className="text-muted-foreground">Tempo total:</span>
               <span className="font-medium text-foreground">
                 {(() => {
-                  const totalDays = Math.floor((Date.now() - new Date(deal.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                   const createdAt = new Date(deal.created_at);
+                   const now = new Date();
+                   const startOfCreated = new Date(createdAt.getFullYear(), createdAt.getMonth(), createdAt.getDate());
+                   const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                   const totalDays = Math.round((startOfNow.getTime() - startOfCreated.getTime()) / 86400000);
                   if (totalDays === 0) return "Hoje";
                   if (totalDays === 1) return "1 dia";
                   if (totalDays < 30) return `${totalDays} dias`;
