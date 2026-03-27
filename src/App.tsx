@@ -27,7 +27,6 @@ const App = () => (
         <Route path="/lead-form" element={<LeadForm />} />
         <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route path="/" element={<Index />} />
-          
           <Route path="/results" element={<Results />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
