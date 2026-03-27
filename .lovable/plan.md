@@ -1,47 +1,71 @@
 
 
-# Canal de Aquisição nas Negociações
+# Remover Sistema de Clientes e Adicionar Telefone/Email na Negociação
 
 ## Visão geral
 
-Adicionar campo `acquisition_channel` na tabela `deals` com os valores: Google, Facebook, Instagram, Tiktok, Indicação, Cliente fidelizado, Autorizado. Integrar nos formulários de criação/edição e no dashboard.
+Remover toda a lógica de vinculação de clientes (tanto do banco externo quanto da tabela `clients` local), adicionar campos `phone` (obrigatório) e `email` (opcional) diretamente na tabela `deals`, e excluir a página `/clients`.
 
 ## 1. Migração SQL
 
 ```sql
-ALTER TABLE public.deals ADD COLUMN acquisition_channel text;
+ALTER TABLE public.deals ADD COLUMN phone text;
+ALTER TABLE public.deals ADD COLUMN email text;
 ```
 
-Sem constraint — validação feita no frontend.
+Não remover `client_id` para não perder dados existentes, mas deixar de usá-lo no código.
 
-## 2. `src/components/DealDialog.tsx`
+## 2. `src/components/DealDialog.tsx` — Simplificar formulário
 
-- Novo estado `channel` (string)
-- Select com as 7 opções + "Sem canal"
-- Incluir `acquisition_channel` no payload de insert/update
-- Preencher estado ao editar deal existente
+- Remover toda a lógica de cliente (combobox, busca externa, novo cliente inline)
+- Remover imports de `externalSupabase`, `Popover`, `Command`, etc.
+- Adicionar campos:
+  - **Telefone** (obrigatório, `required`)
+  - **E-mail** (opcional)
+- Salvar `phone` e `email` no payload do deal
+- Ao editar, preencher os campos com `deal.phone` e `deal.email`
 
-## 3. `src/components/DealDetailDialog.tsx`
+## 3. `src/components/DealDetailDialog.tsx` — Substituir seção de cliente
 
-- Exibir canal de aquisição no cabeçalho/info da negociação (badge ou texto)
-- Permitir edição inline ou via select
+- Remover toda a lógica de cliente externo (fetch, link, unlink, combobox)
+- Remover imports de `externalSupabase`
+- Substituir a seção "Cliente" por exibição direta de telefone e e-mail do deal
+- Manter botão de WhatsApp usando `deal.phone`
+- Permitir edição inline de telefone e e-mail
 
-## 4. `src/pages/Dashboard.tsx`
+## 4. `src/components/DealCard.tsx` — Atualizar exibição
 
-- Novo gráfico de pizza: distribuição de negociações por canal de aquisição
-- Layout passa para 3x2 ou grid adaptável
+- Remover referência a `deal.clients?.name`
+- Exibir `deal.phone` no lugar (com ícone de telefone)
 
-## 5. `supabase/functions/submit-lead/index.ts`
+## 5. Remover página e componentes de Clientes
 
-- Aceitar campo `canal_aquisicao` no body e gravar como `acquisition_channel` no deal
+- Excluir `src/pages/Clients.tsx`
+- Excluir `src/components/ExternalClientDialog.tsx`
+- Excluir `src/integrations/external-supabase.ts`
+- Remover rota `/clients` de `src/App.tsx`
+- Remover item "Clientes" do menu em `src/components/Header.tsx`
+
+## 6. Limpar tipos e referências
+
+- Atualizar `DealWithClient` type em todos os arquivos para não incluir `clients`
+- Remover `[clients]` do `useState` no KanbanBoard
+- Limpar imports não utilizados em `DealsListView.tsx`, `KanbanColumn.tsx`
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar coluna `acquisition_channel` |
-| `src/components/DealDialog.tsx` | Campo select no formulário |
-| `src/components/DealDetailDialog.tsx` | Exibir e editar canal |
-| `src/pages/Dashboard.tsx` | Gráfico por canal de aquisição |
-| `supabase/functions/submit-lead/index.ts` | Aceitar canal no lead |
+| Migração SQL | Adicionar colunas `phone` e `email` em `deals` |
+| `src/components/DealDialog.tsx` | Substituir cliente por campos telefone/email |
+| `src/components/DealDetailDialog.tsx` | Remover cliente externo, exibir phone/email |
+| `src/components/DealCard.tsx` | Exibir telefone em vez de nome do cliente |
+| `src/components/KanbanBoard.tsx` | Limpar referências a clients |
+| `src/components/KanbanColumn.tsx` | Limpar tipo DealWithClient |
+| `src/components/DealsListView.tsx` | Limpar tipo DealWithClient |
+| `src/App.tsx` | Remover rota `/clients` e import |
+| `src/components/Header.tsx` | Remover item "Clientes" do menu |
+| `src/pages/Clients.tsx` | Excluir arquivo |
+| `src/components/ExternalClientDialog.tsx` | Excluir arquivo |
+| `src/integrations/external-supabase.ts` | Excluir arquivo |
 
