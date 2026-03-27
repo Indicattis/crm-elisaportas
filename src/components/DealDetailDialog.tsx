@@ -996,17 +996,17 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                         </div>
                         {(task.type === "mensagem" || task.type === "ligacao") && (
                           <div className="mt-1.5">
-                            {externalClient?.telefone ? (
+                            {(deal as any).phone ? (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="h-6 text-[10px] px-2 gap-1"
                                 onClick={() => {
-                                  const phone = formatPhoneForWhatsapp(externalClient.telefone!);
+                                  const p = formatPhoneForWhatsapp((deal as any).phone);
                                   if (task.type === "mensagem") {
-                                    window.open(`https://wa.me/${phone}`, "_blank");
+                                    window.open(`https://wa.me/${p}`, "_blank");
                                   } else {
-                                    window.open(`tel:+${phone}`);
+                                    window.open(`tel:+${p}`);
                                   }
                                 }}
                               >
@@ -1017,7 +1017,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                                 )}
                               </Button>
                             ) : (
-                              <span className="text-[10px] text-muted-foreground italic">Vincule um cliente para usar esta ação</span>
+                              <span className="text-[10px] text-muted-foreground italic">Adicione um telefone para usar esta ação</span>
                             )}
                           </div>
                         )}

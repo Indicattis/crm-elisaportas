@@ -83,10 +83,10 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                   </div>
                 </TableCell>
                 <TableCell>
-                  {deal.clients ? (
+                  {(deal as any).phone ? (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <User className="h-3 w-3" />
-                      {deal.clients.name}
+                      {(deal as any).phone}
                     </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>
