@@ -34,7 +34,7 @@ interface Tag {
   color: string;
 }
 
-type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
+type DealData = Tables<"deals">;
 
 interface DealComment {
   id: string;
