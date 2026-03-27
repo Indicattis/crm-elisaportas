@@ -287,7 +287,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchTags();
       fetchAllTags();
       fetchAssignedProfile();
-      fetchExternalClient();
+      
       fetchDealTasks(deal.id);
       fetchHistory();
     }
