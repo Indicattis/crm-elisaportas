@@ -33,7 +33,7 @@ interface FunnelColumn {
 
 export function KanbanBoard() {
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [clients] = useState<Tables<"clients">[]>([]);
+  
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
