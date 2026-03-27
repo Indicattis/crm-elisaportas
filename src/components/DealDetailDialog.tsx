@@ -455,6 +455,27 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
+  const handleLeaveDeal = async () => {
+    if (!deal) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("deals").update({ assigned_to: null } as any).eq("id", deal.id);
+      if (error) throw error;
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        event_type: "unassign",
+        description: "Saiu da negociação",
+      } as any);
+      toast({ title: "Você saiu da negociação" });
+      onUpdated();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
 
   if (!deal) return null;
 
