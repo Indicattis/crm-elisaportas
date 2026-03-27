@@ -75,7 +75,7 @@ interface CommentProfile {
 interface DealDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: DealWithClient | null;
+  deal: DealData | null;
   statuses: string[];
   columnColor?: string;
   onUpdated: () => void;
