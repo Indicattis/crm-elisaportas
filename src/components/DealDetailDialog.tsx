@@ -527,7 +527,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   }
                 }}
               >
-                <UserPlus className="h-4 w-4" />
+                <User className="h-4 w-4" />
                 Capturar
               </Button>
             )}
