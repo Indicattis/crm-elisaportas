@@ -46,6 +46,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-16">Cód.</TableHead>
             <TableHead>Título</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>Status</TableHead>
@@ -70,6 +71,9 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => onEditDeal(deal)}
               >
+                <TableCell className="font-mono text-muted-foreground text-xs w-16">
+                  {(deal as any).deal_number ? `#${(deal as any).deal_number}` : "—"}
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {deal.title}
@@ -161,7 +165,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
           })}
           {sortedDeals.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                 Nenhuma negociação encontrada
               </TableCell>
             </TableRow>
