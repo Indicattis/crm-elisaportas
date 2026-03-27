@@ -1,24 +1,46 @@
 
 
-# Auto-atribuir ao criar + Botão "Sair da negociação"
+# Código Numérico Sequencial para Negociações
 
-## 1. `src/components/DealDialog.tsx` — Auto-atribuir responsável
+## 1. Migração SQL
 
-No `handleSubmit`, ao criar (não editar), adicionar `assigned_to: user.id` no payload de insert. Assim o criador já é automaticamente o responsável.
+Adicionar coluna `deal_number` com sequência automática:
 
-## 2. `src/components/DealDetailDialog.tsx` — Botão "Sair da negociação"
+```sql
+-- Criar sequência
+CREATE SEQUENCE public.deals_deal_number_seq START 1;
 
-Adicionar botão na barra de ações do footer (junto com Arquivar, Perdida, Vendido):
-- Visível apenas quando `deal.assigned_to === currentUser.id`
-- Ao clicar: `UPDATE deals SET assigned_to = NULL WHERE id = deal.id`
-- Registrar no `deal_history`: evento `"unassign"`, descrição `"Saiu da negociação"`
-- Exibir toast de confirmação e chamar `onUpdated()`
-- Ícone: `UserMinus` ou `LogOut` do lucide-react
+-- Adicionar coluna com valor padrão da sequência
+ALTER TABLE public.deals ADD COLUMN deal_number integer UNIQUE DEFAULT nextval('public.deals_deal_number_seq');
+
+-- Preencher deals existentes (por ordem de criação)
+UPDATE public.deals SET deal_number = sub.rn
+FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY created_at) AS rn FROM public.deals) sub
+WHERE deals.id = sub.id;
+
+-- Ajustar sequência para continuar após o maior valor
+SELECT setval('public.deals_deal_number_seq', COALESCE((SELECT MAX(deal_number) FROM public.deals), 0));
+```
+
+Novos deals recebem automaticamente o próximo número sequencial.
+
+## 2. Exibir código nos componentes
+
+### `src/components/DealCard.tsx`
+- Exibir `#${deal.deal_number}` ao lado do título no card
+
+### `src/components/DealDetailDialog.tsx`
+- Exibir `#${deal.deal_number}` no header do dialog (ao lado do título)
+
+### `src/components/DealsListView.tsx`
+- Adicionar coluna "Cód." na tabela com o `deal_number`
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDialog.tsx` | Adicionar `assigned_to: user.id` no insert |
-| `src/components/DealDetailDialog.tsx` | Botão "Sair da negociação" no footer |
+| Migração SQL | Criar sequência e coluna `deal_number` |
+| `src/components/DealCard.tsx` | Exibir código no card |
+| `src/components/DealDetailDialog.tsx` | Exibir código no header |
+| `src/components/DealsListView.tsx` | Coluna de código na tabela |
 
