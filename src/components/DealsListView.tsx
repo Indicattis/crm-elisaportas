@@ -47,7 +47,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
         <TableHeader>
           <TableRow>
             <TableHead>Título</TableHead>
-            <TableHead>Cliente</TableHead>
+            <TableHead>Telefone</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="text-right">Valor</TableHead>

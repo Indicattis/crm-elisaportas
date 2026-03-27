@@ -159,7 +159,7 @@ export function KanbanBoard() {
   }, [deals]);
 
   useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
-  useEffect(() => { fetchClients(); fetchAllTags(); }, [fetchClients, fetchAllTags]);
+  useEffect(() => { fetchAllTags(); }, [fetchAllTags]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const deal = deals.find((d) => d.id === event.active.id);
