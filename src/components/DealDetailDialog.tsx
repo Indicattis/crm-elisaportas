@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
-import { externalSupabase, type ExternalClient } from "@/integrations/external-supabase";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, UserPlus, Phone, Mail, MapPin, ChevronsUpDown, Link2, Unlink, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
@@ -34,7 +34,7 @@ interface Tag {
   color: string;
 }
 
-type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
+type DealData = Tables<"deals">;
 
 interface DealComment {
   id: string;
@@ -75,7 +75,7 @@ interface CommentProfile {
 interface DealDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deal: DealWithClient | null;
+  deal: DealData | null;
   statuses: string[];
   columnColor?: string;
   onUpdated: () => void;
@@ -90,12 +90,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, CommentProfile>>({});
   const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
-  const [externalClient, setExternalClient] = useState<ExternalClient | null>(null);
-  const [clientComboOpen, setClientComboOpen] = useState(false);
-  const [clientSearchQuery, setClientSearchQuery] = useState("");
-  const [clientSearchResults, setClientSearchResults] = useState<ExternalClient[]>([]);
-  const [clientSearchLoading, setClientSearchLoading] = useState(false);
-  const clientDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
@@ -159,56 +155,6 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     const { data } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", (deal as any).assigned_to).single();
     setAssignedProfile(data || null);
   }, [deal]);
-
-  const fetchExternalClient = useCallback(async () => {
-    if (!deal || !deal.client_id) { setExternalClient(null); return; }
-    try {
-      const { data } = await externalSupabase
-        .from("clientes")
-        .select("*")
-        .eq("id", deal.client_id as string)
-        .single();
-      setExternalClient(data as ExternalClient | null);
-    } catch {
-      setExternalClient(null);
-    }
-  }, [deal]);
-
-  const searchExternalClients = useCallback(async (query: string) => {
-    setClientSearchLoading(true);
-    try {
-      const q = externalSupabase
-        .from("clientes")
-        .select("*")
-        .eq("ativo", true)
-        .order("nome")
-        .limit(20);
-      if (query.trim()) {
-        q.ilike("nome", `%${query.trim()}%`);
-      }
-      const { data } = await q;
-      setClientSearchResults((data as ExternalClient[]) || []);
-    } catch {
-      setClientSearchResults([]);
-    } finally {
-      setClientSearchLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (clientComboOpen && clientSearchQuery === "") {
-      searchExternalClients("");
-    }
-  }, [clientComboOpen, clientSearchQuery, searchExternalClients]);
-
-  useEffect(() => {
-    if (!clientComboOpen) return;
-    if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current);
-    clientDebounceRef.current = setTimeout(() => {
-      searchExternalClients(clientSearchQuery);
-    }, 300);
-    return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current); };
-  }, [clientSearchQuery, clientComboOpen, searchExternalClients]);
 
   const fetchDealTasks = useCallback(async (dealId?: string) => {
     const id = dealId || deal?.id;
@@ -341,7 +287,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchTags();
       fetchAllTags();
       fetchAssignedProfile();
-      fetchExternalClient();
+      
       fetchDealTasks(deal.id);
       fetchHistory();
     }
@@ -509,29 +455,6 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
-  const handleLinkClient = async (client: ExternalClient) => {
-    if (!deal) return;
-    const { error } = await supabase.from("deals").update({ client_id: client.id } as any).eq("id", deal.id);
-    if (error) {
-      toast({ title: "Erro ao vincular cliente", description: error.message, variant: "destructive" });
-    } else {
-      setExternalClient(client);
-      setClientComboOpen(false);
-      setClientSearchQuery("");
-      onUpdated();
-    }
-  };
-
-  const handleUnlinkClient = async () => {
-    if (!deal) return;
-    const { error } = await supabase.from("deals").update({ client_id: null }).eq("id", deal.id);
-    if (error) {
-      toast({ title: "Erro ao desvincular", description: error.message, variant: "destructive" });
-    } else {
-      setExternalClient(null);
-      onUpdated();
-    }
-  };
 
   if (!deal) return null;
 
@@ -604,7 +527,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   }
                 }}
               >
-                <UserPlus className="h-4 w-4" />
+                <User className="h-4 w-4" />
                 Capturar
               </Button>
             )}
@@ -652,104 +575,83 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
           {/* Main content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-          {/* Client section */}
+          {/* Contact section */}
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Cliente
-              </h3>
-              <div className="flex items-center gap-1">
-                {externalClient && (
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleUnlinkClient} title="Desvincular cliente">
-                    <Unlink className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
+              <Phone className="h-4 w-4" />
+              Contato
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" />
+                {editingField === "phone" as any ? (
+                  <Input
+                    autoFocus
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    onBlur={async () => {
+                      if (!deal || editPhone === ((deal as any).phone || "")) { setEditingField(null); return; }
+                      const { error } = await supabase.from("deals").update({ phone: editPhone.trim() || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else onUpdated();
+                      setEditingField(null);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
+                    className="h-6 text-xs w-40"
+                    placeholder="Telefone"
+                  />
+                ) : (
+                  <span
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => { setEditPhone((deal as any).phone || ""); setEditingField("phone" as any); }}
+                  >
+                    {(deal as any).phone || <span className="italic">Adicionar telefone</span>}
+                  </span>
+                )}
+                {(deal as any).phone && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      const p = formatPhoneForWhatsapp((deal as any).phone);
+                      window.open(`https://wa.me/${p}`, "_blank");
+                    }}
+                    title="WhatsApp"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-green-600" />
                   </Button>
                 )}
-                <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
-                      <Link2 className="h-3.5 w-3.5" />
-                      {externalClient ? "Trocar" : "Vincular"}
-                      <ChevronsUpDown className="h-3 w-3 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-0" align="end">
-                    <Command shouldFilter={false}>
-                      <CommandInput
-                        placeholder="Buscar cliente..."
-                        value={clientSearchQuery}
-                        onValueChange={setClientSearchQuery}
-                      />
-                      <CommandList>
-                        <CommandEmpty>
-                          {clientSearchLoading ? "Buscando..." : "Nenhum cliente encontrado"}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {clientSearchResults.map((c) => (
-                            <CommandItem
-                              key={c.id}
-                              value={c.id}
-                              onSelect={() => handleLinkClient(c)}
-                              className="flex flex-col items-start gap-0.5"
-                            >
-                              <span className="font-medium">{c.nome}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {[c.telefone, c.cidade].filter(Boolean).join(" · ") || "Sem info"}
-                              </span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" />
+                {editingField === "email" as any ? (
+                  <Input
+                    autoFocus
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    onBlur={async () => {
+                      if (!deal || editEmail === ((deal as any).email || "")) { setEditingField(null); return; }
+                      const { error } = await supabase.from("deals").update({ email: editEmail.trim() || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else onUpdated();
+                      setEditingField(null);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
+                    className="h-6 text-xs w-48"
+                    placeholder="E-mail"
+                  />
+                ) : (
+                  <span
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => { setEditEmail((deal as any).email || ""); setEditingField("email" as any); }}
+                  >
+                    {(deal as any).email || <span className="italic">Adicionar e-mail</span>}
+                  </span>
+                )}
               </div>
             </div>
-
-            {externalClient ? (
-              <div className="space-y-2 text-sm">
-                <p className="font-medium text-foreground text-base">{externalClient.nome}</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                  {externalClient.telefone && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5" />
-                      <span>{externalClient.telefone}</span>
-                    </div>
-                  )}
-                  {externalClient.email && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span>{externalClient.email}</span>
-                    </div>
-                  )}
-                  {externalClient.cpf_cnpj && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <User className="h-3.5 w-3.5" />
-                      <span>{externalClient.cpf_cnpj}</span>
-                    </div>
-                  )}
-                  {(externalClient.cidade || externalClient.estado) && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      <span>{[externalClient.cidade, externalClient.estado].filter(Boolean).join("/")}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-1.5 mt-1">
-                  {externalClient.fidelizado && (
-                    <Badge variant="secondary" className="text-xs">Fidelizado</Badge>
-                  )}
-                  {externalClient.parceiro && (
-                    <Badge variant="secondary" className="text-xs">Parceiro</Badge>
-                  )}
-                  {externalClient.tipo_cliente && (
-                    <Badge variant="outline" className="text-xs">{externalClient.tipo_cliente}</Badge>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">Nenhum cliente vinculado</p>
-            )}
           </div>
 
           {/* Info section */}
@@ -1094,17 +996,17 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                         </div>
                         {(task.type === "mensagem" || task.type === "ligacao") && (
                           <div className="mt-1.5">
-                            {externalClient?.telefone ? (
+                            {(deal as any).phone ? (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="h-6 text-[10px] px-2 gap-1"
                                 onClick={() => {
-                                  const phone = formatPhoneForWhatsapp(externalClient.telefone!);
+                                  const p = formatPhoneForWhatsapp((deal as any).phone);
                                   if (task.type === "mensagem") {
-                                    window.open(`https://wa.me/${phone}`, "_blank");
+                                    window.open(`https://wa.me/${p}`, "_blank");
                                   } else {
-                                    window.open(`tel:+${phone}`);
+                                    window.open(`tel:+${p}`);
                                   }
                                 }}
                               >
@@ -1115,7 +1017,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                                 )}
                               </Button>
                             ) : (
-                              <span className="text-[10px] text-muted-foreground italic">Vincule um cliente para usar esta ação</span>
+                              <span className="text-[10px] text-muted-foreground italic">Adicione um telefone para usar esta ação</span>
                             )}
                           </div>
                         )}

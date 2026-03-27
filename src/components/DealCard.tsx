@@ -22,7 +22,7 @@ interface AssignedProfile {
 }
 
 interface DealCardProps {
-  deal: Tables<"deals"> & { clients?: Tables<"clients"> | null; assigned_to?: string | null };
+  deal: Tables<"deals"> & { assigned_to?: string | null };
   tags?: DealTag[];
   allTags?: DealTag[];
   assignedProfile?: AssignedProfile | null;
@@ -136,10 +136,10 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       </div>
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 text-muted-foreground">
-          {deal.clients && (
+          {(deal as any).phone && (
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">{deal.clients.name}</span>
+              <span className="truncate max-w-[120px]">{(deal as any).phone}</span>
             </span>
           )}
           {deal.heat > 0 && (

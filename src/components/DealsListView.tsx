@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
-type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
+type Deal = Tables<"deals">;
 
 interface DealTag {
   id: string;
@@ -23,11 +23,11 @@ interface FunnelColumn {
 }
 
 interface DealsListViewProps {
-  deals: DealWithClient[];
+  deals: Deal[];
   columns: FunnelColumn[];
   dealTagsMap: Record<string, DealTag[]>;
   profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }>;
-  onEditDeal: (deal: DealWithClient) => void;
+  onEditDeal: (deal: Deal) => void;
   onCapture: (dealId: string) => void;
 }
 
@@ -47,7 +47,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
         <TableHeader>
           <TableRow>
             <TableHead>Título</TableHead>
-            <TableHead>Cliente</TableHead>
+            <TableHead>Telefone</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="text-right">Valor</TableHead>
@@ -83,10 +83,10 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                   </div>
                 </TableCell>
                 <TableCell>
-                  {deal.clients ? (
+                  {(deal as any).phone ? (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <User className="h-3 w-3" />
-                      {deal.clients.name}
+                      {(deal as any).phone}
                     </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>

@@ -15,7 +15,7 @@ import { createNotification } from "@/lib/notifications";
 import { LayoutGrid, List } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
-type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
+type Deal = Tables<"deals">;
 
 interface DealTag {
   id: string;
@@ -32,18 +32,18 @@ interface FunnelColumn {
 }
 
 export function KanbanBoard() {
-  const [deals, setDeals] = useState<DealWithClient[]>([]);
-  const [clients] = useState<Tables<"clients">[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [viewingDeal, setViewingDeal] = useState<DealWithClient | null>(null);
+  const [viewingDeal, setViewingDeal] = useState<Deal | null>(null);
   const [viewingColumnColor, setViewingColumnColor] = useState<string>("");
-  const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
-  const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
+  const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
@@ -133,9 +133,6 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId]);
 
-  const fetchClients = useCallback(async () => {
-    // No longer needed - clients come from external database
-  }, []);
 
   const fetchAllTags = useCallback(async () => {
     const { data } = await supabase.from("tags").select("id, name, color").order("name");
@@ -162,7 +159,7 @@ export function KanbanBoard() {
   }, [deals]);
 
   useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
-  useEffect(() => { fetchClients(); fetchAllTags(); }, [fetchClients, fetchAllTags]);
+  useEffect(() => { fetchAllTags(); }, [fetchAllTags]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const deal = deals.find((d) => d.id === event.active.id);
@@ -227,7 +224,7 @@ export function KanbanBoard() {
     setDialogOpen(true);
   };
 
-  const handleViewDeal = (deal: DealWithClient) => {
+  const handleViewDeal = (deal: Deal) => {
     const col = columns.find((c) => c.name === deal.status);
     setViewingColumnColor(col?.color || "");
     setViewingDeal(deal);

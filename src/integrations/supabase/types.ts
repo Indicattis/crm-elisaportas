@@ -196,11 +196,13 @@ export type Database = {
           assigned_to: string | null
           client_id: string | null
           created_at: string
+          email: string | null
           funnel_id: string | null
           heat: number
           id: string
           loss_reason: string | null
           notes: string | null
+          phone: string | null
           status: string
           title: string
           updated_at: string
@@ -213,11 +215,13 @@ export type Database = {
           assigned_to?: string | null
           client_id?: string | null
           created_at?: string
+          email?: string | null
           funnel_id?: string | null
           heat?: number
           id?: string
           loss_reason?: string | null
           notes?: string | null
+          phone?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -230,11 +234,13 @@ export type Database = {
           assigned_to?: string | null
           client_id?: string | null
           created_at?: string
+          email?: string | null
           funnel_id?: string | null
           heat?: number
           id?: string
           loss_reason?: string | null
           notes?: string | null
+          phone?: string | null
           status?: string
           title?: string
           updated_at?: string

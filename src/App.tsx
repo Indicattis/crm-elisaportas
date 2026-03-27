@@ -7,7 +7,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Clients from "./pages/Clients";
+
 import CrmConfig from "./pages/CrmConfig";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -27,7 +27,7 @@ const App = () => (
         <Route path="/lead-form" element={<LeadForm />} />
         <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route path="/" element={<Index />} />
-          <Route path="/clients" element={<Clients />} />
+          
           <Route path="/results" element={<Results />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
