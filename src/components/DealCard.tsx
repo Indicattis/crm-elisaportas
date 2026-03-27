@@ -75,7 +75,10 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-1">
-        <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">{deal.title}</h4>
+        <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
+          {(deal as any).deal_number && <span className="text-muted-foreground font-normal mr-1">#{(deal as any).deal_number}</span>}
+          {deal.title}
+        </h4>
         <div className="flex items-center gap-1 shrink-0">
           {allTags.length > 0 && (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>

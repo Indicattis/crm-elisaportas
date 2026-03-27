@@ -46,6 +46,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-16">Cód.</TableHead>
             <TableHead>Título</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>Status</TableHead>
