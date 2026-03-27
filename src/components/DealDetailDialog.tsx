@@ -575,104 +575,83 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
           {/* Main content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-          {/* Client section */}
+          {/* Contact section */}
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Cliente
-              </h3>
-              <div className="flex items-center gap-1">
-                {externalClient && (
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleUnlinkClient} title="Desvincular cliente">
-                    <Unlink className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
+              <Phone className="h-4 w-4" />
+              Contato
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" />
+                {editingField === "phone" as any ? (
+                  <Input
+                    autoFocus
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    onBlur={async () => {
+                      if (!deal || editPhone === ((deal as any).phone || "")) { setEditingField(null); return; }
+                      const { error } = await supabase.from("deals").update({ phone: editPhone.trim() || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else onUpdated();
+                      setEditingField(null);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
+                    className="h-6 text-xs w-40"
+                    placeholder="Telefone"
+                  />
+                ) : (
+                  <span
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => { setEditPhone((deal as any).phone || ""); setEditingField("phone" as any); }}
+                  >
+                    {(deal as any).phone || <span className="italic">Adicionar telefone</span>}
+                  </span>
+                )}
+                {(deal as any).phone && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      const p = formatPhoneForWhatsapp((deal as any).phone);
+                      window.open(`https://wa.me/${p}`, "_blank");
+                    }}
+                    title="WhatsApp"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-green-600" />
                   </Button>
                 )}
-                <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
-                      <Link2 className="h-3.5 w-3.5" />
-                      {externalClient ? "Trocar" : "Vincular"}
-                      <ChevronsUpDown className="h-3 w-3 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-0" align="end">
-                    <Command shouldFilter={false}>
-                      <CommandInput
-                        placeholder="Buscar cliente..."
-                        value={clientSearchQuery}
-                        onValueChange={setClientSearchQuery}
-                      />
-                      <CommandList>
-                        <CommandEmpty>
-                          {clientSearchLoading ? "Buscando..." : "Nenhum cliente encontrado"}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {clientSearchResults.map((c) => (
-                            <CommandItem
-                              key={c.id}
-                              value={c.id}
-                              onSelect={() => handleLinkClient(c)}
-                              className="flex flex-col items-start gap-0.5"
-                            >
-                              <span className="font-medium">{c.nome}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {[c.telefone, c.cidade].filter(Boolean).join(" · ") || "Sem info"}
-                              </span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" />
+                {editingField === "email" as any ? (
+                  <Input
+                    autoFocus
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    onBlur={async () => {
+                      if (!deal || editEmail === ((deal as any).email || "")) { setEditingField(null); return; }
+                      const { error } = await supabase.from("deals").update({ email: editEmail.trim() || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else onUpdated();
+                      setEditingField(null);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
+                    className="h-6 text-xs w-48"
+                    placeholder="E-mail"
+                  />
+                ) : (
+                  <span
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => { setEditEmail((deal as any).email || ""); setEditingField("email" as any); }}
+                  >
+                    {(deal as any).email || <span className="italic">Adicionar e-mail</span>}
+                  </span>
+                )}
               </div>
             </div>
-
-            {externalClient ? (
-              <div className="space-y-2 text-sm">
-                <p className="font-medium text-foreground text-base">{externalClient.nome}</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                  {externalClient.telefone && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5" />
-                      <span>{externalClient.telefone}</span>
-                    </div>
-                  )}
-                  {externalClient.email && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span>{externalClient.email}</span>
-                    </div>
-                  )}
-                  {externalClient.cpf_cnpj && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <User className="h-3.5 w-3.5" />
-                      <span>{externalClient.cpf_cnpj}</span>
-                    </div>
-                  )}
-                  {(externalClient.cidade || externalClient.estado) && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      <span>{[externalClient.cidade, externalClient.estado].filter(Boolean).join("/")}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-1.5 mt-1">
-                  {externalClient.fidelizado && (
-                    <Badge variant="secondary" className="text-xs">Fidelizado</Badge>
-                  )}
-                  {externalClient.parceiro && (
-                    <Badge variant="secondary" className="text-xs">Parceiro</Badge>
-                  )}
-                  {externalClient.tipo_cliente && (
-                    <Badge variant="outline" className="text-xs">{externalClient.tipo_cliente}</Badge>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">Nenhum cliente vinculado</p>
-            )}
           </div>
 
           {/* Info section */}
