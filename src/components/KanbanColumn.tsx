@@ -22,14 +22,14 @@ interface AssignedProfile {
 interface KanbanColumnProps {
   status: string;
   color?: string;
-  deals: DealWithClient[];
+  deals: Deal[];
   dealTagsMap?: Record<string, DealTag[]>;
   allTags?: DealTag[];
   profilesMap?: Record<string, AssignedProfile>;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
-  onEditDeal: (deal: DealWithClient) => void;
+  onEditDeal: (deal: Deal) => void;
 }
 
 function darkenHex(hex: string, amount: number): string {

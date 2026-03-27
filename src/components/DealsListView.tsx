@@ -23,11 +23,11 @@ interface FunnelColumn {
 }
 
 interface DealsListViewProps {
-  deals: DealWithClient[];
+  deals: Deal[];
   columns: FunnelColumn[];
   dealTagsMap: Record<string, DealTag[]>;
   profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }>;
-  onEditDeal: (deal: DealWithClient) => void;
+  onEditDeal: (deal: Deal) => void;
   onCapture: (dealId: string) => void;
 }
 

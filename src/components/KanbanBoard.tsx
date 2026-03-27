@@ -32,18 +32,18 @@ interface FunnelColumn {
 }
 
 export function KanbanBoard() {
-  const [deals, setDeals] = useState<DealWithClient[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [clients] = useState<Tables<"clients">[]>([]);
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [viewingDeal, setViewingDeal] = useState<DealWithClient | null>(null);
+  const [viewingDeal, setViewingDeal] = useState<Deal | null>(null);
   const [viewingColumnColor, setViewingColumnColor] = useState<string>("");
-  const [editingDeal, setEditingDeal] = useState<DealWithClient | null>(null);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
-  const [activeDeal, setActiveDeal] = useState<DealWithClient | null>(null);
+  const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
@@ -227,7 +227,7 @@ export function KanbanBoard() {
     setDialogOpen(true);
   };
 
-  const handleViewDeal = (deal: DealWithClient) => {
+  const handleViewDeal = (deal: Deal) => {
     const col = columns.find((c) => c.name === deal.status);
     setViewingColumnColor(col?.color || "");
     setViewingDeal(deal);
