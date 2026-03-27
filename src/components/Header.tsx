@@ -32,7 +32,7 @@ export function Header() {
   const allNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: PieChart },
     { path: "/", label: "Kanban", icon: LayoutDashboard },
-    { path: "/clients", label: "Clientes", icon: Users },
+    
     { path: "/results", label: "Resultados", icon: BarChart3 },
     { path: "/crm-config", label: "Configurações", icon: Settings, adminOnly: true },
   ];

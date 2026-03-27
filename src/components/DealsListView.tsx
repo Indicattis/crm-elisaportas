@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
-type DealWithClient = Tables<"deals"> & { clients?: Tables<"clients"> | null };
+type Deal = Tables<"deals">;
 
 interface DealTag {
   id: string;

@@ -22,7 +22,7 @@ interface AssignedProfile {
 }
 
 interface DealCardProps {
-  deal: Tables<"deals"> & { clients?: Tables<"clients"> | null; assigned_to?: string | null };
+  deal: Tables<"deals"> & { assigned_to?: string | null };
   tags?: DealTag[];
   allTags?: DealTag[];
   assignedProfile?: AssignedProfile | null;
