@@ -15,7 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
@@ -452,6 +452,27 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       setShowLossReasonDialog(false);
       onUpdated();
       onOpenChange(false);
+    }
+  };
+
+  const handleLeaveDeal = async () => {
+    if (!deal) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("deals").update({ assigned_to: null } as any).eq("id", deal.id);
+      if (error) throw error;
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        event_type: "unassign",
+        description: "Saiu da negociação",
+      } as any);
+      toast({ title: "Você saiu da negociação" });
+      onUpdated();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
 
@@ -1074,6 +1095,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 ) : (
                   <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
                 )}
+              </Button>
+            )}
+            {deal.assigned_to && (
+              <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
+                <UserMinus className="h-4 w-4 mr-1" />
+                Sair da negociação
               </Button>
             )}
             <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
