@@ -71,6 +71,9 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => onEditDeal(deal)}
               >
+                <TableCell className="font-mono text-muted-foreground text-xs w-16">
+                  {(deal as any).deal_number ? `#${(deal as any).deal_number}` : "—"}
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {deal.title}
