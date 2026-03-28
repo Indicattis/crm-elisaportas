@@ -1,36 +1,35 @@
 
 
-# Corrigir submit-lead para salvar telefone e e-mail nos campos corretos
+# Corrigir visibilidade de funis para Administradores
 
 ## Problema
 
-A edge function `submit-lead` salva telefone e e-mail no campo `notes` (como texto livre), em vez de usar as colunas `phone` e `email` da tabela `deals`. Isso faz com que leads da landing page não tenham os dados de contato nos campos corretos.
+A política RLS da tabela `funnels` para SELECT só permite ver funis onde `user_id = auth.uid()` ou onde o usuário é membro (`funnel_members`). Administradores não têm acesso especial, então só veem funis que eles mesmos criaram ou dos quais são membros.
 
-## Correção em `supabase/functions/submit-lead/index.ts`
+## Correção — Migração SQL
 
-- Adicionar `phone` e `email` diretamente no payload de insert do deal
-- Manter nas `notes` apenas estado e cidade (informações que não têm campo próprio)
+Atualizar a política SELECT para incluir admins:
 
-### Antes
-```typescript
-notes: "Tel: xxx | Email: xxx | Estado: xx | Cidade: xx"
-// phone e email NÃO são gravados nos campos próprios
+```sql
+DROP POLICY IF EXISTS "Users can view accessible funnels" ON public.funnels;
+
+CREATE POLICY "Users can view accessible funnels" ON public.funnels
+FOR SELECT TO authenticated
+USING (
+  user_id = auth.uid()
+  OR has_role(auth.uid(), 'admin'::app_role)
+  OR EXISTS (
+    SELECT 1 FROM funnel_members fm
+    WHERE fm.funnel_id = funnels.id AND fm.user_id = auth.uid()
+  )
+);
 ```
 
-### Depois
-```typescript
-phone: phone || null,
-email: email || null,
-notes: "Estado: xx | Cidade: xx"  // só estado e cidade
-```
+Isso permite que qualquer usuário com role `admin` veja todos os funis.
 
-## Corrigir negociação #5 existente
-
-Usar o insert tool para mover os dados de `notes` para os campos `phone` e `email` da negociação existente (se o usuário aprovar).
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/submit-lead/index.ts` | Gravar phone/email nos campos corretos |
+| Migração SQL | Atualizar política RLS de SELECT na tabela `funnels` |
 
