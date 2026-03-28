@@ -26,6 +26,7 @@ interface KanbanColumnProps {
   dealTagsMap?: Record<string, DealTag[]>;
   allTags?: DealTag[];
   profilesMap?: Record<string, AssignedProfile>;
+  overdueDeals?: Set<string>;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
