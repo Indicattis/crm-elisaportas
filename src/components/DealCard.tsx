@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus } from "lucide-react";
+import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,6 +26,7 @@ interface DealCardProps {
   tags?: DealTag[];
   allTags?: DealTag[];
   assignedProfile?: AssignedProfile | null;
+  hasOverdueTasks?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onClick: () => void;
@@ -38,7 +39,7 @@ function hexToRgb(hex: string) {
   return `${r}, ${g}, ${b}`;
 }
 
-export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTagsChanged, onCapture, onClick }: DealCardProps) {
+export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, onTagsChanged, onCapture, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -75,10 +76,15 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, onTag
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-1">
-        <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
-          {(deal as any).deal_number && <span className="text-muted-foreground font-normal mr-1">#{(deal as any).deal_number}</span>}
-          {deal.title}
-        </h4>
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          {hasOverdueTasks && (
+            <Bell className="h-3.5 w-3.5 text-red-500 fill-red-500 shrink-0" />
+          )}
+          <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
+            {(deal as any).deal_number && <span className="text-muted-foreground font-normal mr-1">#{(deal as any).deal_number}</span>}
+            {deal.title}
+          </h4>
+        </div>
         <div className="flex items-center gap-1 shrink-0">
           {allTags.length > 0 && (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>

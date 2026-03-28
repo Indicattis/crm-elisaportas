@@ -26,6 +26,7 @@ interface KanbanColumnProps {
   dealTagsMap?: Record<string, DealTag[]>;
   allTags?: DealTag[];
   profilesMap?: Record<string, AssignedProfile>;
+  overdueDeals?: Set<string>;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
@@ -46,7 +47,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
+export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags = [], profilesMap = {}, overdueDeals = new Set(), onTagsChanged, onCapture, onAddDeal, onEditDeal }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
 
@@ -106,6 +107,7 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
               tags={dealTagsMap[deal.id]}
               allTags={allTags}
               assignedProfile={(deal as any).assigned_to ? profilesMap[(deal as any).assigned_to] : null}
+              hasOverdueTasks={overdueDeals.has(deal.id)}
               onTagsChanged={onTagsChanged}
               onCapture={onCapture}
               onClick={() => onEditDeal(deal)}

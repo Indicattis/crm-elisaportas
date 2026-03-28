@@ -47,6 +47,7 @@ export function KanbanBoard() {
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
+  const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
@@ -160,6 +161,22 @@ export function KanbanBoard() {
 
   useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
   useEffect(() => { fetchAllTags(); }, [fetchAllTags]);
+
+  // Fetch overdue tasks for all deals
+  const fetchOverdueTasks = useCallback(async () => {
+    if (deals.length === 0) { setOverdueDeals(new Set()); return; }
+    const dealIds = deals.map(d => d.id);
+    const { data } = await supabase
+      .from("deal_tasks")
+      .select("deal_id")
+      .in("deal_id", dealIds)
+      .eq("completed", false)
+      .lt("deadline_at", new Date().toISOString());
+    const set = new Set((data || []).map((t: any) => t.deal_id));
+    setOverdueDeals(set);
+  }, [deals]);
+
+  useEffect(() => { fetchOverdueTasks(); }, [fetchOverdueTasks]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const deal = deals.find((d) => d.id === event.active.id);
