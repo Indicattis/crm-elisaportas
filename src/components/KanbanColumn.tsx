@@ -107,6 +107,7 @@ export function KanbanColumn({ status, color, deals, dealTagsMap = {}, allTags =
               tags={dealTagsMap[deal.id]}
               allTags={allTags}
               assignedProfile={(deal as any).assigned_to ? profilesMap[(deal as any).assigned_to] : null}
+              hasOverdueTasks={overdueDeals.has(deal.id)}
               onTagsChanged={onTagsChanged}
               onCapture={onCapture}
               onClick={() => onEditDeal(deal)}
