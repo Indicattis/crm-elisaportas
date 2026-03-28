@@ -16,6 +16,7 @@ interface TeamMember {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  email: string | null;
   role: string;
 }
 
@@ -61,7 +62,7 @@ export function TeamManager() {
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, email")
         .in("id", userIds);
       if (profilesError) throw profilesError;
 
@@ -168,6 +169,9 @@ export function TeamManager() {
                     <p className="text-sm font-medium text-foreground truncate">
                       {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
                     </p>
+                    {member.email && (
+                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    )}
                   </div>
                   <Badge variant={member.role === "admin" ? "default" : "secondary"} className="text-xs">
                     {member.role === "admin" ? "Admin" : "Vendedor"}
