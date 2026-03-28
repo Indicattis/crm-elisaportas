@@ -1194,7 +1194,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </PopoverContent>
               </Popover>
             )}
-            {deal.assigned_to && (
+            {deal.assigned_to && currentUser && deal.assigned_to === currentUser.id && (
               <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
                 <UserMinus className="h-4 w-4 mr-1" />
                 Sair da negociação
