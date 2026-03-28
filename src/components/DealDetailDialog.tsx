@@ -103,8 +103,15 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [creatingTask, setCreatingTask] = useState(false);
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [selectedLossReason, setSelectedLossReason] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
+    });
+  }, []);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<"title" | "value" | "notes" | null>(null);
