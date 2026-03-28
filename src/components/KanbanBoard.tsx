@@ -331,7 +331,8 @@ export function KanbanBoard() {
           deals={deals}
           columns={columns}
           dealTagsMap={dealTagsMap}
-          profilesMap={profilesMap}
+              profilesMap={profilesMap}
+              overdueDeals={overdueDeals}
           onEditDeal={handleViewDeal}
           onCapture={handleCapture}
         />
