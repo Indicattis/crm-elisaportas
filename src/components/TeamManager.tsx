@@ -62,7 +62,7 @@ export function TeamManager() {
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, email")
         .in("id", userIds);
       if (profilesError) throw profilesError;
 
