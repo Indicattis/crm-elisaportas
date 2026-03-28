@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus } from "lucide-react";
+import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
