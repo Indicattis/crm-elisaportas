@@ -291,7 +291,16 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchDealTasks(deal.id);
       fetchHistory();
     }
-  }, [deal?.id, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync local fields when deal prop changes
+  useEffect(() => {
+    if (deal && open) {
+      setHeat(deal.heat || 0);
+      setEditPhone((deal as any).phone || "");
+      setEditEmail((deal as any).email || "");
+    }
+  }, [deal, open]);
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
