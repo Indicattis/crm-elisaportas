@@ -39,10 +39,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Store lead info in deal notes
+    // Store only estado/cidade in notes (phone/email go to dedicated columns)
     const notes = [
-      phone ? `Tel: ${phone}` : null,
-      email ? `Email: ${email}` : null,
       estado ? `Estado: ${estado}` : null,
       cidade ? `Cidade: ${cidade}` : null,
     ].filter(Boolean).join(" | ");
@@ -56,6 +54,8 @@ Deno.serve(async (req) => {
         funnel_id,
         user_id: funnel.user_id,
         heat: 0,
+        phone: phone || null,
+        email: email || null,
         notes: notes || null,
         acquisition_channel: canal_aquisicao || null,
       })
