@@ -476,6 +476,64 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   };
 
+  // Delegation state
+  const [delegateOpen, setDelegateOpen] = useState(false);
+  const [funnelMembers, setFunnelMembers] = useState<{ id: string; full_name: string | null }[]>([]);
+  const [delegating, setDelegating] = useState(false);
+
+  const fetchFunnelMembers = useCallback(async () => {
+    if (!deal?.funnel_id) return;
+    // Get funnel members + funnel owner
+    const [{ data: members }, { data: funnel }] = await Promise.all([
+      supabase.from("funnel_members").select("user_id").eq("funnel_id", deal.funnel_id),
+      supabase.from("funnels").select("user_id").eq("id", deal.funnel_id).single(),
+    ]);
+    const userIds = new Set<string>();
+    (members || []).forEach((m) => userIds.add(m.user_id));
+    if (funnel?.user_id) userIds.add(funnel.user_id);
+    // Remove currently assigned user
+    if (deal.assigned_to) userIds.delete(deal.assigned_to);
+
+    if (userIds.size === 0) { setFunnelMembers([]); return; }
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", [...userIds]);
+    setFunnelMembers((profiles || []).map((p) => ({ id: p.id, full_name: p.full_name })));
+  }, [deal?.funnel_id, deal?.assigned_to]);
+
+  useEffect(() => {
+    if (delegateOpen) fetchFunnelMembers();
+  }, [delegateOpen, fetchFunnelMembers]);
+
+  const handleDelegate = async (targetUserId: string, targetName: string) => {
+    if (!deal) return;
+    setDelegating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("deals").update({ assigned_to: targetUserId } as any).eq("id", deal.id);
+      if (error) throw error;
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        event_type: "delegation",
+        description: `Delegou para ${targetName}`,
+      } as any);
+      await createNotification({
+        userId: targetUserId,
+        dealId: deal.id,
+        type: "delegation",
+        title: "Negociação delegada",
+        message: `Você foi designado para a negociação "${deal.title}"`,
+      });
+      toast({ title: `Delegado para ${targetName}` });
+      setDelegateOpen(false);
+      onUpdated();
+    } catch (err: any) {
+      toast({ title: "Erro ao delegar", description: err.message, variant: "destructive" });
+    } finally {
+      setDelegating(false);
+    }
+  };
+
 
   if (!deal) return null;
 
@@ -1097,6 +1155,35 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
                 )}
               </Button>
+            )}
+            {role === "admin" && deal.funnel_id && (
+              <Popover open={delegateOpen} onOpenChange={setDelegateOpen}>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <ArrowRightLeft className="h-4 w-4 mr-1" />
+                    Delegar
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="end">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Delegar para:</p>
+                  {funnelMembers.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhum membro disponível</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {funnelMembers.map((m) => (
+                        <button
+                          key={m.id}
+                          disabled={delegating}
+                          onClick={() => handleDelegate(m.id, m.full_name || "Sem nome")}
+                          className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                        >
+                          {m.full_name || "Sem nome"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             )}
             {deal.assigned_to && (
               <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
