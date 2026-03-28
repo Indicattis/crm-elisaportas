@@ -1156,6 +1156,35 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 )}
               </Button>
             )}
+            {role === "admin" && deal.funnel_id && (
+              <Popover open={delegateOpen} onOpenChange={setDelegateOpen}>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <ArrowRightLeft className="h-4 w-4 mr-1" />
+                    Delegar
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="end">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Delegar para:</p>
+                  {funnelMembers.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhum membro disponível</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {funnelMembers.map((m) => (
+                        <button
+                          key={m.id}
+                          disabled={delegating}
+                          onClick={() => handleDelegate(m.id, m.full_name || "Sem nome")}
+                          className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                        >
+                          {m.full_name || "Sem nome"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            )}
             {deal.assigned_to && (
               <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
                 <UserMinus className="h-4 w-4 mr-1" />
