@@ -47,6 +47,7 @@ export function KanbanBoard() {
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
+  const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
