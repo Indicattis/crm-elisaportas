@@ -1,46 +1,36 @@
 
 
-# Código Numérico Sequencial para Negociações
+# Corrigir submit-lead para salvar telefone e e-mail nos campos corretos
 
-## 1. Migração SQL
+## Problema
 
-Adicionar coluna `deal_number` com sequência automática:
+A edge function `submit-lead` salva telefone e e-mail no campo `notes` (como texto livre), em vez de usar as colunas `phone` e `email` da tabela `deals`. Isso faz com que leads da landing page não tenham os dados de contato nos campos corretos.
 
-```sql
--- Criar sequência
-CREATE SEQUENCE public.deals_deal_number_seq START 1;
+## Correção em `supabase/functions/submit-lead/index.ts`
 
--- Adicionar coluna com valor padrão da sequência
-ALTER TABLE public.deals ADD COLUMN deal_number integer UNIQUE DEFAULT nextval('public.deals_deal_number_seq');
+- Adicionar `phone` e `email` diretamente no payload de insert do deal
+- Manter nas `notes` apenas estado e cidade (informações que não têm campo próprio)
 
--- Preencher deals existentes (por ordem de criação)
-UPDATE public.deals SET deal_number = sub.rn
-FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY created_at) AS rn FROM public.deals) sub
-WHERE deals.id = sub.id;
-
--- Ajustar sequência para continuar após o maior valor
-SELECT setval('public.deals_deal_number_seq', COALESCE((SELECT MAX(deal_number) FROM public.deals), 0));
+### Antes
+```typescript
+notes: "Tel: xxx | Email: xxx | Estado: xx | Cidade: xx"
+// phone e email NÃO são gravados nos campos próprios
 ```
 
-Novos deals recebem automaticamente o próximo número sequencial.
+### Depois
+```typescript
+phone: phone || null,
+email: email || null,
+notes: "Estado: xx | Cidade: xx"  // só estado e cidade
+```
 
-## 2. Exibir código nos componentes
+## Corrigir negociação #5 existente
 
-### `src/components/DealCard.tsx`
-- Exibir `#${deal.deal_number}` ao lado do título no card
-
-### `src/components/DealDetailDialog.tsx`
-- Exibir `#${deal.deal_number}` no header do dialog (ao lado do título)
-
-### `src/components/DealsListView.tsx`
-- Adicionar coluna "Cód." na tabela com o `deal_number`
+Usar o insert tool para mover os dados de `notes` para os campos `phone` e `email` da negociação existente (se o usuário aprovar).
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar sequência e coluna `deal_number` |
-| `src/components/DealCard.tsx` | Exibir código no card |
-| `src/components/DealDetailDialog.tsx` | Exibir código no header |
-| `src/components/DealsListView.tsx` | Coluna de código na tabela |
+| `supabase/functions/submit-lead/index.ts` | Gravar phone/email nos campos corretos |
 
