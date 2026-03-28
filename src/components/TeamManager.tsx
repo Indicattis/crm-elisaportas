@@ -169,6 +169,9 @@ export function TeamManager() {
                     <p className="text-sm font-medium text-foreground truncate">
                       {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
                     </p>
+                    {member.email && (
+                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    )}
                   </div>
                   <Badge variant={member.role === "admin" ? "default" : "secondary"} className="text-xs">
                     {member.role === "admin" ? "Admin" : "Vendedor"}
