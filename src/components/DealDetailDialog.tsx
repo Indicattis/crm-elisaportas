@@ -103,8 +103,15 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [creatingTask, setCreatingTask] = useState(false);
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [selectedLossReason, setSelectedLossReason] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
+    });
+  }, []);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<"title" | "value" | "notes" | null>(null);
@@ -1194,7 +1201,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </PopoverContent>
               </Popover>
             )}
-            {deal.assigned_to && (
+            {deal.assigned_to && currentUserId && deal.assigned_to === currentUserId && (
               <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
                 <UserMinus className="h-4 w-4 mr-1" />
                 Sair da negociação
