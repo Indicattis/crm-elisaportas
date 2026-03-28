@@ -26,6 +26,7 @@ interface DealCardProps {
   tags?: DealTag[];
   allTags?: DealTag[];
   assignedProfile?: AssignedProfile | null;
+  hasOverdueTasks?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onClick: () => void;
