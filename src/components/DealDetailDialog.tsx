@@ -605,8 +605,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             ) : (
               <Button
                 size="sm"
-                variant="ghost"
-                className={`gap-1 ${columnColor ? 'text-white hover:bg-white/20' : ''}`}
+                variant="default"
+                className="gap-1 animate-pulse hover:animate-none shadow-md"
                 onClick={async () => {
                   if (!deal) return;
                   const { data: { user } } = await supabase.auth.getUser();
@@ -616,7 +616,6 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
                   } else {
                     toast({ title: "Negociação capturada!" });
-                    // Fetch profile directly with user.id instead of relying on stale deal prop
                     const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single();
                     if (profile) setAssignedProfile(profile);
                     onUpdated();
