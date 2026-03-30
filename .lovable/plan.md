@@ -1,36 +1,43 @@
 
 
-# Botão Capturar no Footer + Restrição de Ações por Responsável
+# Resetar Senha de Usuário (Admin)
 
 ## Visão geral
 
-Mover o botão "Capturar" do header para o footer do modal e restringir os botões de ação (Arquivar, Delegar, Sair, Perdida, Vendido) para que só sejam visíveis ao responsável pela negociação ou a administradores.
+Adicionar botão "Resetar senha" na lista de membros da equipe (apenas para outros usuários, não para si mesmo). A nova senha segue a fórmula: **primeira letra do nome + sobrenome**, tudo em minúsculas (ex: "João Silva" → `jsilva`). Após o reset, marca `must_change_password = true` para forçar troca no próximo login.
 
-## Alterações em `src/components/DealDetailDialog.tsx`
+## 1. Edge Function `invite-user/index.ts` — Adicionar ação de reset
 
-### 1. Header — Remover botão Capturar
+Expandir a edge function para aceitar uma ação `reset_password`:
+- Recebe `{ action: "reset_password", user_id, full_name }`
+- Calcula a senha: primeira letra do primeiro nome + último sobrenome, tudo minúsculo e sem acentos
+- Usa `adminClient.auth.admin.updateUserById(user_id, { password })` para resetar
+- Atualiza `profiles.must_change_password = true`
+- Retorna a senha temporária gerada
 
-Na seção do header (linhas ~605-628), quando `deal.assigned_to` é null, em vez de mostrar o botão Capturar, exibir apenas um texto como "Sem responsável" ou um badge indicativo.
+A lógica existente de convite continua funcionando normalmente (quando `action` não é enviado).
 
-### 2. Footer — Adicionar botão Capturar
+## 2. `src/components/TeamManager.tsx` — Botão de reset
 
-No footer (linhas ~1148-1217), adicionar o botão "Capturar" quando `!deal.assigned_to`. Manter o estilo destacado com `variant="default"`, `animate-pulse`, e `shadow-md`.
+- Adicionar ícone `KeyRound` do lucide-react ao lado do botão de remover membro
+- Ao clicar: confirmação com `confirm("Resetar a senha de X?")`
+- Chamar a edge function com `action: "reset_password"`
+- Exibir dialog/toast com a nova senha temporária para o admin compartilhar
 
-### 3. Footer — Restringir botões por responsável
+## Fórmula da senha
 
-Criar uma variável de controle:
-```typescript
-const isOwnerOrAdmin = role === "admin" || (currentUserId && deal.assigned_to === currentUserId);
+```
+"João Pedro Silva" → "jsilva"
+"Maria Santos" → "msantos"
+"Ana" → "ana" (se só tem um nome, usa o nome inteiro)
 ```
 
-Envolver os botões Arquivar, Delegar, Sair, Perdida e Vendido com a condição `isOwnerOrAdmin`. Isso garante que:
-- **Admins** veem todos os botões sempre
-- **Responsável** vê todos os botões da sua negociação
-- **Outros usuários** veem apenas o botão Capturar (quando a negociação é órfã)
+Remover acentos (normalize + replace).
 
-## Arquivo afetado
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Mover Capturar para footer, restringir ações por responsável |
+| `supabase/functions/invite-user/index.ts` | Adicionar ação `reset_password` |
+| `src/components/TeamManager.tsx` | Botão de resetar senha + exibir senha temporária |
 
