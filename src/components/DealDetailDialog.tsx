@@ -603,28 +603,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </span>
               </div>
             ) : (
-              <Button
-                size="sm"
-                variant="default"
-                className="gap-1 animate-pulse hover:animate-none shadow-md"
-                onClick={async () => {
-                  if (!deal) return;
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) return;
-                  const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", deal.id);
-                  if (error) {
-                    toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
-                  } else {
-                    toast({ title: "Negociação capturada!" });
-                    const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single();
-                    if (profile) setAssignedProfile(profile);
-                    onUpdated();
-                  }
-                }}
-              >
-                <User className="h-4 w-4" />
-                Capturar
-              </Button>
+              <Badge variant="outline" className="text-xs text-muted-foreground border-dashed">
+                Sem responsável
+              </Badge>
             )}
           </div>
           {/* Tags in header */}
