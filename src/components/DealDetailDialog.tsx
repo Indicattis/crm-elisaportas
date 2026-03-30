@@ -1129,72 +1129,100 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             ))}
           </div>
           <div className="flex items-center gap-2">
-            {role === "admin" && deal && (
+            {!deal.assigned_to && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="default"
+                className="gap-1 animate-pulse hover:animate-none shadow-md"
                 onClick={async () => {
-                  const isArchived = (deal as any).archived;
-                  const { error } = await (supabase.from("deals") as any).update({ archived: !isArchived }).eq("id", deal.id);
+                  if (!deal) return;
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) return;
+                  const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", deal.id);
                   if (error) {
-                    toast({ title: "Erro", description: error.message, variant: "destructive" });
+                    toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
                   } else {
-                    toast({ title: isArchived ? "Negociação desarquivada!" : "Negociação arquivada!" });
+                    toast({ title: "Negociação capturada!" });
+                    const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single();
+                    if (profile) setAssignedProfile(profile);
                     onUpdated();
-                    onOpenChange(false);
                   }
                 }}
               >
-                {(deal as any).archived ? (
-                  <><ArchiveRestore className="h-4 w-4 mr-1" /> Desarquivar</>
-                ) : (
-                  <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
-                )}
+                <User className="h-4 w-4" />
+                Capturar
               </Button>
             )}
-            {role === "admin" && deal.funnel_id && (
-              <Popover open={delegateOpen} onOpenChange={setDelegateOpen}>
-                <PopoverTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <ArrowRightLeft className="h-4 w-4 mr-1" />
-                    Delegar
+            {(role === "admin" || (currentUserId && deal.assigned_to === currentUserId)) && (
+              <>
+                {role === "admin" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const isArchived = (deal as any).archived;
+                      const { error } = await (supabase.from("deals") as any).update({ archived: !isArchived }).eq("id", deal.id);
+                      if (error) {
+                        toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      } else {
+                        toast({ title: isArchived ? "Negociação desarquivada!" : "Negociação arquivada!" });
+                        onUpdated();
+                        onOpenChange(false);
+                      }
+                    }}
+                  >
+                    {(deal as any).archived ? (
+                      <><ArchiveRestore className="h-4 w-4 mr-1" /> Desarquivar</>
+                    ) : (
+                      <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
+                    )}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="end">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Delegar para:</p>
-                  {funnelMembers.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nenhum membro disponível</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {funnelMembers.map((m) => (
-                        <button
-                          key={m.id}
-                          disabled={delegating}
-                          onClick={() => handleDelegate(m.id, m.full_name || "Sem nome")}
-                          className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
-                        >
-                          {m.full_name || "Sem nome"}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+                )}
+                {role === "admin" && deal.funnel_id && (
+                  <Popover open={delegateOpen} onOpenChange={setDelegateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <ArrowRightLeft className="h-4 w-4 mr-1" />
+                        Delegar
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2" align="end">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Delegar para:</p>
+                      {funnelMembers.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Nenhum membro disponível</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {funnelMembers.map((m) => (
+                            <button
+                              key={m.id}
+                              disabled={delegating}
+                              onClick={() => handleDelegate(m.id, m.full_name || "Sem nome")}
+                              className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                            >
+                              {m.full_name || "Sem nome"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
+                {deal.assigned_to && currentUserId && deal.assigned_to === currentUserId && (
+                  <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
+                    <UserMinus className="h-4 w-4 mr-1" />
+                    Sair da negociação
+                  </Button>
+                )}
+                <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Perdida
+                </Button>
+                <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Vendido
+                </Button>
+              </>
             )}
-            {deal.assigned_to && currentUserId && deal.assigned_to === currentUserId && (
-              <Button size="sm" variant="outline" onClick={handleLeaveDeal}>
-                <UserMinus className="h-4 w-4 mr-1" />
-                Sair da negociação
-              </Button>
-            )}
-            <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
-              <XCircle className="h-4 w-4 mr-1" />
-              Perdida
-            </Button>
-            <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
-              <CheckCircle2 className="h-4 w-4 mr-1" />
-              Vendido
-            </Button>
           </div>
         </div>
       </DialogContent>
