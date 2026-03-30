@@ -1,44 +1,36 @@
 
 
-# Modal de Troca de Senha no Primeiro Login
+# Botão Capturar no Footer + Restrição de Ações por Responsável
 
 ## Visão geral
 
-Adicionar coluna `must_change_password` na tabela `profiles` (default `true`) e exibir um modal obrigatório de troca de senha no `AuthGuard` quando o valor for `true`. Após trocar, atualiza o flag para `false`.
+Mover o botão "Capturar" do header para o footer do modal e restringir os botões de ação (Arquivar, Delegar, Sair, Perdida, Vendido) para que só sejam visíveis ao responsável pela negociação ou a administradores.
 
-## 1. Migração SQL
+## Alterações em `src/components/DealDetailDialog.tsx`
 
-```sql
-ALTER TABLE public.profiles ADD COLUMN must_change_password boolean NOT NULL DEFAULT true;
+### 1. Header — Remover botão Capturar
 
--- Usuários existentes já trocaram senha, então marcar como false
-UPDATE public.profiles SET must_change_password = false;
+Na seção do header (linhas ~605-628), quando `deal.assigned_to` é null, em vez de mostrar o botão Capturar, exibir apenas um texto como "Sem responsável" ou um badge indicativo.
+
+### 2. Footer — Adicionar botão Capturar
+
+No footer (linhas ~1148-1217), adicionar o botão "Capturar" quando `!deal.assigned_to`. Manter o estilo destacado com `variant="default"`, `animate-pulse`, e `shadow-md`.
+
+### 3. Footer — Restringir botões por responsável
+
+Criar uma variável de controle:
+```typescript
+const isOwnerOrAdmin = role === "admin" || (currentUserId && deal.assigned_to === currentUserId);
 ```
 
-## 2. Novo componente `src/components/ChangePasswordModal.tsx`
+Envolver os botões Arquivar, Delegar, Sair, Perdida e Vendido com a condição `isOwnerOrAdmin`. Isso garante que:
+- **Admins** veem todos os botões sempre
+- **Responsável** vê todos os botões da sua negociação
+- **Outros usuários** veem apenas o botão Capturar (quando a negociação é órfã)
 
-- Dialog modal não-dispensável (sem botão de fechar, `onOpenChange` bloqueado)
-- Campos: Nova Senha + Confirmar Senha (mínimo 6 caracteres)
-- Ao confirmar:
-  1. `supabase.auth.updateUser({ password })`
-  2. `supabase.from("profiles").update({ must_change_password: false }).eq("id", userId)`
-  3. Toast de sucesso e fechar modal
-
-## 3. Alterar `src/components/AuthGuard.tsx`
-
-- Após obter session, consultar `profiles.must_change_password` para o usuário logado
-- Se `true`, renderizar `<ChangePasswordModal />` por cima do conteúdo (bloqueando interação)
-- Após troca bem-sucedida, atualizar estado local e liberar acesso
-
-## Fluxo do admin ao convidar usuários
-
-Quando o admin convida um novo usuário (via `invite-user`), o perfil é criado automaticamente com `must_change_password = true`. No primeiro login, o modal aparece obrigatoriamente.
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar coluna `must_change_password` |
-| `src/components/ChangePasswordModal.tsx` | Novo componente (modal de troca) |
-| `src/components/AuthGuard.tsx` | Verificar flag e exibir modal |
+| `src/components/DealDetailDialog.tsx` | Mover Capturar para footer, restringir ações por responsável |
 
