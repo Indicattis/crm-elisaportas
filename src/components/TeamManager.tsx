@@ -124,6 +124,21 @@ export function TeamManager() {
     }
   };
 
+  const handleResetPassword = async (member: TeamMember) => {
+    if (!confirm(`Resetar a senha de ${member.full_name || "este usuário"}?`)) return;
+    try {
+      const res = await supabase.functions.invoke("invite-user", {
+        body: { action: "reset_password", user_id: member.id, full_name: member.full_name || "usuario" },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro ao resetar");
+      const responseData = res.data;
+      if (responseData?.error) throw new Error(responseData.error);
+      toast({ title: "Senha resetada!", description: `Nova senha temporária: ${responseData.temp_password}` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!" });
