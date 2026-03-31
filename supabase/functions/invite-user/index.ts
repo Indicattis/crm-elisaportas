@@ -35,7 +35,55 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, role, full_name } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // Use service role for admin operations
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // --- RESET PASSWORD ACTION ---
+    if (action === "reset_password") {
+      const { user_id, full_name } = body;
+      if (!user_id || !full_name) {
+        return new Response(JSON.stringify({ error: "user_id e full_name são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const nameParts = full_name.trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z\s]/g, "")
+        .split(/\s+/)
+        .filter((p: string) => p.length > 0);
+
+      const tempPassword = nameParts.length > 1
+        ? nameParts[0][0] + nameParts[nameParts.length - 1]
+        : nameParts[0] || "senha123";
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(user_id, {
+        password: tempPassword,
+      });
+      if (updateError) {
+        return new Response(JSON.stringify({ error: updateError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await adminClient.from("profiles").update({ must_change_password: true }).eq("id", user_id);
+
+      return new Response(
+        JSON.stringify({ success: true, temp_password: tempPassword }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // --- INVITE USER ACTION (default) ---
+    const { email, role, full_name } = body;
 
     if (!email || !role) {
       return new Response(JSON.stringify({ error: "Email e cargo são obrigatórios" }), {
@@ -43,12 +91,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Use service role to create user
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Create user with a temporary password
     const tempPassword = crypto.randomUUID().slice(0, 12) + "Aa1!";
@@ -66,8 +108,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // The profile trigger will create the profile and assign 'vendedor' role by default.
-    // If the desired role is 'admin', update it.
     if (role === "admin" && userData.user) {
       await adminClient
         .from("user_roles")
@@ -81,10 +121,7 @@ Deno.serve(async (req) => {
         user_id: userData.user?.id,
         temp_password: tempPassword,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
