@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, UserPlus, Trash2, Copy } from "lucide-react";
+import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
 
@@ -124,6 +124,21 @@ export function TeamManager() {
     }
   };
 
+  const handleResetPassword = async (member: TeamMember) => {
+    if (!confirm(`Resetar a senha de ${member.full_name || "este usuário"}?`)) return;
+    try {
+      const res = await supabase.functions.invoke("invite-user", {
+        body: { action: "reset_password", user_id: member.id, full_name: member.full_name || "usuario" },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro ao resetar");
+      const responseData = res.data;
+      if (responseData?.error) throw new Error(responseData.error);
+      toast({ title: "Senha resetada!", description: `Nova senha temporária: ${responseData.temp_password}` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!" });
@@ -188,6 +203,9 @@ export function TeamManager() {
                           <SelectItem value="vendedor">Vendedor</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Button variant="ghost" size="sm" onClick={() => handleResetPassword(member)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" title="Resetar senha">
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
