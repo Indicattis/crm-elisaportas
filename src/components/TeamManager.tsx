@@ -203,6 +203,9 @@ export function TeamManager() {
                           <SelectItem value="vendedor">Vendedor</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Button variant="ghost" size="sm" onClick={() => handleResetPassword(member)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" title="Resetar senha">
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
