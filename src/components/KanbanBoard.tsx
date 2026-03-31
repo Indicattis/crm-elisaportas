@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
@@ -33,7 +42,6 @@ interface FunnelColumn {
 
 export function KanbanBoard() {
   const [deals, setDeals] = useState<Deal[]>([]);
-  
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
@@ -44,6 +52,7 @@ export function KanbanBoard() {
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [activeOverStatus, setActiveOverStatus] = useState<string | null>(null);
   const [dealTagsMap, setDealTagsMap] = useState<Record<string, DealTag[]>>({});
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
@@ -52,7 +61,6 @@ export function KanbanBoard() {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
 
-  // Grab-to-scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
   const grabStartX = useRef(0);
@@ -60,7 +68,7 @@ export function KanbanBoard() {
 
   const handleGrabMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    if (target.closest('[data-deal-card]')) return;
+    if (target.closest("[data-deal-card]")) return;
     if (!scrollContainerRef.current) return;
     setIsGrabbing(true);
     grabStartX.current = e.pageX - scrollContainerRef.current.offsetLeft;
@@ -78,7 +86,9 @@ export function KanbanBoard() {
   const handleGrabMouseUp = () => setIsGrabbing(false);
   const handleGrabMouseLeave = () => setIsGrabbing(false);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+  );
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
@@ -110,6 +120,7 @@ export function KanbanBoard() {
       .neq("status", "Perdida")
       .neq("status", "Vendido")
       .order("created_at", { ascending: false });
+
     if (error) {
       toast({ title: "Erro ao carregar negociações", description: error.message, variant: "destructive" });
     } else {
@@ -122,6 +133,7 @@ export function KanbanBoard() {
     const { data } = await supabase
       .from("deal_tags")
       .select("deal_id, tag_id, tags(id, name, color)");
+
     if (data) {
       const map: Record<string, DealTag[]> = {};
       data.forEach((dt: any) => {
@@ -134,103 +146,151 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId]);
 
-
   const fetchAllTags = useCallback(async () => {
     const { data } = await supabase.from("tags").select("id, name, color").order("name");
     setAllTags(data || []);
   }, []);
 
-  useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
+  useEffect(() => {
+    fetchFunnels();
+  }, [fetchFunnels]);
+
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
       await Promise.all([fetchColumns(), fetchDeals(), fetchDealTags()]);
       setLoading(false);
     };
+
     loadAll();
   }, [fetchColumns, fetchDeals, fetchDealTags]);
-  // Fetch profiles for assigned deals
+
   const fetchProfiles = useCallback(async () => {
-    const assignedIds = [...new Set(deals.filter(d => (d as any).assigned_to).map(d => (d as any).assigned_to as string))];
-    if (assignedIds.length === 0) { setProfilesMap({}); return; }
+    const assignedIds = [
+      ...new Set(deals.filter((d) => d.assigned_to).map((d) => d.assigned_to as string)),
+    ];
+
+    if (assignedIds.length === 0) {
+      setProfilesMap({});
+      return;
+    }
+
     const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", assignedIds);
     const map: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
-    (data || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
+    (data || []).forEach((profile: any) => {
+      map[profile.id] = { full_name: profile.full_name, avatar_url: profile.avatar_url };
+    });
     setProfilesMap(map);
   }, [deals]);
 
-  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
-  useEffect(() => { fetchAllTags(); }, [fetchAllTags]);
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
 
-  // Fetch overdue tasks for all deals
+  useEffect(() => {
+    fetchAllTags();
+  }, [fetchAllTags]);
+
   const fetchOverdueTasks = useCallback(async () => {
-    if (deals.length === 0) { setOverdueDeals(new Set()); return; }
-    const dealIds = deals.map(d => d.id);
+    if (deals.length === 0) {
+      setOverdueDeals(new Set());
+      return;
+    }
+
+    const dealIds = deals.map((deal) => deal.id);
     const { data } = await supabase
       .from("deal_tasks")
       .select("deal_id")
       .in("deal_id", dealIds)
       .eq("completed", false)
       .lt("deadline_at", new Date().toISOString());
-    const set = new Set((data || []).map((t: any) => t.deal_id));
-    setOverdueDeals(set);
+
+    setOverdueDeals(new Set((data || []).map((task: any) => task.deal_id)));
   }, [deals]);
 
-  useEffect(() => { fetchOverdueTasks(); }, [fetchOverdueTasks]);
+  useEffect(() => {
+    fetchOverdueTasks();
+  }, [fetchOverdueTasks]);
+
+  const resolveStatusFromTargetId = useCallback(
+    (targetId?: string | null) => {
+      if (!targetId) return null;
+
+      const column = columns.find((item) => item.name === targetId);
+      if (column) return column.name;
+
+      const targetDeal = deals.find((item) => item.id === targetId);
+      return targetDeal?.status ?? null;
+    },
+    [columns, deals]
+  );
 
   const handleDragStart = (event: DragStartEvent) => {
-    const deal = deals.find((d) => d.id === event.active.id);
+    const deal = deals.find((item) => item.id === event.active.id);
     setActiveDeal(deal || null);
+    setActiveOverStatus(deal?.status ?? null);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    setActiveOverStatus(resolveStatusFromTargetId(event.over?.id ? String(event.over.id) : null));
+  };
+
+  const handleDragCancel = () => {
+    setActiveDeal(null);
+    setActiveOverStatus(null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveDeal(null);
     const { active, over } = event;
-    if (!over) return;
+    const newStatus = resolveStatusFromTargetId(over?.id ? String(over.id) : null);
+
+    setActiveDeal(null);
+    setActiveOverStatus(null);
+
+    if (!newStatus) return;
 
     const dealId = active.id as string;
-    const newStatus = over.id as string;
-
-    const validStatuses = columns.map((c) => c.name);
+    const validStatuses = columns.map((column) => column.name);
     if (!validStatuses.includes(newStatus)) return;
 
-    const deal = deals.find((d) => d.id === dealId);
+    const deal = deals.find((item) => item.id === dealId);
     if (!deal || deal.status === newStatus) return;
 
-    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, status: newStatus } : d)));
+    setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus } : item)));
 
     const oldStatus = deal.status;
     const { error } = await supabase.from("deals").update({ status: newStatus }).eq("id", dealId);
+
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
       fetchDeals();
-    } else {
-      // Delete pending tasks from old column, create new ones for new column
-      await deletePendingDealTasks(dealId);
-      await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
+      return;
+    }
 
-      // Log history
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("deal_history").insert({
-          deal_id: dealId,
-          user_id: user.id,
-          event_type: "column_change",
-          description: `Moveu de "${oldStatus}" para "${newStatus}"`,
-          metadata: { from: oldStatus, to: newStatus },
-        } as any);
+    await deletePendingDealTasks(dealId);
+    await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
 
-        // Notify assigned user about column change
-        const assignedTo = (deal as any).assigned_to;
-        if (assignedTo) {
-          await createNotification({
-            userId: assignedTo,
-            dealId,
-            type: "column_change",
-            title: "Negociação movida",
-            message: `"${deal.title}" foi movida de "${oldStatus}" para "${newStatus}".`,
-          });
-        }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase.from("deal_history").insert({
+        deal_id: dealId,
+        user_id: user.id,
+        event_type: "column_change",
+        description: `Moveu de "${oldStatus}" para "${newStatus}"`,
+        metadata: { from: oldStatus, to: newStatus },
+      } as any);
+
+      if (deal.assigned_to) {
+        await createNotification({
+          userId: deal.assigned_to,
+          dealId,
+          type: "column_change",
+          title: "Negociação movida",
+          message: `"${deal.title}" foi movida de "${oldStatus}" para "${newStatus}".`,
+        });
       }
     }
   };
@@ -242,31 +302,35 @@ export function KanbanBoard() {
   };
 
   const handleViewDeal = (deal: Deal) => {
-    const col = columns.find((c) => c.name === deal.status);
-    setViewingColumnColor(col?.color || "");
+    const column = columns.find((item) => item.name === deal.status);
+    setViewingColumnColor(column?.color || "");
     setViewingDeal(deal);
     setDetailOpen(true);
   };
 
-
   const handleCapture = async (dealId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
+
     const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", dealId);
+
     if (error) {
       toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
-    } else {
-      const deal = deals.find(d => d.id === dealId);
-      await createNotification({
-        userId: user.id,
-        dealId,
-        type: "deal_assigned",
-        title: "Negociação atribuída",
-        message: `A negociação "${deal?.title || ""}" foi atribuída a você.`,
-      });
-      toast({ title: "Negociação capturada!" });
-      fetchDeals();
+      return;
     }
+
+    const deal = deals.find((item) => item.id === dealId);
+    await createNotification({
+      userId: user.id,
+      dealId,
+      type: "deal_assigned",
+      title: "Negociação atribuída",
+      message: `A negociação "${deal?.title || ""}" foi atribuída a você.`,
+    });
+    toast({ title: "Negociação capturada!" });
+    fetchDeals();
   };
 
   const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
@@ -283,6 +347,7 @@ export function KanbanBoard() {
         return;
       }
     }
+
     fetchDealTags();
   };
 
@@ -298,14 +363,17 @@ export function KanbanBoard() {
                 <SelectValue placeholder="Selecionar funil" />
               </SelectTrigger>
               <SelectContent>
-                {funnels.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                {funnels.map((funnel) => (
+                  <SelectItem key={funnel.id} value={funnel.id}>
+                    {funnel.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
         </div>
-        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "kanban" | "list")}>
+
+        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
           <ToggleGroupItem value="kanban" aria-label="Kanban" size="sm">
             <LayoutGrid className="h-4 w-4" />
           </ToggleGroupItem>
@@ -317,8 +385,8 @@ export function KanbanBoard() {
 
       {loading ? (
         <div className="flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)]">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-shrink-0 w-72 space-y-3 h-full">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="flex-shrink-0 w-72 space-y-3 h-full">
               <Skeleton className="h-8 w-full rounded-lg" />
               <Skeleton className="h-24 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
@@ -336,45 +404,67 @@ export function KanbanBoard() {
           onCapture={handleCapture}
         />
       ) : (
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div
-          ref={scrollContainerRef}
-          className={`flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)] ${isGrabbing ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
-          onMouseDown={handleGrabMouseDown}
-          onMouseMove={handleGrabMouseMove}
-          onMouseUp={handleGrabMouseUp}
-          onMouseLeave={handleGrabMouseLeave}
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragCancel={handleDragCancel}
+          onDragEnd={handleDragEnd}
         >
-          {columns.map((col) => (
-            <KanbanColumn
-              key={col.id}
-              status={col.name}
-              color={col.color}
-              deals={deals.filter((d) => d.status === col.name)}
-              dealTagsMap={dealTagsMap}
-              allTags={allTags}
-              profilesMap={profilesMap}
-              onTagsChanged={handleTagToggle}
-              onCapture={handleCapture}
-              onAddDeal={handleAddDeal}
-              onEditDeal={handleViewDeal}
-            />
-          ))}
-        </div>
-        <DragOverlay>
-          {activeDeal && <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} />}
-        </DragOverlay>
-      </DndContext>
+          <div
+            ref={scrollContainerRef}
+            className={`flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)] ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
+            onMouseDown={handleGrabMouseDown}
+            onMouseMove={handleGrabMouseMove}
+            onMouseUp={handleGrabMouseUp}
+            onMouseLeave={handleGrabMouseLeave}
+          >
+            {columns.map((column) => {
+              const isDraggingAcrossColumns = Boolean(
+                activeDeal && activeOverStatus && activeOverStatus !== activeDeal.status
+              );
+              const columnDeals = deals
+                .filter((deal) => deal.status === column.name)
+                .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id);
+
+              return (
+                <KanbanColumn
+                  key={column.id}
+                  status={column.name}
+                  color={column.color}
+                  deals={columnDeals}
+                  dealTagsMap={dealTagsMap}
+                  allTags={allTags}
+                  profilesMap={profilesMap}
+                  overdueDeals={overdueDeals}
+                  showDropSpacer={Boolean(
+                    activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
+                  )}
+                  onTagsChanged={handleTagToggle}
+                  onCapture={handleCapture}
+                  onAddDeal={handleAddDeal}
+                  onEditDeal={handleViewDeal}
+                />
+              );
+            })}
+          </div>
+
+          <DragOverlay>
+            {activeDeal ? <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} /> : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       <DealDetailDialog
         open={detailOpen}
         onOpenChange={setDetailOpen}
         deal={viewingDeal}
-        statuses={columns.map((c) => c.name)}
+        statuses={columns.map((column) => column.name)}
         columnColor={viewingColumnColor}
-        
-        onUpdated={() => { fetchDeals(); fetchDealTags(); }}
+        onUpdated={() => {
+          fetchDeals();
+          fetchDealTags();
+        }}
       />
 
       <DealDialog
@@ -382,9 +472,11 @@ export function KanbanBoard() {
         onOpenChange={setDialogOpen}
         deal={editingDeal}
         defaultStatus={defaultStatus}
-        statuses={columns.map((c) => c.name)}
+        statuses={columns.map((column) => column.name)}
         funnelId={selectedFunnelId}
-        onSaved={() => { fetchDeals(); }}
+        onSaved={() => {
+          fetchDeals();
+        }}
       />
     </>
   );
