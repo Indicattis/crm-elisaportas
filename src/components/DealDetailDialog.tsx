@@ -300,14 +300,14 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync local fields when deal prop changes
+  // Sync local fields only when deal ID or updated_at changes (not on every reference change)
   useEffect(() => {
     if (deal && open) {
       setHeat(deal.heat || 0);
       setEditPhone((deal as any).phone || "");
       setEditEmail((deal as any).email || "");
     }
-  }, [deal, open]);
+  }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
