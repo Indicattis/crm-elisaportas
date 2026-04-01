@@ -161,7 +161,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
         </div>
         <div className={`flex items-center gap-1 ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
           <Clock className="h-3 w-3" />
-          <span>{daysInStage === 0 ? "Hoje" : `${daysInStage}d`}</span>
+          <span>{daysInStage === 0 ? format(new Date(deal.updated_at), "HH:mm") : `${daysInStage}d`}</span>
         </div>
       </div>
       {tags.length > 0 && (
