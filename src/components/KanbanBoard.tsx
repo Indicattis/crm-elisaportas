@@ -151,6 +151,16 @@ export function KanbanBoard() {
     setAllTags(data || []);
   }, []);
 
+  // Sync viewingDeal when deals array is refreshed
+  useEffect(() => {
+    if (viewingDeal && detailOpen) {
+      const updated = deals.find((d) => d.id === viewingDeal.id);
+      if (updated && updated.updated_at !== viewingDeal.updated_at) {
+        setViewingDeal(updated);
+      }
+    }
+  }, [deals, viewingDeal, detailOpen]);
+
   useEffect(() => {
     fetchFunnels();
   }, [fetchFunnels]);
