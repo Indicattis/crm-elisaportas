@@ -367,6 +367,8 @@ export function KanbanBoard() {
         <div>
           {funnels.length === 0 && loading ? (
             <Skeleton className="h-10 w-56" />
+          ) : funnels.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nenhum funil disponível</p>
           ) : (
             <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
               <SelectTrigger className="w-56">
@@ -403,6 +405,10 @@ export function KanbanBoard() {
               <Skeleton className="h-16 w-full rounded-xl" />
             </div>
           ))}
+        </div>
+      ) : funnels.length === 0 ? (
+        <div className="flex items-center justify-center h-[calc(100vh-120px)] text-muted-foreground">
+          <p>Você não tem acesso a nenhum funil. Solicite acesso a um administrador.</p>
         </div>
       ) : viewMode === "list" ? (
         <DealsListView
