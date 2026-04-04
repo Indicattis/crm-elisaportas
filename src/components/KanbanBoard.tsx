@@ -16,12 +16,13 @@ import { DealDetailDialog } from "./DealDetailDialog";
 import { DealCard } from "./DealCard";
 import { DealsListView } from "./DealsListView";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { createNotification } from "@/lib/notifications";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, Search } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
@@ -45,6 +46,7 @@ export function KanbanBoard() {
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewingDeal, setViewingDeal] = useState<Deal | null>(null);
@@ -364,7 +366,7 @@ export function KanbanBoard() {
   return (
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           {funnels.length === 0 && loading ? (
             <Skeleton className="h-10 w-56" />
           ) : funnels.length === 0 ? (
@@ -383,6 +385,15 @@ export function KanbanBoard() {
               </SelectContent>
             </Select>
           )}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou nº..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-56"
+            />
+          </div>
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
@@ -412,7 +423,10 @@ export function KanbanBoard() {
         </div>
       ) : viewMode === "list" ? (
         <DealsListView
-          deals={deals}
+          deals={searchQuery.trim() ? deals.filter((d) => {
+            const q = searchQuery.toLowerCase().trim();
+            return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q));
+          }) : deals}
           columns={columns}
           dealTagsMap={dealTagsMap}
           profilesMap={profilesMap}
@@ -439,9 +453,16 @@ export function KanbanBoard() {
               const isDraggingAcrossColumns = Boolean(
                 activeDeal && activeOverStatus && activeOverStatus !== activeDeal.status
               );
+              const q = searchQuery.toLowerCase().trim();
               const columnDeals = deals
                 .filter((deal) => deal.status === column.name)
-                .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id);
+                .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id)
+                .filter((deal) => {
+                  if (!q) return true;
+                  const matchName = deal.title.toLowerCase().includes(q);
+                  const matchNumber = deal.deal_number != null && String(deal.deal_number).includes(q);
+                  return matchName || matchNumber;
+                });
 
               return (
                 <KanbanColumn
