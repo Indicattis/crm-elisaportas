@@ -92,6 +92,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editState, setEditState] = useState("");
+  const [editCity, setEditCity] = useState("");
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
