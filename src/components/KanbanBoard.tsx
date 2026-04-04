@@ -16,12 +16,14 @@ import { DealDetailDialog } from "./DealDetailDialog";
 import { DealCard } from "./DealCard";
 import { DealsListView } from "./DealsListView";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { createNotification } from "@/lib/notifications";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, Search } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
