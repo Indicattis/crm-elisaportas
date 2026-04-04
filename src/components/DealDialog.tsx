@@ -26,6 +26,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
+  const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
