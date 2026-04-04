@@ -423,7 +423,10 @@ export function KanbanBoard() {
         </div>
       ) : viewMode === "list" ? (
         <DealsListView
-          deals={deals}
+          deals={searchQuery.trim() ? deals.filter((d) => {
+            const q = searchQuery.toLowerCase().trim();
+            return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q));
+          }) : deals}
           columns={columns}
           dealTagsMap={dealTagsMap}
           profilesMap={profilesMap}
