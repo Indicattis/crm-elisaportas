@@ -366,7 +366,7 @@ export function KanbanBoard() {
   return (
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           {funnels.length === 0 && loading ? (
             <Skeleton className="h-10 w-56" />
           ) : funnels.length === 0 ? (
@@ -385,6 +385,15 @@ export function KanbanBoard() {
               </SelectContent>
             </Select>
           )}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou nº..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-56"
+            />
+          </div>
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
