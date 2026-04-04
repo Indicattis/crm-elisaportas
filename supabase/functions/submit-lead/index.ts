@@ -39,12 +39,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Store only estado/cidade in notes (phone/email go to dedicated columns)
-    const notes = [
-      estado ? `Estado: ${estado}` : null,
-      cidade ? `Cidade: ${cidade}` : null,
-    ].filter(Boolean).join(" | ");
-
+    // Store estado/cidade in dedicated columns
     const { data: deal, error: dealError } = await supabase
       .from("deals")
       .insert({
@@ -56,7 +51,9 @@ Deno.serve(async (req) => {
         heat: 0,
         phone: phone || null,
         email: email || null,
-        notes: notes || null,
+        state: estado || null,
+        city: cidade || null,
+        notes: null,
         acquisition_channel: canal_aquisicao || null,
       })
       .select("id")
