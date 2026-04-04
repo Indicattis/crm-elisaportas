@@ -450,9 +450,16 @@ export function KanbanBoard() {
               const isDraggingAcrossColumns = Boolean(
                 activeDeal && activeOverStatus && activeOverStatus !== activeDeal.status
               );
+              const q = searchQuery.toLowerCase().trim();
               const columnDeals = deals
                 .filter((deal) => deal.status === column.name)
-                .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id);
+                .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id)
+                .filter((deal) => {
+                  if (!q) return true;
+                  const matchName = deal.title.toLowerCase().includes(q);
+                  const matchNumber = deal.deal_number != null && String(deal.deal_number).includes(q);
+                  return matchName || matchNumber;
+                });
 
               return (
                 <KanbanColumn
