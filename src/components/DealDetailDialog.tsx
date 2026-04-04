@@ -308,6 +308,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       setHeat(deal.heat || 0);
       setEditPhone((deal as any).phone || "");
       setEditEmail((deal as any).email || "");
+      setEditState((deal as any).state || "");
+      setEditCity((deal as any).city || "");
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
