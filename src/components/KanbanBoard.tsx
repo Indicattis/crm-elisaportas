@@ -24,7 +24,6 @@ import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tas
 import { createNotification } from "@/lib/notifications";
 import { LayoutGrid, List, Search } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
-import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
 
