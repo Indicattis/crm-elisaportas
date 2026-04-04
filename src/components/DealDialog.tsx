@@ -39,6 +39,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue(deal.value ? String(deal.value) : "");
       setStatus(deal.status);
       setChannel((deal as any).acquisition_channel || "");
+      setState((deal as any).state || "");
+      setCity((deal as any).city || "");
     } else {
       setTitle("");
       setPhone("");
@@ -46,6 +48,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue("");
       setStatus(defaultStatus || statuses[0] || "");
       setChannel("");
+      setState("");
+      setCity("");
     }
   }, [deal, defaultStatus, open, statuses]);
 
