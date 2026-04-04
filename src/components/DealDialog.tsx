@@ -68,6 +68,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         value: value ? parseFloat(value) : 0,
         status,
         acquisition_channel: channel && channel !== "none" ? channel : null,
+        state: state.trim() || null,
+        city: city.trim() || null,
         user_id: user.id,
         funnel_id: funnelId,
       } as any;
