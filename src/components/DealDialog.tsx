@@ -163,6 +163,16 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
               </SelectContent>
             </Select>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Input value={state} onChange={(e) => setState(e.target.value)} placeholder="SP" />
+            </div>
+            <div className="space-y-2">
+              <Label>Cidade</Label>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo" />
+            </div>
+          </div>
           <div className="flex gap-2 justify-end">
             {deal && (
               <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
