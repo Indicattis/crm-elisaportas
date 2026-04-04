@@ -26,6 +26,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
+  const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -37,6 +39,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue(deal.value ? String(deal.value) : "");
       setStatus(deal.status);
       setChannel((deal as any).acquisition_channel || "");
+      setState((deal as any).state || "");
+      setCity((deal as any).city || "");
     } else {
       setTitle("");
       setPhone("");
@@ -44,6 +48,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setValue("");
       setStatus(defaultStatus || statuses[0] || "");
       setChannel("");
+      setState("");
+      setCity("");
     }
   }, [deal, defaultStatus, open, statuses]);
 
@@ -62,6 +68,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         value: value ? parseFloat(value) : 0,
         status,
         acquisition_channel: channel && channel !== "none" ? channel : null,
+        state: state.trim() || null,
+        city: city.trim() || null,
         user_id: user.id,
         funnel_id: funnelId,
       } as any;
@@ -154,6 +162,16 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Input value={state} onChange={(e) => setState(e.target.value)} placeholder="SP" />
+            </div>
+            <div className="space-y-2">
+              <Label>Cidade</Label>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo" />
+            </div>
           </div>
           <div className="flex gap-2 justify-end">
             {deal && (

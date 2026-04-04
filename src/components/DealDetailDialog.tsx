@@ -15,7 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
@@ -92,6 +92,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [assignedProfile, setAssignedProfile] = useState<CommentProfile | null>(null);
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editState, setEditState] = useState("");
+  const [editCity, setEditCity] = useState("");
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
@@ -306,6 +308,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       setHeat(deal.heat || 0);
       setEditPhone((deal as any).phone || "");
       setEditEmail((deal as any).email || "");
+      setEditState((deal as any).state || "");
+      setEditCity((deal as any).city || "");
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -727,8 +731,60 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   </span>
                 )}
               </div>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                {editingField === "state" as any ? (
+                  <Input
+                    autoFocus
+                    value={editState}
+                    onChange={(e) => setEditState(e.target.value)}
+                    onBlur={async () => {
+                      if (!deal || editState === ((deal as any).state || "")) { setEditingField(null); return; }
+                      const { error } = await supabase.from("deals").update({ state: editState.trim() || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else onUpdated();
+                      setEditingField(null);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
+                    className="h-6 text-xs w-24"
+                    placeholder="UF"
+                  />
+                ) : (
+                  <span
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => { setEditState((deal as any).state || ""); setEditingField("state" as any); }}
+                  >
+                    {(deal as any).state || <span className="italic">Estado</span>}
+                  </span>
+                )}
+                <span className="text-muted-foreground/50">|</span>
+                {editingField === "city" as any ? (
+                  <Input
+                    autoFocus
+                    value={editCity}
+                    onChange={(e) => setEditCity(e.target.value)}
+                    onBlur={async () => {
+                      if (!deal || editCity === ((deal as any).city || "")) { setEditingField(null); return; }
+                      const { error } = await supabase.from("deals").update({ city: editCity.trim() || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else onUpdated();
+                      setEditingField(null);
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
+                    className="h-6 text-xs w-40"
+                    placeholder="Cidade"
+                  />
+                ) : (
+                  <span
+                    className="cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => { setEditCity((deal as any).city || ""); setEditingField("city" as any); }}
+                  >
+                    {(deal as any).city || <span className="italic">Cidade</span>}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
           {/* Info section */}
           <div className="grid grid-cols-4 gap-2">

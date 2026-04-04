@@ -194,6 +194,7 @@ export type Database = {
           acquisition_channel: string | null
           archived: boolean
           assigned_to: string | null
+          city: string | null
           client_id: string | null
           created_at: string
           deal_number: number | null
@@ -204,6 +205,7 @@ export type Database = {
           loss_reason: string | null
           notes: string | null
           phone: string | null
+          state: string | null
           status: string
           title: string
           updated_at: string
@@ -214,6 +216,7 @@ export type Database = {
           acquisition_channel?: string | null
           archived?: boolean
           assigned_to?: string | null
+          city?: string | null
           client_id?: string | null
           created_at?: string
           deal_number?: number | null
@@ -224,6 +227,7 @@ export type Database = {
           loss_reason?: string | null
           notes?: string | null
           phone?: string | null
+          state?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -234,6 +238,7 @@ export type Database = {
           acquisition_channel?: string | null
           archived?: boolean
           assigned_to?: string | null
+          city?: string | null
           client_id?: string | null
           created_at?: string
           deal_number?: number | null
@@ -244,6 +249,7 @@ export type Database = {
           loss_reason?: string | null
           notes?: string | null
           phone?: string | null
+          state?: string | null
           status?: string
           title?: string
           updated_at?: string
