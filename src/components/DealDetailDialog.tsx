@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { StateCitySelect } from "@/components/StateCitySelect";
@@ -111,6 +111,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [selectedLossReason, setSelectedLossReason] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
 
@@ -580,7 +581,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent ref={dialogContentRef} className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Header */}
         <DialogHeader
           className="px-6 pt-6 pb-4 rounded-t-lg"
@@ -1091,7 +1092,14 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                           {newTaskDeadlineDate ? format(newTaskDeadlineDate, "dd/MM/yyyy") : "Selecionar"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 z-[9999]" align="start" side="bottom" sideOffset={4}>
+                      <PopoverContent
+                        container={dialogContentRef.current}
+                        collisionBoundary={dialogContentRef.current ?? undefined}
+                        className="w-auto p-0 z-[60]"
+                        align="start"
+                        side="bottom"
+                        sideOffset={4}
+                      >
                         <Calendar
                           mode="single"
                           selected={newTaskDeadlineDate}
