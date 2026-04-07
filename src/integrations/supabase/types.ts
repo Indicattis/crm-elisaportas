@@ -73,6 +73,38 @@ export type Database = {
           },
         ]
       }
+      deal_daily_color: {
+        Row: {
+          color: string
+          date: string
+          deal_id: string
+          id: string
+          updated_by: string
+        }
+        Insert: {
+          color?: string
+          date?: string
+          deal_id: string
+          id?: string
+          updated_by: string
+        }
+        Update: {
+          color?: string
+          date?: string
+          deal_id?: string
+          id?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_daily_color_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_history: {
         Row: {
           created_at: string
