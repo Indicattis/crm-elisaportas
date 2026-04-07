@@ -155,6 +155,28 @@ export function KanbanBoard() {
     setAllTags(data || []);
   }, []);
 
+  const fetchFunnelMembers = useCallback(async () => {
+    if (!selectedFunnelId) return;
+    const { data } = await supabase
+      .from("funnel_members")
+      .select("user_id")
+      .eq("funnel_id", selectedFunnelId);
+
+    if (data && data.length > 0) {
+      const userIds = data.map((m: any) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+      setFunnelMembers(
+        (profiles || []).map((p: any) => ({ id: p.id, full_name: p.full_name }))
+          .sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || ""))
+      );
+    } else {
+      setFunnelMembers([]);
+    }
+  }, [selectedFunnelId]);
+
   // Sync viewingDeal when deals array is refreshed
   useEffect(() => {
     if (viewingDeal && detailOpen) {
