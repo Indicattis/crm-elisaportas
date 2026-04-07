@@ -422,6 +422,21 @@ export function KanbanBoard() {
               className="pl-9 w-56"
             />
           </div>
+          <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
+            <SelectTrigger className="w-48">
+              <User className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
+              <SelectItem value="unassigned">Sem responsável</SelectItem>
+              {funnelMembers.map((member) => (
+                <SelectItem key={member.id} value={member.id}>
+                  {member.full_name || "Sem nome"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
