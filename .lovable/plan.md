@@ -1,53 +1,59 @@
 
 
-# Histórico por Etapa na Página de Resultados
+# Bola Colorida de Status Diário nos Cards de Negociação
 
 ## Visão geral
 
-Criar uma nova aba "Histórico por Etapa" na página `/results` que exibe um acompanhamento diário: para cada dia, quantas negociações chegaram a cada etapa e o valor total. Vendedores veem apenas seus próprios dados; administradores veem tudo (ou filtram por vendedor).
+Adicionar uma bola colorida brilhante (com efeito glow) em cada card de negociação. Todo dia ela começa vermelha. Ao clicar, cicla: vermelho → amarelo → verde. O estado é persistido no banco com a data, para que no dia seguinte volte a vermelho automaticamente.
 
-## Fonte de dados
+## 1. Migração — Nova tabela `deal_daily_color`
 
-A tabela `deal_history` já registra eventos `column_change` com `metadata: { from, to }`, `user_id`, `created_at` e `deal_id`. Cruzando com `deals.value` e `deals.assigned_to`, conseguimos montar o relatório sem criar novas tabelas.
+```sql
+CREATE TABLE public.deal_daily_color (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid REFERENCES public.deals(id) ON DELETE CASCADE NOT NULL,
+  color text NOT NULL DEFAULT 'red',
+  date date NOT NULL DEFAULT CURRENT_DATE,
+  updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  UNIQUE(deal_id, date)
+);
 
-A query será feita no client-side:
-1. Buscar registros de `deal_history` com `event_type = 'column_change'` (filtrado por funil se selecionado)
-2. Fazer join local com os deals para obter o `value` e `assigned_to`
-3. Agrupar por dia (`created_at` truncado) + etapa destino (`metadata->to`)
-4. Filtrar: vendedores veem só `assigned_to = auth.uid()`, admins veem tudo
+ALTER TABLE public.deal_daily_color ENABLE ROW LEVEL SECURITY;
 
-## Alterações em `src/pages/Results.tsx`
+CREATE POLICY "Authenticated users can read deal_daily_color"
+  ON public.deal_daily_color FOR SELECT TO authenticated USING (true);
 
-### 1. Nova aba "Histórico por Etapa"
-- Adicionar tab com ícone `History` do lucide-react
-- Conteúdo: tabela agrupada por data (descendente)
+CREATE POLICY "Authenticated users can insert deal_daily_color"
+  ON public.deal_daily_color FOR INSERT TO authenticated WITH CHECK (true);
 
-### 2. Fetch de dados do histórico
-- Buscar `deal_history` com `event_type = 'column_change'`
-- Buscar deals associados para obter `value` e `assigned_to`
-- Usar o role do contexto (`useUserRole`) para decidir filtro:
-  - **Vendedor**: filtrar `deals.assigned_to = currentUserId`
-  - **Admin**: mostrar todos (opcionalmente filtrar por vendedor com select)
+CREATE POLICY "Authenticated users can update deal_daily_color"
+  ON public.deal_daily_color FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+```
 
-### 3. Processamento e agrupamento
-- Agrupar por dia (data formatada `dd/MM/yyyy`) e etapa destino (`metadata.to`)
-- Para cada grupo: contar negociações distintas e somar valores
-- Estrutura: `Map<dia, Map<etapa, { count, totalValue }>>`
+## 2. `src/components/DealCard.tsx` — Adicionar bola colorida
 
-### 4. Apresentação
-- Tabela com colunas: **Data** | **Etapa** | **Qtd. Negociações** | **Valor Total**
-- Ordenação por data mais recente primeiro
-- Formatação de valores em BRL
-- Filtro de período opcional (data início/fim) para limitar volume
+- Receber nova prop `dailyColor` (string: `"red"` | `"yellow"` | `"green"` | `undefined`)
+- Receber callback `onColorChange(dealId: string, newColor: string)`
+- Renderizar um círculo com classes de cor + animação de brilho (box-shadow glow via Tailwind `shadow` ou inline style)
+- Ao clicar (com `e.stopPropagation()`), ciclar: red → yellow → green → red
+- Cores: vermelho `#ef4444`, amarelo `#eab308`, verde `#22c55e` com `box-shadow: 0 0 8px <cor>`
 
-### 5. Controle de acesso
-- Importar `useUserRole` do RoleContext
-- Obter `currentUserId` via `supabase.auth.getUser()`
-- RLS da `deal_history` já filtra por acesso ao funil, mas o filtro adicional por `assigned_to` garante que vendedores vejam só seu histórico
+## 3. `src/components/KanbanBoard.tsx` — Gerenciar estado das cores
 
-## Arquivo afetado
+- Ao carregar deals, buscar `deal_daily_color` filtrado por `date = CURRENT_DATE`
+- Manter um `Map<dealId, color>` no estado
+- Ao clicar na bola, fazer upsert em `deal_daily_color` (insert com ON CONFLICT update) e atualizar o estado local
+- Passar `dailyColor` e `onColorChange` para cada `DealCard`
+
+## Lógica de reset diário
+
+Não precisa de cron. Como buscamos apenas registros com `date = CURRENT_DATE`, se não existe registro para hoje, a bola aparece vermelha (default). Simples e automático.
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Results.tsx` | Adicionar aba "Histórico por Etapa" com fetch, agrupamento e tabela |
+| Migração SQL | Nova tabela `deal_daily_color` com RLS |
+| `src/components/DealCard.tsx` | Adicionar bola colorida com ciclo de cores |
+| `src/components/KanbanBoard.tsx` | Fetch/upsert de cores diárias, passar props |
 
