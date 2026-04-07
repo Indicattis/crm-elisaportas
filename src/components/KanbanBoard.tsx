@@ -201,6 +201,10 @@ export function KanbanBoard() {
     loadAll();
   }, [fetchColumns, fetchDeals, fetchDealTags]);
 
+  useEffect(() => {
+    fetchFunnelMembers();
+  }, [fetchFunnelMembers]);
+
   const fetchProfiles = useCallback(async () => {
     const assignedIds = [
       ...new Set(deals.filter((d) => d.assigned_to).map((d) => d.assigned_to as string)),
