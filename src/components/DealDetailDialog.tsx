@@ -1117,7 +1117,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   }}
                 />
                 <div className="flex justify-end gap-1.5">
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowNewTask(false); setNewTaskDesc(""); }}>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowNewTask(false); setNewTaskDesc(""); setNewTaskDeadlineMode("hours"); setNewTaskDeadlineDays(1); setNewTaskDeadlineDate(undefined); }}>
                     Cancelar
                   </Button>
                   <Button size="sm" className="h-7 text-xs" disabled={creatingTask} onClick={handleCreateManualTask}>
