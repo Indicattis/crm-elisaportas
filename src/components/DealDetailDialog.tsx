@@ -1039,100 +1039,116 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </Button>
               </div>
             </div>
-            {showNewTask && (
-              <div className="rounded-lg border border-border bg-card p-3 space-y-2">
-                <div className="flex gap-2">
-                  <select
-                    value={newTaskType}
-                    onChange={(e) => setNewTaskType(e.target.value)}
-                    className="flex h-8 rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="personalizada">Personalizada</option>
-                    <option value="mensagem">Mensagem</option>
-                    <option value="ligacao">Ligação</option>
-                  </select>
-                  <select
-                    value={newTaskDeadlineMode}
-                    onChange={(e) => setNewTaskDeadlineMode(e.target.value as "hours" | "days" | "date")}
-                    className="flex h-8 rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="hours">Horas</option>
-                    <option value="days">Dias</option>
-                    <option value="date">Data</option>
-                  </select>
-                  {newTaskDeadlineMode === "hours" && (
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        min={1}
-                        value={newTaskDeadlineHours}
-                        onChange={(e) => setNewTaskDeadlineHours(Number(e.target.value) || 1)}
-                        className="h-8 w-16 text-xs"
-                      />
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">h</span>
-                    </div>
-                  )}
-                  {newTaskDeadlineMode === "days" && (
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        min={1}
-                        value={newTaskDeadlineDays}
-                        onChange={(e) => setNewTaskDeadlineDays(Number(e.target.value) || 1)}
-                        className="h-8 w-16 text-xs"
-                      />
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">d</span>
-                    </div>
-                  )}
-                  {newTaskDeadlineMode === "date" && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="h-8 text-xs px-2 font-normal">
-                          <CalendarIcon className="h-3.5 w-3.5 mr-1" />
-                          {newTaskDeadlineDate ? format(newTaskDeadlineDate, "dd/MM/yyyy") : "Selecionar"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        container={dialogContentRef.current}
-                        collisionBoundary={dialogContentRef.current ?? undefined}
-                        className="w-auto p-0 z-[60]"
-                        align="start"
-                        side="bottom"
-                        sideOffset={4}
+            {/* New Task Modal */}
+            <Dialog open={showNewTask} onOpenChange={(open) => {
+              setShowNewTask(open);
+              if (!open) {
+                setNewTaskDesc("");
+                setNewTaskDeadlineMode("hours");
+                setNewTaskDeadlineDays(1);
+                setNewTaskDeadlineDate(undefined);
+              }
+            }}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nova Tarefa</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Tipo</Label>
+                    <select
+                      value={newTaskType}
+                      onChange={(e) => setNewTaskType(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="personalizada">Personalizada</option>
+                      <option value="mensagem">Mensagem</option>
+                      <option value="ligacao">Ligação</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Prazo</Label>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={newTaskDeadlineMode}
+                        onChange={(e) => setNewTaskDeadlineMode(e.target.value as "hours" | "days" | "date")}
+                        className="flex h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                       >
-                        <Calendar
-                          mode="single"
-                          selected={newTaskDeadlineDate}
-                          onSelect={setNewTaskDeadlineDate}
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  )}
+                        <option value="hours">Horas</option>
+                        <option value="days">Dias</option>
+                        <option value="date">Data</option>
+                      </select>
+                      {newTaskDeadlineMode === "hours" && (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={newTaskDeadlineHours}
+                            onChange={(e) => setNewTaskDeadlineHours(Number(e.target.value) || 1)}
+                            className="h-9"
+                          />
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">horas</span>
+                        </div>
+                      )}
+                      {newTaskDeadlineMode === "days" && (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={newTaskDeadlineDays}
+                            onChange={(e) => setNewTaskDeadlineDays(Number(e.target.value) || 1)}
+                            className="h-9"
+                          />
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">dias</span>
+                        </div>
+                      )}
+                      {newTaskDeadlineMode === "date" && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="h-9 flex-1 justify-start text-left font-normal">
+                              <CalendarIcon className="h-4 w-4 mr-2" />
+                              {newTaskDeadlineDate ? format(newTaskDeadlineDate, "dd/MM/yyyy") : "Selecionar data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newTaskDeadlineDate}
+                              onSelect={setNewTaskDeadlineDate}
+                              disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Descrição</Label>
+                    <Input
+                      value={newTaskDesc}
+                      onChange={(e) => setNewTaskDesc(e.target.value)}
+                      placeholder="Descrição da tarefa..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCreateManualTask();
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
-                <Input
-                  value={newTaskDesc}
-                  onChange={(e) => setNewTaskDesc(e.target.value)}
-                  placeholder="Descrição da tarefa..."
-                  className="h-8 text-xs"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCreateManualTask();
-                    }
-                  }}
-                />
-                <div className="flex justify-end gap-1.5">
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowNewTask(false); setNewTaskDesc(""); setNewTaskDeadlineMode("hours"); setNewTaskDeadlineDays(1); setNewTaskDeadlineDate(undefined); }}>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => { setShowNewTask(false); setNewTaskDesc(""); setNewTaskDeadlineMode("hours"); setNewTaskDeadlineDays(1); setNewTaskDeadlineDate(undefined); }}>
                     Cancelar
                   </Button>
-                  <Button size="sm" className="h-7 text-xs" disabled={creatingTask} onClick={handleCreateManualTask}>
+                  <Button disabled={creatingTask} onClick={handleCreateManualTask}>
                     Criar
                   </Button>
-                </div>
-              </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             )}
             {dealTasks.length === 0 && !showNewTask ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
