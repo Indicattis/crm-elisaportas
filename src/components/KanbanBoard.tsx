@@ -562,11 +562,13 @@ export function KanbanBoard() {
                   allTags={allTags}
                   profilesMap={profilesMap}
                   overdueDeals={overdueDeals}
+                  dailyColorsMap={dailyColorsMap}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}
                   onTagsChanged={handleTagToggle}
                   onCapture={handleCapture}
+                  onColorChange={handleColorChange}
                   onAddDeal={handleAddDeal}
                   onEditDeal={handleViewDeal}
                 />
