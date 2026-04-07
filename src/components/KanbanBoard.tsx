@@ -61,6 +61,7 @@ export function KanbanBoard() {
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
+  const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
@@ -190,6 +191,20 @@ export function KanbanBoard() {
   useEffect(() => {
     fetchFunnels();
   }, [fetchFunnels]);
+
+  const fetchDailyColors = useCallback(async () => {
+    if (!selectedFunnelId || deals.length === 0) return;
+    const dealIds = deals.map((d) => d.id);
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from("deal_daily_color")
+      .select("deal_id, color")
+      .in("deal_id", dealIds)
+      .eq("date", today);
+    const map: Record<string, string> = {};
+    (data || []).forEach((row: any) => { map[row.deal_id] = row.color; });
+    setDailyColorsMap(map);
+  }, [deals, selectedFunnelId]);
 
   useEffect(() => {
     const loadAll = async () => {
