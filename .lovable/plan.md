@@ -1,36 +1,21 @@
 
 
-# Prazo de Tarefa: Dias ou Data Específica
+# Corrigir inconsistencia de tempo entre Card e Modal
 
-## Visão geral
+## Problema
 
-Substituir o campo atual de "horas" no formulário de criação de tarefa por um seletor com 3 modos de prazo: **Horas**, **Dias** ou **Data específica**.
+O card mostra `15:45` quando a negociacao esta ha menos de 1 dia na etapa -- isso e o **horario** em que o `updated_at` foi registrado (formato HH:mm), nao o tempo decorrido. Ja o modal mostra `0h` = horas decorridas desde o `updated_at`. Sao metricas diferentes sendo exibidas no mesmo contexto.
 
-## Alterações em `src/components/DealDetailDialog.tsx`
+## Solucao
 
-### 1. Novos estados
-- `newTaskDeadlineMode`: `"hours"` | `"days"` | `"date"` (default: `"hours"`)
-- `newTaskDeadlineDays`: number (default: 1)
-- `newTaskDeadlineDate`: Date | undefined
+Padronizar ambos para mostrar **horas decorridas** quando a negociacao esta ha menos de 1 dia na etapa.
 
-### 2. UI do formulário de nova tarefa (linhas 1038-1047)
-Substituir o campo de horas por:
-- Um select com opções: "Horas", "Dias", "Data"
-- Se modo = "hours": input numérico + label "horas" (como hoje)
-- Se modo = "days": input numérico + label "dias"
-- Se modo = "date": date picker usando Popover + Calendar (Shadcn)
+### Alteracoes
 
-### 3. Lógica de cálculo do deadline (`handleCreateManualTask`)
-- **Horas**: `Date.now() + hours * 3600000` (como hoje)
-- **Dias**: `Date.now() + days * 86400000`
-- **Data**: usar a data selecionada diretamente (fim do dia: 23:59:59)
+**`src/components/DealCard.tsx`** (unica alteracao):
+- Linha 182: substituir `format(new Date(deal.updated_at), "HH:mm")` por calculo de horas decorridas
+- Calcular `hoursInStage = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 3600000)`
+- Exibir `{hoursInStage}h` em vez do horario do dia
 
-### 4. Reset ao criar/cancelar
-Resetar `newTaskDeadlineMode` para "hours", `newTaskDeadlineDays` para 1, `newTaskDeadlineDate` para undefined.
-
-## Arquivo afetado
-
-| Arquivo | Ação |
-|---|---|
-| `src/components/DealDetailDialog.tsx` | Adicionar modos de prazo (horas/dias/data) no formulário de tarefa |
+Resultado: tanto o card quanto o modal mostrarao `Xh` quando a negociacao esta ha menos de 24h na etapa.
 
