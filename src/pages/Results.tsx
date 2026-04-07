@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, XCircle, Archive } from "lucide-react";
-import { format } from "date-fns";
+import { Search, TrendingUp, XCircle, Archive, History } from "lucide-react";
+import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
+
+interface StageEntry {
+  count: number;
+  totalValue: number;
+  dealIds: Set<string>;
+}
 
 export default function Results() {
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
@@ -22,6 +29,18 @@ export default function Results() {
   const [archivedDeals, setArchivedDeals] = useState<Deal[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+
+  // Stage history state
+  const [stageHistory, setStageHistory] = useState<{ date: string; stage: string; count: number; totalValue: number }[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { role } = useUserRole();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
+  }, []);
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
@@ -63,8 +82,100 @@ export default function Results() {
     setLoading(false);
   }, [selectedFunnelId]);
 
+  const fetchStageHistory = useCallback(async () => {
+    if (!currentUserId) return;
+    setHistoryLoading(true);
+
+    try {
+      // Fetch column_change history
+      const { data: historyData } = await supabase
+        .from("deal_history")
+        .select("deal_id, created_at, metadata")
+        .eq("event_type", "column_change")
+        .order("created_at", { ascending: false });
+
+      if (!historyData || historyData.length === 0) {
+        setStageHistory([]);
+        setHistoryLoading(false);
+        return;
+      }
+
+      // Get unique deal IDs
+      const dealIds = [...new Set(historyData.map(h => h.deal_id))];
+
+      // Fetch deals for values and assigned_to (in batches if needed)
+      const batchSize = 50;
+      const dealsMap: Record<string, { value: number | null; assigned_to: string | null; funnel_id: string | null }> = {};
+
+      for (let i = 0; i < dealIds.length; i += batchSize) {
+        const batch = dealIds.slice(i, i + batchSize);
+        const { data: deals } = await supabase
+          .from("deals")
+          .select("id, value, assigned_to, funnel_id")
+          .in("id", batch);
+        (deals || []).forEach(d => {
+          dealsMap[d.id] = { value: d.value, assigned_to: d.assigned_to, funnel_id: d.funnel_id };
+        });
+      }
+
+      // Filter and group
+      const grouped = new Map<string, Map<string, StageEntry>>();
+
+      for (const entry of historyData) {
+        const deal = dealsMap[entry.deal_id];
+        if (!deal) continue;
+
+        // Funnel filter
+        if (selectedFunnelId !== "all" && deal.funnel_id !== selectedFunnelId) continue;
+
+        // Role-based filter: vendedores see only their own
+        if (role !== "admin" && deal.assigned_to !== currentUserId) continue;
+
+        const metadata = entry.metadata as { from?: string; to?: string } | null;
+        const stageTo = metadata?.to;
+        if (!stageTo) continue;
+
+        const dayKey = format(startOfDay(new Date(entry.created_at)), "yyyy-MM-dd");
+
+        if (!grouped.has(dayKey)) grouped.set(dayKey, new Map());
+        const dayMap = grouped.get(dayKey)!;
+
+        if (!dayMap.has(stageTo)) {
+          dayMap.set(stageTo, { count: 0, totalValue: 0, dealIds: new Set() });
+        }
+
+        const stageEntry = dayMap.get(stageTo)!;
+        if (!stageEntry.dealIds.has(entry.deal_id)) {
+          stageEntry.dealIds.add(entry.deal_id);
+          stageEntry.count++;
+          stageEntry.totalValue += deal.value || 0;
+        }
+      }
+
+      // Flatten to array
+      const result: { date: string; stage: string; count: number; totalValue: number }[] = [];
+      const sortedDays = [...grouped.keys()].sort((a, b) => b.localeCompare(a));
+
+      for (const day of sortedDays) {
+        const stages = grouped.get(day)!;
+        const sortedStages = [...stages.keys()].sort();
+        for (const stage of sortedStages) {
+          const { count, totalValue } = stages.get(stage)!;
+          result.push({ date: day, stage, count, totalValue });
+        }
+      }
+
+      setStageHistory(result);
+    } catch (err) {
+      console.error("Error fetching stage history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [currentUserId, role, selectedFunnelId]);
+
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
+  useEffect(() => { fetchStageHistory(); }, [fetchStageHistory]);
 
   const filterBySearch = (deals: Deal[]) => {
     if (!search.trim()) return deals;
@@ -78,6 +189,7 @@ export default function Results() {
   };
 
   const formatDate = (date: string) => format(new Date(date), "dd/MM/yyyy", { locale: ptBR });
+  const formatDateDisplay = (dateStr: string) => format(new Date(dateStr + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR });
 
   const renderTable = (deals: Deal[], showLossReason = false) => {
     const filtered = filterBySearch(deals);
@@ -114,6 +226,57 @@ export default function Results() {
                 <TableCell>{formatDate(deal.updated_at)}</TableCell>
               </TableRow>
             ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  const renderStageHistory = () => {
+    if (historyLoading) {
+      return (
+        <div className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      );
+    }
+
+    if (stageHistory.length === 0) {
+      return <p className="text-muted-foreground text-center py-12">Nenhum histórico de movimentação encontrado.</p>;
+    }
+
+    // Group rows by date for visual separation
+    let lastDate = "";
+
+    return (
+      <div className="rounded-lg border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead>Etapa</TableHead>
+              <TableHead className="text-right">Qtd. Negociações</TableHead>
+              <TableHead className="text-right">Valor Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stageHistory.map((row, i) => {
+              const showDate = row.date !== lastDate;
+              lastDate = row.date;
+              return (
+                <TableRow key={`${row.date}-${row.stage}`} className={showDate && i > 0 ? "border-t-2 border-border" : ""}>
+                  <TableCell className="font-medium">
+                    {showDate ? formatDateDisplay(row.date) : ""}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{row.stage}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">{row.count}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(row.totalValue)}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -171,10 +334,15 @@ export default function Results() {
               Arquivadas
               <Badge variant="secondary" className="ml-1">{filterBySearch(archivedDeals).length}</Badge>
             </TabsTrigger>
+            <TabsTrigger value="history" className="gap-2">
+              <History className="h-4 w-4" />
+              Histórico por Etapa
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
           <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
           <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
+          <TabsContent value="history">{renderStageHistory()}</TabsContent>
         </Tabs>
       )}
     </div>
