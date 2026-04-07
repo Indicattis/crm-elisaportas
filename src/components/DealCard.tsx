@@ -183,30 +183,22 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           <span>{daysInStage === 0 ? `${hoursInStage}h` : `${daysInStage}d`}</span>
         </div>
       </div>
-      {(deal.city || deal.state) && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3 shrink-0" />
-          <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
-        </div>
-      )}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-0.5">
-          {tags.slice(0, 3).map((tag) => (
-            <Badge key={tag.id} className="text-[10px] px-1.5 py-0 leading-4" style={{ backgroundColor: tag.color, color: "#fff" }}>
-              {tag.name}
-            </Badge>
-          ))}
-          {tags.length > 3 && (
-            <span className="text-[10px] text-muted-foreground">+{tags.length - 3}</span>
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+          {(deal.city || deal.state) && (
+            <>
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
+            </>
           )}
         </div>
-      )}
-      {nextTaskDeadline && (
-        <div className={`flex items-center gap-1 text-xs ${new Date(nextTaskDeadline) < new Date() ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-          <Clock className="h-3 w-3" />
-          <span>{format(new Date(nextTaskDeadline), "dd/MM HH:mm")}</span>
-        </div>
-      )}
+        {nextTaskDeadline && (
+          <div className={`flex items-center gap-1 shrink-0 ${new Date(nextTaskDeadline) < new Date() ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+            <Clock className="h-3 w-3" />
+            <span>{format(new Date(nextTaskDeadline), "dd/MM HH:mm")}</span>
+          </div>
+        )}
+      </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <Calendar className="h-3 w-3" />
