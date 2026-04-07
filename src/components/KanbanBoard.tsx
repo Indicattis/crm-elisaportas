@@ -506,6 +506,7 @@ export function KanbanBoard() {
               const q = searchQuery.toLowerCase().trim();
               const columnDeals = deals
                 .filter((deal) => deal.status === column.name)
+                .filter(filterBySeller)
                 .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id)
                 .filter((deal) => {
                   if (!q) return true;
