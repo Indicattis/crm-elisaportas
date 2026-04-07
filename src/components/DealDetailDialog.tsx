@@ -574,9 +574,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   if (!deal) return null;
 
-  const daysInStage = Math.floor(
-    (Date.now() - new Date(deal.updated_at).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const msInStage = Date.now() - new Date(deal.updated_at).getTime();
+  const daysInStage = Math.floor(msInStage / (1000 * 60 * 60 * 24));
+  const hoursInStage = Math.floor(msInStage / (1000 * 60 * 60));
 
   return (
     <>
@@ -822,7 +822,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Na etapa</span>
               </div>
               <span className={`text-sm font-bold ${daysInStage > 7 ? "text-destructive" : "text-foreground"}`}>
-                {daysInStage === 0 ? "Hoje" : `${daysInStage} dias`}
+                {daysInStage === 0 ? `${hoursInStage}h` : `${daysInStage} dias`}
               </span>
             </div>
             <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
@@ -837,7 +837,10 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                    const startOfCreated = new Date(createdAt.getFullYear(), createdAt.getMonth(), createdAt.getDate());
                    const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                    const totalDays = Math.round((startOfNow.getTime() - startOfCreated.getTime()) / 86400000);
-                  if (totalDays === 0) return "Hoje";
+                  if (totalDays === 0) {
+                     const totalHours = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60));
+                     return `${totalHours}h`;
+                   }
                   if (totalDays === 1) return "1 dia";
                   if (totalDays < 30) return `${totalDays} dias`;
                   const months = Math.floor(totalDays / 30);
