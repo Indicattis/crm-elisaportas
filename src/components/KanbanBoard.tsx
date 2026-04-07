@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { createNotification } from "@/lib/notifications";
-import { LayoutGrid, List, Search } from "lucide-react";
+import { LayoutGrid, List, Search, User } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
@@ -47,6 +47,8 @@ export function KanbanBoard() {
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+  const [funnelMembers, setFunnelMembers] = useState<{ id: string; full_name: string | null }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewingDeal, setViewingDeal] = useState<Deal | null>(null);
@@ -153,6 +155,28 @@ export function KanbanBoard() {
     setAllTags(data || []);
   }, []);
 
+  const fetchFunnelMembers = useCallback(async () => {
+    if (!selectedFunnelId) return;
+    const { data } = await supabase
+      .from("funnel_members")
+      .select("user_id")
+      .eq("funnel_id", selectedFunnelId);
+
+    if (data && data.length > 0) {
+      const userIds = data.map((m: any) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+      setFunnelMembers(
+        (profiles || []).map((p: any) => ({ id: p.id, full_name: p.full_name }))
+          .sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || ""))
+      );
+    } else {
+      setFunnelMembers([]);
+    }
+  }, [selectedFunnelId]);
+
   // Sync viewingDeal when deals array is refreshed
   useEffect(() => {
     if (viewingDeal && detailOpen) {
@@ -176,6 +200,10 @@ export function KanbanBoard() {
 
     loadAll();
   }, [fetchColumns, fetchDeals, fetchDealTags]);
+
+  useEffect(() => {
+    fetchFunnelMembers();
+  }, [fetchFunnelMembers]);
 
   const fetchProfiles = useCallback(async () => {
     const assignedIds = [
@@ -363,6 +391,12 @@ export function KanbanBoard() {
     fetchDealTags();
   };
 
+  const filterBySeller = useCallback((deal: Deal) => {
+    if (selectedSellerId === "all") return true;
+    if (selectedSellerId === "unassigned") return deal.assigned_to === null;
+    return deal.assigned_to === selectedSellerId;
+  }, [selectedSellerId]);
+
   return (
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
@@ -394,6 +428,21 @@ export function KanbanBoard() {
               className="pl-9 w-56"
             />
           </div>
+          <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
+            <SelectTrigger className="w-48">
+              <User className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
+              <SelectItem value="unassigned">Sem responsável</SelectItem>
+              {funnelMembers.map((member) => (
+                <SelectItem key={member.id} value={member.id}>
+                  {member.full_name || "Sem nome"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
@@ -423,10 +472,11 @@ export function KanbanBoard() {
         </div>
       ) : viewMode === "list" ? (
         <DealsListView
-          deals={searchQuery.trim() ? deals.filter((d) => {
+          deals={deals.filter(filterBySeller).filter((d) => {
+            if (!searchQuery.trim()) return true;
             const q = searchQuery.toLowerCase().trim();
             return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q));
-          }) : deals}
+          })}
           columns={columns}
           dealTagsMap={dealTagsMap}
           profilesMap={profilesMap}
@@ -456,6 +506,7 @@ export function KanbanBoard() {
               const q = searchQuery.toLowerCase().trim();
               const columnDeals = deals
                 .filter((deal) => deal.status === column.name)
+                .filter(filterBySeller)
                 .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id)
                 .filter((deal) => {
                   if (!q) return true;
