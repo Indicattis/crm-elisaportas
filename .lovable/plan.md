@@ -1,21 +1,35 @@
 
 
-# Corrigir inconsistencia de tempo entre Card e Modal
+# Data da Proxima Tarefa nos Cards de Negociacao
 
-## Problema
+## Visao geral
 
-O card mostra `15:45` quando a negociacao esta ha menos de 1 dia na etapa -- isso e o **horario** em que o `updated_at` foi registrado (formato HH:mm), nao o tempo decorrido. Ja o modal mostra `0h` = horas decorridas desde o `updated_at`. Sao metricas diferentes sendo exibidas no mesmo contexto.
+Exibir a data/hora da proxima tarefa pendente de cada negociacao no card, acima do valor. Se a tarefa estiver vencida (deadline ultrapassado sem conclusao), o texto fica em vermelho.
 
-## Solucao
+## Alteracoes
 
-Padronizar ambos para mostrar **horas decorridas** quando a negociacao esta ha menos de 1 dia na etapa.
+### 1. KanbanBoard.tsx — Fetch das proximas tarefas
 
-### Alteracoes
+- No fetch de `deal_tasks`, alem dos overdue, buscar a proxima tarefa pendente de cada deal (menor `deadline_at` onde `completed = false`)
+- Criar um estado `nextTaskMap: Record<string, string>` mapeando `deal_id` -> `deadline_at` (ISO string)
+- Passar esse dado para `KanbanColumn` como prop
 
-**`src/components/DealCard.tsx`** (unica alteracao):
-- Linha 182: substituir `format(new Date(deal.updated_at), "HH:mm")` por calculo de horas decorridas
-- Calcular `hoursInStage = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 3600000)`
-- Exibir `{hoursInStage}h` em vez do horario do dia
+### 2. KanbanColumn.tsx — Repassar prop
 
-Resultado: tanto o card quanto o modal mostrarao `Xh` quando a negociacao esta ha menos de 24h na etapa.
+- Receber `nextTaskMap` e passar `nextTaskDeadline={nextTaskMap[deal.id]}` para cada `DealCard`
+
+### 3. DealCard.tsx — Exibir data da proxima tarefa
+
+- Nova prop `nextTaskDeadline?: string` (ISO date)
+- Acima da linha de valor/data de criacao, renderizar a data formatada (dd/MM HH:mm)
+- Comparar com `Date.now()`: se vencida, aplicar classe `text-destructive font-medium`; caso contrario, `text-muted-foreground`
+- Icone de relogio (Clock) ao lado da data
+
+## Arquivo afetados
+
+| Arquivo | Acao |
+|---|---|
+| `src/components/KanbanBoard.tsx` | Fetch proxima tarefa por deal, novo estado, passar prop |
+| `src/components/KanbanColumn.tsx` | Repassar `nextTaskMap` para DealCard |
+| `src/components/DealCard.tsx` | Nova prop e renderizacao da data da proxima tarefa |
 
