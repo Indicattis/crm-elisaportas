@@ -1,44 +1,34 @@
 
 
-# Padronizar Estado e Cidade com SelectBox Dependentes
+# Adicionar Filtro de Vendedor no Kanban
 
 ## Visão geral
 
-Substituir os campos de texto livre de Estado e Cidade por selectboxes encadeados: o usuário seleciona o estado (UF) e, com base nisso, aparece a lista de cidades daquele estado. Aplicar em 3 locais: DealDialog (cadastro/edição), DealDetailDialog (modal inline) e LeadForm (formulário público).
+Adicionar um select de "Vendedor" ao lado do campo de busca no KanbanBoard, permitindo filtrar negociações pelo responsável (`assigned_to`). Inclui opção "Todos" e "Sem responsável".
 
-## 1. Criar componente `src/components/StateCitySelect.tsx`
+## Alterações em `src/components/KanbanBoard.tsx`
 
-Componente reutilizável que:
-- Contém os dados dos 26 estados + DF como constante (sigla + nome)
-- Contém um mapa de cidades por UF (dados estáticos dos municípios brasileiros — lista completa dos ~5.570 municípios do IBGE, agrupados por UF)
-- Recebe props: `state`, `city`, `onStateChange`, `onCityChange`, `disabled?`
-- Renderiza dois `Select`: primeiro para UF, segundo para cidade (habilitado somente quando UF selecionado)
-- Ao trocar o estado, limpa a cidade automaticamente
-- Suporte a busca/filtro dentro do select de cidades (usando Command/Combobox pattern dado o volume de cidades)
+### 1. Novo estado
+- `selectedSellerId` (string, default `"all"`)
 
-**Nota sobre volume de dados**: como são ~5.570 municípios, o arquivo de dados será grande (~150KB). Será criado como `src/data/brazilian-cities.ts` separado para manter organização. O select de cidades usará um Combobox com busca (Popover + Command) para que o usuário possa digitar e filtrar rapidamente.
+### 2. Carregar lista de vendedores
+- Após carregar os deals, já temos `profilesMap` com os nomes. Usar essa mesma lista para popular o select.
+- Alternativa mais robusta: buscar membros do funil selecionado via `funnel_members` + `profiles` para mostrar todos os vendedores possíveis (não apenas os que têm deals). Usar essa abordagem.
 
-## 2. Atualizar `src/components/DealDialog.tsx`
+### 3. UI — Select de vendedor
+- Posicionar entre o campo de busca e o toggle de visualização
+- Opções: "Todos os vendedores" | "Sem responsável" | lista de membros do funil
+- Largura similar ao select de funil (~w-48)
 
-- Substituir os dois `<Input>` de Estado e Cidade pelo novo `<StateCitySelect>`
-- Passar `state`, `city`, `onStateChange`, `onCityChange` vinculados ao estado local existente
+### 4. Lógica de filtro
+- Aplicar filtro em ambas as visualizações (Kanban e Lista)
+- `"all"` → sem filtro
+- `"unassigned"` → `deal.assigned_to === null`
+- UUID → `deal.assigned_to === selectedSellerId`
 
-## 3. Atualizar `src/components/DealDetailDialog.tsx`
-
-- Na seção de contato (inline editing de state/city), substituir os `<Input>` por `<StateCitySelect>` quando em modo de edição
-- Manter o comportamento de salvar ao selecionar (onBlur ou onChange direto)
-
-## 4. Atualizar `src/pages/LeadForm.tsx`
-
-- Substituir os campos de texto de estado e cidade pelo `<StateCitySelect>`
-
-## Arquivos afetados
+## Arquivo afetado
 
 | Arquivo | Ação |
 |---|---|
-| `src/data/brazilian-cities.ts` | Novo — dados de estados e cidades do Brasil |
-| `src/components/StateCitySelect.tsx` | Novo — componente reutilizável de seleção estado/cidade |
-| `src/components/DealDialog.tsx` | Substituir inputs por StateCitySelect |
-| `src/components/DealDetailDialog.tsx` | Substituir inputs inline por StateCitySelect |
-| `src/pages/LeadForm.tsx` | Substituir inputs por StateCitySelect |
+| `src/components/KanbanBoard.tsx` | Adicionar estado, fetch de membros, select e lógica de filtro |
 
