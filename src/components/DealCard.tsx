@@ -27,8 +27,10 @@ interface DealCardProps {
   allTags?: DealTag[];
   assignedProfile?: AssignedProfile | null;
   hasOverdueTasks?: boolean;
+  dailyColor?: string;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
+  onColorChange?: (dealId: string, newColor: string) => void;
   onClick: () => void;
 }
 
@@ -39,7 +41,10 @@ function hexToRgb(hex: string) {
   return `${r}, ${g}, ${b}`;
 }
 
-export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, onTagsChanged, onCapture, onClick }: DealCardProps) {
+const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "green", green: "red" };
+const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
+
+export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -77,6 +82,19 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
     >
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1 flex-1 min-w-0">
+          <button
+            className="shrink-0 h-3 w-3 rounded-full transition-all"
+            style={{
+              backgroundColor: COLOR_HEX[dailyColor || "red"],
+              boxShadow: `0 0 8px ${COLOR_HEX[dailyColor || "red"]}`,
+            }}
+            title="Alterar status diário"
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = COLOR_CYCLE[dailyColor || "red"];
+              onColorChange?.(deal.id, next);
+            }}
+          />
           {hasOverdueTasks && (
             <Bell className="h-3.5 w-3.5 text-red-500 fill-red-500 shrink-0" />
           )}

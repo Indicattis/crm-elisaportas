@@ -27,9 +27,11 @@ interface KanbanColumnProps {
   allTags?: DealTag[];
   profilesMap?: Record<string, AssignedProfile>;
   overdueDeals?: Set<string>;
+  dailyColorsMap?: Record<string, string>;
   showDropSpacer?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
+  onColorChange?: (dealId: string, newColor: string) => void;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: Deal) => void;
 }
@@ -56,9 +58,11 @@ export function KanbanColumn({
   allTags = [],
   profilesMap = {},
   overdueDeals = new Set(),
+  dailyColorsMap = {},
   showDropSpacer = false,
   onTagsChanged,
   onCapture,
+  onColorChange,
   onAddDeal,
   onEditDeal,
 }: KanbanColumnProps) {
@@ -129,8 +133,10 @@ export function KanbanColumn({
               allTags={allTags}
               assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
               hasOverdueTasks={overdueDeals.has(deal.id)}
+              dailyColor={dailyColorsMap[deal.id]}
               onTagsChanged={onTagsChanged}
               onCapture={onCapture}
+              onColorChange={onColorChange}
               onClick={() => onEditDeal(deal)}
             />
           ))}
