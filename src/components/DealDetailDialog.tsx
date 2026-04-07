@@ -1149,7 +1149,6 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            )}
             {dealTasks.length === 0 && !showNewTask ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
