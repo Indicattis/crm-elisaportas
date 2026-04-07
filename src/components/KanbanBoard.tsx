@@ -267,6 +267,28 @@ export function KanbanBoard() {
     fetchOverdueTasks();
   }, [fetchOverdueTasks]);
 
+  useEffect(() => {
+    fetchDailyColors();
+  }, [fetchDailyColors]);
+
+  const handleColorChange = async (dealId: string, newColor: string) => {
+    setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: existing } = await supabase
+      .from("deal_daily_color")
+      .select("id")
+      .eq("deal_id", dealId)
+      .eq("date", today)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("deal_daily_color").update({ color: newColor, updated_by: user.id } as any).eq("id", existing.id);
+    } else {
+      await supabase.from("deal_daily_color").insert({ deal_id: dealId, color: newColor, date: today, updated_by: user.id } as any);
+    }
+  };
+
   const resolveStatusFromTargetId = useCallback(
     (targetId?: string | null) => {
       if (!targetId) return null;
