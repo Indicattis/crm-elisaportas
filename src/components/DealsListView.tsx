@@ -158,6 +158,16 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
+                <TableCell>
+                  {(deal.city || deal.state) ? (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {[deal.city, deal.state].filter(Boolean).join(" - ")}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
                   {format(new Date(deal.created_at), "dd/MM/yy")}
                 </TableCell>
