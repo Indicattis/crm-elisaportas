@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Search, TrendingUp, XCircle, Archive, History } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/contexts/RoleContext";
