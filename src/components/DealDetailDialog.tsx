@@ -811,7 +811,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             </div>
             <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
               <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-primary" />
+                <CalendarIcon className="h-3 w-3 text-primary" />
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Criado em</span>
               </div>
               <span className="text-sm font-bold text-foreground">{format(new Date(deal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
