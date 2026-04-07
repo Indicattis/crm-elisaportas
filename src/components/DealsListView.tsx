@@ -1,4 +1,4 @@
-import { User, DollarSign, Clock, UserPlus, Flame } from "lucide-react";
+import { User, DollarSign, Clock, UserPlus, Flame, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
