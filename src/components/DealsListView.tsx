@@ -176,7 +176,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
           })}
           {sortedDeals.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                 Nenhuma negociação encontrada
               </TableCell>
             </TableRow>
