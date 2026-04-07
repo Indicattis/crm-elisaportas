@@ -99,7 +99,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
             <Bell className="h-3.5 w-3.5 text-red-500 fill-red-500 shrink-0" />
           )}
           <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
-            {(deal as any).deal_number && <span className="text-muted-foreground font-normal mr-1">#{(deal as any).deal_number}</span>}
+            
             {deal.title}
           </h4>
         </div>
