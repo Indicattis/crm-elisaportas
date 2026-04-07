@@ -47,6 +47,8 @@ export function KanbanBoard() {
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+  const [funnelMembers, setFunnelMembers] = useState<{ id: string; full_name: string | null }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewingDeal, setViewingDeal] = useState<Deal | null>(null);
