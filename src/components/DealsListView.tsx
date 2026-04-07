@@ -54,6 +54,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
             <TableHead className="text-right">Valor</TableHead>
             <TableHead className="text-center">Etapa</TableHead>
             <TableHead>Tags</TableHead>
+            <TableHead>Localização</TableHead>
             <TableHead>Criação</TableHead>
           </TableRow>
         </TableHeader>
