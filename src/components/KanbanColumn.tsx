@@ -28,6 +28,7 @@ interface KanbanColumnProps {
   profilesMap?: Record<string, AssignedProfile>;
   overdueDeals?: Set<string>;
   dailyColorsMap?: Record<string, string>;
+  nextTaskMap?: Record<string, string>;
   showDropSpacer?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
@@ -59,6 +60,7 @@ export function KanbanColumn({
   profilesMap = {},
   overdueDeals = new Set(),
   dailyColorsMap = {},
+  nextTaskMap = {},
   showDropSpacer = false,
   onTagsChanged,
   onCapture,
@@ -134,6 +136,7 @@ export function KanbanColumn({
               assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
               hasOverdueTasks={overdueDeals.has(deal.id)}
               dailyColor={dailyColorsMap[deal.id]}
+              nextTaskDeadline={nextTaskMap[deal.id]}
               onTagsChanged={onTagsChanged}
               onCapture={onCapture}
               onColorChange={onColorChange}
