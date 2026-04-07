@@ -391,6 +391,12 @@ export function KanbanBoard() {
     fetchDealTags();
   };
 
+  const filterBySeller = useCallback((deal: Deal) => {
+    if (selectedSellerId === "all") return true;
+    if (selectedSellerId === "unassigned") return deal.assigned_to === null;
+    return deal.assigned_to === selectedSellerId;
+  }, [selectedSellerId]);
+
   return (
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
