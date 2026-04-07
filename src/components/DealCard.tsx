@@ -62,9 +62,9 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
     borderLeftStyle: 'solid' as const,
   };
 
-  const daysInStage = Math.floor(
-    (Date.now() - new Date(deal.updated_at).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const msInStage = Date.now() - new Date(deal.updated_at).getTime();
+  const daysInStage = Math.floor(msInStage / (1000 * 60 * 60 * 24));
+  const hoursInStage = Math.floor(msInStage / (1000 * 60 * 60));
 
   const tagIds = new Set(tags.map((t) => t.id));
 
@@ -179,7 +179,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
         </div>
         <div className={`flex items-center gap-1 ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
           <Clock className="h-3 w-3" />
-          <span>{daysInStage === 0 ? format(new Date(deal.updated_at), "HH:mm") : `${daysInStage}d`}</span>
+          <span>{daysInStage === 0 ? `${hoursInStage}h` : `${daysInStage}d`}</span>
         </div>
       </div>
       {(deal.city || deal.state) && (
