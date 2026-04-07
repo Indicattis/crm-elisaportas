@@ -1,35 +1,44 @@
 
 
-# Data da Proxima Tarefa nos Cards de Negociacao
+# Corrigir RLS de INSERT na tabela deals para admins
 
-## Visao geral
+## Problema
 
-Exibir a data/hora da proxima tarefa pendente de cada negociacao no card, acima do valor. Se a tarefa estiver vencida (deadline ultrapassado sem conclusao), o texto fica em vermelho.
+A politica de INSERT da tabela `deals` exige que o usuario autenticado seja dono do funil OU membro do funil. Administradores (como Luan Pescador) nao sao donos nem membros do funil "Vendas", entao o INSERT e bloqueado pelo RLS.
 
-## Alteracoes
+A politica atual:
+```
+auth.uid() = user_id
+AND (funnel_id IS NULL OR user owns funnel OR user is funnel member)
+```
 
-### 1. KanbanBoard.tsx — Fetch das proximas tarefas
+Falta a verificacao de admin, que ja existe nas politicas de SELECT e UPDATE.
 
-- No fetch de `deal_tasks`, alem dos overdue, buscar a proxima tarefa pendente de cada deal (menor `deadline_at` onde `completed = false`)
-- Criar um estado `nextTaskMap: Record<string, string>` mapeando `deal_id` -> `deadline_at` (ISO string)
-- Passar esse dado para `KanbanColumn` como prop
+## Solucao
 
-### 2. KanbanColumn.tsx — Repassar prop
+Uma unica migracao SQL para substituir a politica de INSERT, adicionando `has_role(auth.uid(), 'admin')` como condicao alternativa:
 
-- Receber `nextTaskMap` e passar `nextTaskDeadline={nextTaskMap[deal.id]}` para cada `DealCard`
+```sql
+DROP POLICY "Users can create deals in accessible funnels" ON public.deals;
 
-### 3. DealCard.tsx — Exibir data da proxima tarefa
+CREATE POLICY "Users can create deals in accessible funnels" ON public.deals
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() = user_id
+  AND (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR funnel_id IS NULL
+    OR EXISTS (SELECT 1 FROM funnels f WHERE f.id = deals.funnel_id AND f.user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM funnel_members fm WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid())
+  )
+);
+```
 
-- Nova prop `nextTaskDeadline?: string` (ISO date)
-- Acima da linha de valor/data de criacao, renderizar a data formatada (dd/MM HH:mm)
-- Comparar com `Date.now()`: se vencida, aplicar classe `text-destructive font-medium`; caso contrario, `text-muted-foreground`
-- Icone de relogio (Clock) ao lado da data
+Nenhuma alteracao de codigo necessaria.
 
-## Arquivo afetados
+## Arquivo afetado
 
 | Arquivo | Acao |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Fetch proxima tarefa por deal, novo estado, passar prop |
-| `src/components/KanbanColumn.tsx` | Repassar `nextTaskMap` para DealCard |
-| `src/components/DealCard.tsx` | Nova prop e renderizacao da data da proxima tarefa |
+| Migracao SQL | Atualizar politica INSERT da tabela deals |
 
