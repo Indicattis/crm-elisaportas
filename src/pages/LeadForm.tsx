@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, Loader2 } from "lucide-react";
+import { StateCitySelect } from "@/components/StateCitySelect";
 
 export default function LeadForm() {
   const [searchParams] = useSearchParams();
@@ -107,26 +108,12 @@ export default function LeadForm() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="estado">Estado</Label>
-            <Input
-              id="estado"
-              value={form.estado}
-              onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value }))}
-              placeholder="SP"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cidade">Cidade</Label>
-            <Input
-              id="cidade"
-              value={form.cidade}
-              onChange={(e) => setForm((f) => ({ ...f, cidade: e.target.value }))}
-              placeholder="São Paulo"
-            />
-          </div>
-        </div>
+        <StateCitySelect
+          state={form.estado}
+          city={form.cidade}
+          onStateChange={(v) => setForm((f) => ({ ...f, estado: v }))}
+          onCityChange={(v) => setForm((f) => ({ ...f, cidade: v }))}
+        />
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 

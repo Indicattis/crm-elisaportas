@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { StateCitySelect } from "@/components/StateCitySelect";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -733,54 +734,34 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               </div>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
+                <MapPin className="h-3.5 w-3.5 shrink-0 mt-1" />
                 {editingField === "state" as any ? (
-                  <Input
-                    autoFocus
-                    value={editState}
-                    onChange={(e) => setEditState(e.target.value)}
-                    onBlur={async () => {
-                      if (!deal || editState === ((deal as any).state || "")) { setEditingField(null); return; }
-                      const { error } = await supabase.from("deals").update({ state: editState.trim() || null } as any).eq("id", deal.id);
+                  <StateCitySelect
+                    state={editState}
+                    city={editCity}
+                    onStateChange={async (val) => {
+                      setEditState(val);
+                      setEditCity("");
+                      if (!deal) return;
+                      const { error } = await supabase.from("deals").update({ state: val || null, city: null } as any).eq("id", deal.id);
                       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
                       else onUpdated();
-                      setEditingField(null);
                     }}
-                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
-                    className="h-6 text-xs w-24"
-                    placeholder="UF"
+                    onCityChange={async (val) => {
+                      setEditCity(val);
+                      if (!deal) return;
+                      const { error } = await supabase.from("deals").update({ city: val || null } as any).eq("id", deal.id);
+                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      else { onUpdated(); setEditingField(null); }
+                    }}
+                    compact
                   />
                 ) : (
                   <span
                     className="cursor-pointer hover:text-foreground transition-colors"
-                    onClick={() => { setEditState((deal as any).state || ""); setEditingField("state" as any); }}
+                    onClick={() => { setEditState((deal as any).state || ""); setEditCity((deal as any).city || ""); setEditingField("state" as any); }}
                   >
-                    {(deal as any).state || <span className="italic">Estado</span>}
-                  </span>
-                )}
-                <span className="text-muted-foreground/50">|</span>
-                {editingField === "city" as any ? (
-                  <Input
-                    autoFocus
-                    value={editCity}
-                    onChange={(e) => setEditCity(e.target.value)}
-                    onBlur={async () => {
-                      if (!deal || editCity === ((deal as any).city || "")) { setEditingField(null); return; }
-                      const { error } = await supabase.from("deals").update({ city: editCity.trim() || null } as any).eq("id", deal.id);
-                      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-                      else onUpdated();
-                      setEditingField(null);
-                    }}
-                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
-                    className="h-6 text-xs w-40"
-                    placeholder="Cidade"
-                  />
-                ) : (
-                  <span
-                    className="cursor-pointer hover:text-foreground transition-colors"
-                    onClick={() => { setEditCity((deal as any).city || ""); setEditingField("city" as any); }}
-                  >
-                    {(deal as any).city || <span className="italic">Cidade</span>}
+                    {[(deal as any).state, (deal as any).city].filter(Boolean).join(" - ") || <span className="italic">Adicionar localização</span>}
                   </span>
                 )}
               </div>

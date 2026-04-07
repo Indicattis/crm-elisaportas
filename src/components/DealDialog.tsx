@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn } from "@/lib/deal-tasks";
+import { StateCitySelect } from "@/components/StateCitySelect";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
@@ -163,16 +164,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Input value={state} onChange={(e) => setState(e.target.value)} placeholder="SP" />
-            </div>
-            <div className="space-y-2">
-              <Label>Cidade</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo" />
-            </div>
-          </div>
+          <StateCitySelect
+            state={state}
+            city={city}
+            onStateChange={setState}
+            onCityChange={setCity}
+          />
           <div className="flex gap-2 justify-end">
             {deal && (
               <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
