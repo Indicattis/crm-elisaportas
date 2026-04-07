@@ -1,4 +1,4 @@
-import { User, DollarSign, Clock, UserPlus, Flame } from "lucide-react";
+import { User, DollarSign, Clock, UserPlus, Flame, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -54,6 +54,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
             <TableHead className="text-right">Valor</TableHead>
             <TableHead className="text-center">Etapa</TableHead>
             <TableHead>Tags</TableHead>
+            <TableHead>Localização</TableHead>
             <TableHead>Criação</TableHead>
           </TableRow>
         </TableHeader>
@@ -157,6 +158,16 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
+                <TableCell>
+                  {(deal.city || deal.state) ? (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {[deal.city, deal.state].filter(Boolean).join(" - ")}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
                   {format(new Date(deal.created_at), "dd/MM/yy")}
                 </TableCell>
@@ -165,7 +176,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
           })}
           {sortedDeals.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                 Nenhuma negociação encontrada
               </TableCell>
             </TableRow>

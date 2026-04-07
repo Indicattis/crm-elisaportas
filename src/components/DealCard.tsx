@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell } from "lucide-react";
+import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -164,6 +164,12 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           <span>{daysInStage === 0 ? format(new Date(deal.updated_at), "HH:mm") : `${daysInStage}d`}</span>
         </div>
       </div>
+      {(deal.city || deal.state) && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
+        </div>
+      )}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-0.5">
           {tags.slice(0, 3).map((tag) => (

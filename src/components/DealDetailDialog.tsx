@@ -316,7 +316,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   // Inline edit save
   const saveField = async (field: "title" | "value" | "notes") => {
     if (!deal) return;
-    let updateData: Record<string, any> = {};
+    let updateData: Partial<{ title: string; value: number; notes: string | null }> = {};
     if (field === "title") {
       const val = editTitle.trim();
       if (!val || val === deal.title) { setEditingField(null); return; }
