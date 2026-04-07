@@ -1091,7 +1091,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                           {newTaskDeadlineDate ? format(newTaskDeadlineDate, "dd/MM/yyyy") : "Selecionar"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0 z-[9999]" align="start" side="bottom" sideOffset={4}>
                         <Calendar
                           mode="single"
                           selected={newTaskDeadlineDate}
