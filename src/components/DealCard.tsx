@@ -28,6 +28,7 @@ interface DealCardProps {
   assignedProfile?: AssignedProfile | null;
   hasOverdueTasks?: boolean;
   dailyColor?: string;
+  nextTaskDeadline?: string;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
@@ -44,7 +45,7 @@ function hexToRgb(hex: string) {
 const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "green", green: "red" };
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 
-export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -198,6 +199,12 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           {tags.length > 3 && (
             <span className="text-[10px] text-muted-foreground">+{tags.length - 3}</span>
           )}
+        </div>
+      )}
+      {nextTaskDeadline && (
+        <div className={`flex items-center gap-1 text-xs ${new Date(nextTaskDeadline) < new Date() ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+          <Clock className="h-3 w-3" />
+          <span>{format(new Date(nextTaskDeadline), "dd/MM HH:mm")}</span>
         </div>
       )}
       <div className="flex items-center justify-between text-xs text-muted-foreground">

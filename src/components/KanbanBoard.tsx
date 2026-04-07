@@ -61,6 +61,7 @@ export function KanbanBoard() {
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
+  const [nextTaskMap, setNextTaskMap] = useState<Record<string, string>>({});
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
@@ -249,18 +250,29 @@ export function KanbanBoard() {
   const fetchOverdueTasks = useCallback(async () => {
     if (deals.length === 0) {
       setOverdueDeals(new Set());
+      setNextTaskMap({});
       return;
     }
 
     const dealIds = deals.map((deal) => deal.id);
     const { data } = await supabase
       .from("deal_tasks")
-      .select("deal_id")
+      .select("deal_id, deadline_at")
       .in("deal_id", dealIds)
       .eq("completed", false)
-      .lt("deadline_at", new Date().toISOString());
+      .order("deadline_at", { ascending: true });
 
-    setOverdueDeals(new Set((data || []).map((task: any) => task.deal_id)));
+    const overdue = new Set<string>();
+    const nextMap: Record<string, string> = {};
+    const now = new Date().toISOString();
+
+    (data || []).forEach((task: any) => {
+      if (task.deadline_at < now) overdue.add(task.deal_id);
+      if (!nextMap[task.deal_id]) nextMap[task.deal_id] = task.deadline_at;
+    });
+
+    setOverdueDeals(overdue);
+    setNextTaskMap(nextMap);
   }, [deals]);
 
   useEffect(() => {
@@ -563,6 +575,7 @@ export function KanbanBoard() {
                   profilesMap={profilesMap}
                   overdueDeals={overdueDeals}
                   dailyColorsMap={dailyColorsMap}
+                  nextTaskMap={nextTaskMap}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}
