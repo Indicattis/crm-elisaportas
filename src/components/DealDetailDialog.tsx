@@ -16,7 +16,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
@@ -103,6 +104,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [newTaskDesc, setNewTaskDesc] = useState("");
   const [newTaskType, setNewTaskType] = useState("personalizada");
   const [newTaskDeadlineHours, setNewTaskDeadlineHours] = useState(24);
+  const [newTaskDeadlineMode, setNewTaskDeadlineMode] = useState<"hours" | "days" | "date">("hours");
+  const [newTaskDeadlineDays, setNewTaskDeadlineDays] = useState(1);
+  const [newTaskDeadlineDate, setNewTaskDeadlineDate] = useState<Date | undefined>(undefined);
   const [creatingTask, setCreatingTask] = useState(false);
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [selectedLossReason, setSelectedLossReason] = useState<string>("");
@@ -267,7 +271,15 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (!deal || creatingTask) return;
     setCreatingTask(true);
     try {
-      const deadline = new Date(Date.now() + newTaskDeadlineHours * 60 * 60 * 1000);
+      let deadline: Date;
+      if (newTaskDeadlineMode === "days") {
+        deadline = new Date(Date.now() + newTaskDeadlineDays * 24 * 60 * 60 * 1000);
+      } else if (newTaskDeadlineMode === "date" && newTaskDeadlineDate) {
+        deadline = new Date(newTaskDeadlineDate);
+        deadline.setHours(23, 59, 59, 0);
+      } else {
+        deadline = new Date(Date.now() + newTaskDeadlineHours * 60 * 60 * 1000);
+      }
       const { error } = await supabase.from("deal_tasks").insert({
         deal_id: deal.id,
         type: newTaskType,
@@ -278,6 +290,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       setNewTaskDesc("");
       setNewTaskType("personalizada");
       setNewTaskDeadlineHours(24);
+      setNewTaskDeadlineMode("hours");
+      setNewTaskDeadlineDays(1);
+      setNewTaskDeadlineDate(undefined);
       setShowNewTask(false);
       fetchDealTasks();
     } catch (err: any) {
@@ -1035,16 +1050,59 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     <option value="mensagem">Mensagem</option>
                     <option value="ligacao">Ligação</option>
                   </select>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={newTaskDeadlineHours}
-                      onChange={(e) => setNewTaskDeadlineHours(Number(e.target.value) || 1)}
-                      className="h-8 w-16 text-xs"
-                    />
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">horas</span>
-                  </div>
+                  <select
+                    value={newTaskDeadlineMode}
+                    onChange={(e) => setNewTaskDeadlineMode(e.target.value as "hours" | "days" | "date")}
+                    className="flex h-8 rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="hours">Horas</option>
+                    <option value="days">Dias</option>
+                    <option value="date">Data</option>
+                  </select>
+                  {newTaskDeadlineMode === "hours" && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={newTaskDeadlineHours}
+                        onChange={(e) => setNewTaskDeadlineHours(Number(e.target.value) || 1)}
+                        className="h-8 w-16 text-xs"
+                      />
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">h</span>
+                    </div>
+                  )}
+                  {newTaskDeadlineMode === "days" && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={newTaskDeadlineDays}
+                        onChange={(e) => setNewTaskDeadlineDays(Number(e.target.value) || 1)}
+                        className="h-8 w-16 text-xs"
+                      />
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">d</span>
+                    </div>
+                  )}
+                  {newTaskDeadlineMode === "date" && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="h-8 text-xs px-2 font-normal">
+                          <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                          {newTaskDeadlineDate ? format(newTaskDeadlineDate, "dd/MM/yyyy") : "Selecionar"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={newTaskDeadlineDate}
+                          onSelect={setNewTaskDeadlineDate}
+                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
                 <Input
                   value={newTaskDesc}
