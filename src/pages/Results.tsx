@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Search, TrendingUp, XCircle, Archive, History } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -284,67 +285,76 @@ export default function Results() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Resultados</h1>
-        <div className="flex items-center gap-3 ml-auto">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar negociação..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9 w-60"
-            />
+    <div className="flex gap-6 p-6 h-full">
+      {/* Main content */}
+      <div className="flex-1 min-w-0 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-bold text-foreground">Resultados</h1>
+          <div className="flex items-center gap-3 ml-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar negociação..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 w-60"
+              />
+            </div>
+            <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Todos os funis" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os funis</SelectItem>
+                {funnels.map(f => (
+                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Todos os funis" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os funis</SelectItem>
-              {funnels.map(f => (
-                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
+
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : (
+          <Tabs defaultValue="sold">
+            <TabsList>
+              <TabsTrigger value="sold" className="gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Vendidas
+                <Badge variant="secondary" className="ml-1">{filterBySearch(soldDeals).length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="lost" className="gap-2">
+                <XCircle className="h-4 w-4" />
+                Perdidas
+                <Badge variant="secondary" className="ml-1">{filterBySearch(lostDeals).length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="archived" className="gap-2">
+                <Archive className="h-4 w-4" />
+                Arquivadas
+                <Badge variant="secondary" className="ml-1">{filterBySearch(archivedDeals).length}</Badge>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
+            <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
+            <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
+          </Tabs>
+        )}
       </div>
 
-      {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-64 w-full" />
+      {/* Side panel - Stage History */}
+      <div className="w-80 shrink-0 space-y-3">
+        <div className="flex items-center gap-2">
+          <History className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">Histórico por Etapa</h2>
         </div>
-      ) : (
-        <Tabs defaultValue="sold">
-          <TabsList>
-            <TabsTrigger value="sold" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Vendidas
-              <Badge variant="secondary" className="ml-1">{filterBySearch(soldDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="lost" className="gap-2">
-              <XCircle className="h-4 w-4" />
-              Perdidas
-              <Badge variant="secondary" className="ml-1">{filterBySearch(lostDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2">
-              <Archive className="h-4 w-4" />
-              Arquivadas
-              <Badge variant="secondary" className="ml-1">{filterBySearch(archivedDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2">
-              <History className="h-4 w-4" />
-              Histórico por Etapa
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
-          <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
-          <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
-          <TabsContent value="history">{renderStageHistory()}</TabsContent>
-        </Tabs>
-      )}
+        <ScrollArea className="h-[calc(100vh-10rem)]">
+          {renderStageHistory()}
+        </ScrollArea>
+      </div>
     </div>
   );
 }
