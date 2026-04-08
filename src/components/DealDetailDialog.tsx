@@ -177,13 +177,19 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const fetchDealTasks = useCallback(async (dealId?: string) => {
     const id = dealId || deal?.id;
     if (!id) return;
-    const { data } = await supabase
-      .from("deal_tasks")
-      .select("*")
-      .eq("deal_id", id)
-      .order("deadline_at", { ascending: true });
+    setLoadingTasks(true);
+    const [{ data }] = await Promise.all([
+      supabase
+        .from("deal_tasks")
+        .select("*")
+        .eq("deal_id", id)
+        .order("completed", { ascending: true })
+        .order("deadline_at", { ascending: true }),
+      new Promise(resolve => setTimeout(resolve, 1000)),
+    ]);
     const tasks = (data as DealTask[]) || [];
     setDealTasks(tasks);
+    setLoadingTasks(false);
 
     // Check for overdue tasks and create notifications (dedup by task id)
     const { data: { user } } = await supabase.auth.getUser();
