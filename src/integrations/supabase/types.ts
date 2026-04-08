@@ -336,6 +336,7 @@ export type Database = {
           id: string
           name: string
           position: number
+          sort_order: string
           task_group_id: string | null
           user_id: string
         }
@@ -346,6 +347,7 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          sort_order?: string
           task_group_id?: string | null
           user_id: string
         }
@@ -356,6 +358,7 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          sort_order?: string
           task_group_id?: string | null
           user_id?: string
         }

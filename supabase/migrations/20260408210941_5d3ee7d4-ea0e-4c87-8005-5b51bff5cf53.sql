@@ -1,0 +1,1 @@
+ALTER TABLE public.funnel_columns ADD COLUMN sort_order text NOT NULL DEFAULT 'channel';
