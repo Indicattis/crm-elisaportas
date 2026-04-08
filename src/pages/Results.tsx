@@ -50,6 +50,10 @@ export default function Results() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { role } = useUserRole();
 
+  // Seller filter for history (admin only)
+  const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
