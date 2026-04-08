@@ -1055,6 +1055,18 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
                   {dealTasks.filter(t => t.completed).length}/{dealTasks.length}
                 </span>
+                {role === "admin" && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleReloadTasks}
+                    disabled={reloadingTasks}
+                    title="Recarregar tarefas automáticas"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${reloadingTasks ? "animate-spin" : ""}`} />
+                  </Button>
+                )}
                 <Button
                   size="icon"
                   variant="ghost"
