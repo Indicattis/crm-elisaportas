@@ -1,44 +1,31 @@
 
 
-# Corrigir Historico por Etapa nao retornando dados
+# Justificativa ao Arquivar Negociação
 
-## Problema
+## Visão geral
 
-Duas causas impedem o historico de aparecer:
+Adicionar um campo `archive_reason` na tabela `deals` e exigir uma justificativa (texto livre) antes de arquivar uma negociação, seguindo o mesmo padrão do fluxo de "Perdida" que já usa um dialog de confirmação.
 
-1. **RLS da tabela `deal_history`**: A politica de SELECT exige que o usuario seja dono do deal (`d.user_id = auth.uid()`) OU membro do funil. Nao ha excecao para admins. Assim, um admin que nao e dono nem membro do funil nao ve nenhum registro de historico.
+## Alterações
 
-2. **Codigo ja filtra por role** (linha ~139): `if (role !== "admin" && deal.assigned_to !== currentUserId) continue;` — isso esta correto, mas so funciona se os dados chegarem do banco.
+### 1. Migração SQL
+- Adicionar coluna `archive_reason TEXT` (nullable) na tabela `deals`
 
-## Solucao
+### 2. `src/components/DealDetailDialog.tsx`
+- Adicionar estado `showArchiveReasonDialog` (boolean) e `archiveReason` (string)
+- No botão "Arquivar": em vez de arquivar diretamente, abrir o dialog de justificativa
+- Criar dialog similar ao de "Motivo da perda" mas com um `Textarea` para texto livre
+- No "Confirmar": fazer update com `{ archived: true, archive_reason: archiveReason }`
+- Ao "Desarquivar": limpar o `archive_reason` (setar null)
 
-### 1. Migracao SQL — Adicionar excecao de admin na RLS de deal_history (SELECT)
+### 3. Exibir a justificativa
+- Na página `/results`, na tab/filtro de Arquivadas, exibir a coluna `archive_reason` na tabela (similar a como `loss_reason` aparece nas Perdidas)
 
-Atualizar a politica de SELECT para incluir admins:
+## Arquivos afetados
 
-```sql
-DROP POLICY "Users can view accessible deal_history" ON deal_history;
-
-CREATE POLICY "Users can view accessible deal_history"
-ON deal_history FOR SELECT TO authenticated
-USING (
-  has_role(auth.uid(), 'admin'::app_role)
-  OR EXISTS (
-    SELECT 1 FROM deals d
-    WHERE d.id = deal_history.deal_id
-    AND (d.user_id = auth.uid() OR EXISTS (
-      SELECT 1 FROM funnel_members fm
-      WHERE fm.funnel_id = d.funnel_id AND fm.user_id = auth.uid()
-    ))
-  )
-);
-```
-
-Nenhuma alteracao de codigo necessaria — o `fetchStageHistory` ja funciona corretamente, so precisa receber os dados do banco.
-
-## Arquivo afetado
-
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---|---|
-| Migracao SQL | Atualizar RLS SELECT de `deal_history` para incluir admins |
+| Migração SQL | Adicionar coluna `archive_reason` em `deals` |
+| `src/components/DealDetailDialog.tsx` | Dialog de justificativa ao arquivar |
+| `src/pages/Results.tsx` | Exibir motivo do arquivamento na tabela |
 
