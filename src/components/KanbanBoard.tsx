@@ -284,6 +284,14 @@ export function KanbanBoard() {
     fetchDailyColors();
   }, [fetchDailyColors]);
 
+  useEffect(() => {
+    supabase.from("acquisition_channels").select("name, icon").then(({ data }) => {
+      const map: Record<string, string> = {};
+      (data || []).forEach((ch: any) => { map[ch.name] = ch.icon; });
+      setChannelIconMap(map);
+    });
+  }, []);
+
   const handleColorChange = async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
     const { data: { user } } = await supabase.auth.getUser();
