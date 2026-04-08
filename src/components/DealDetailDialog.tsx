@@ -1034,11 +1034,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 Tarefas
               </h3>
               <div className="flex items-center gap-1.5 ml-auto">
-                <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
-                  {dealTasks.filter(t => !t.completed).length} <span className="font-normal opacity-70">pendente{dealTasks.filter(t => !t.completed).length !== 1 ? "s" : ""}</span>
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                  {dealTasks.filter(t => t.completed).length} <span className="font-normal opacity-70">concluída{dealTasks.filter(t => t.completed).length !== 1 ? "s" : ""}</span>
+              <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
+                  {dealTasks.filter(t => t.completed).length}/{dealTasks.length}
                 </span>
                 <Button
                   size="icon"
