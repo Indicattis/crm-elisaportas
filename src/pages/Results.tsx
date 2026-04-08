@@ -269,6 +269,7 @@ export default function Results() {
               {paginated.map(deal => (
                 <TableRow key={deal.id} className="hover:bg-accent/30 transition-colors">
                   <TableCell className="font-medium">{deal.title}</TableCell>
+                  {showStatusColumn && <TableCell>{statusBadge(deal.status, deal.archived)}</TableCell>}
                   <TableCell>
                     <span className="font-semibold text-success">{formatCurrency(deal.value)}</span>
                   </TableCell>
