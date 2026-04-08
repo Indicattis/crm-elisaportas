@@ -1,31 +1,42 @@
 
 
-# Justificativa ao Arquivar Negociação
+# Corrigir Arquivamento de Negociacao
 
-## Visão geral
+## Problema
 
-Adicionar um campo `archive_reason` na tabela `deals` e exigir uma justificativa (texto livre) antes de arquivar uma negociação, seguindo o mesmo padrão do fluxo de "Perdida" que já usa um dialog de confirmação.
+A politica RLS de UPDATE na tabela `deals` nao inclui excecao para administradores. O usuario atual (admin) nao e dono da negociacao #43 nem membro do funil, entao o UPDATE e bloqueado silenciosamente pelo banco.
 
-## Alterações
+Politica atual de UPDATE:
+```
+(user_id = auth.uid()) OR (EXISTS (SELECT 1 FROM funnel_members fm WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid()))
+```
 
-### 1. Migração SQL
-- Adicionar coluna `archive_reason TEXT` (nullable) na tabela `deals`
+Falta: `has_role(auth.uid(), 'admin')`.
 
-### 2. `src/components/DealDetailDialog.tsx`
-- Adicionar estado `showArchiveReasonDialog` (boolean) e `archiveReason` (string)
-- No botão "Arquivar": em vez de arquivar diretamente, abrir o dialog de justificativa
-- Criar dialog similar ao de "Motivo da perda" mas com um `Textarea` para texto livre
-- No "Confirmar": fazer update com `{ archived: true, archive_reason: archiveReason }`
-- Ao "Desarquivar": limpar o `archive_reason` (setar null)
+## Solucao
 
-### 3. Exibir a justificativa
-- Na página `/results`, na tab/filtro de Arquivadas, exibir a coluna `archive_reason` na tabela (similar a como `loss_reason` aparece nas Perdidas)
+Uma unica migracao SQL para atualizar a politica de UPDATE da tabela `deals`:
 
-## Arquivos afetados
+```sql
+DROP POLICY "Users can update accessible deals" ON public.deals;
 
-| Arquivo | Ação |
+CREATE POLICY "Users can update accessible deals"
+ON public.deals FOR UPDATE TO authenticated
+USING (
+  has_role(auth.uid(), 'admin'::app_role)
+  OR user_id = auth.uid()
+  OR EXISTS (
+    SELECT 1 FROM funnel_members fm
+    WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid()
+  )
+);
+```
+
+Nenhuma alteracao de codigo necessaria.
+
+## Arquivo afetado
+
+| Arquivo | Acao |
 |---|---|
-| Migração SQL | Adicionar coluna `archive_reason` em `deals` |
-| `src/components/DealDetailDialog.tsx` | Dialog de justificativa ao arquivar |
-| `src/pages/Results.tsx` | Exibir motivo do arquivamento na tabela |
+| Migracao SQL | Adicionar `has_role(admin)` na politica UPDATE de `deals` |
 
