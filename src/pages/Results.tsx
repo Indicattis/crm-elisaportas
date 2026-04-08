@@ -182,6 +182,7 @@ export default function Results() {
   }, [currentUserId, role, selectedFunnelId, historyDate, selectedSellerId]);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
+  useEffect(() => { fetchSellers(); }, [fetchSellers]);
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
   useEffect(() => { fetchStageHistory(); }, [fetchStageHistory]);
 
