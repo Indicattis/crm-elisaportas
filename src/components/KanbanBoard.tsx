@@ -63,6 +63,7 @@ export function KanbanBoard() {
   const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
   const [nextTaskMap, setNextTaskMap] = useState<Record<string, string>>({});
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
+  const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
