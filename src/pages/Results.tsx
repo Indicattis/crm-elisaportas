@@ -224,7 +224,17 @@ export default function Results() {
     </Popover>
   );
 
-  const renderTable = (deals: Deal[], showLossReason = false) => {
+  const getActiveDeals = (): Deal[] => {
+    if (activeFilter === "sold") return soldDeals;
+    if (activeFilter === "lost") return lostDeals;
+    if (activeFilter === "archived") return archivedDeals;
+    return [...soldDeals, ...lostDeals, ...archivedDeals];
+  };
+
+  const showLossReason = activeFilter === "lost" || activeFilter === null;
+  const showStatusColumn = activeFilter === null;
+
+  const renderTable = (deals: Deal[]) => {
     const filtered = filterBySearch(deals);
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
     const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -233,6 +243,13 @@ export default function Results() {
       return <p className="text-muted-foreground text-center py-12">Nenhuma negociação encontrada.</p>;
     }
 
+    const statusBadge = (status: string, archived: boolean) => {
+      if (archived) return <Badge className="bg-warning/15 text-warning border-0">Arquivada</Badge>;
+      if (status === "Vendido") return <Badge className="bg-success/15 text-success border-0">Vendida</Badge>;
+      if (status === "Perdida") return <Badge className="bg-destructive/15 text-destructive border-0">Perdida</Badge>;
+      return <Badge variant="outline">{status}</Badge>;
+    };
+
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-border overflow-hidden">
@@ -240,6 +257,7 @@ export default function Results() {
             <TableHeader>
               <TableRow>
                 <TableHead>Título</TableHead>
+                {showStatusColumn && <TableHead>Status</TableHead>}
                 <TableHead>Valor</TableHead>
                 <TableHead>Responsável</TableHead>
                 {showLossReason && <TableHead>Motivo</TableHead>}
