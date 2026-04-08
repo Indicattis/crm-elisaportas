@@ -50,6 +50,10 @@ export default function Results() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { role } = useUserRole();
 
+  // Seller filter for history (admin only)
+  const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
@@ -63,6 +67,13 @@ export default function Results() {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
     setFunnels(data || []);
   }, []);
+
+  // Fetch sellers for admin filter
+  const fetchSellers = useCallback(async () => {
+    if (role !== "admin") return;
+    const { data } = await supabase.from("profiles").select("id, full_name").order("full_name");
+    setSellers((data || []).map(p => ({ id: p.id, name: p.full_name || "Sem nome" })));
+  }, [role]);
 
   const fetchDeals = useCallback(async () => {
     setLoading(true);
@@ -138,6 +149,7 @@ export default function Results() {
         if (!deal) continue;
         if (selectedFunnelId !== "all" && deal.funnel_id !== selectedFunnelId) continue;
         if (role !== "admin" && deal.assigned_to !== currentUserId) continue;
+        if (role === "admin" && selectedSellerId !== "all" && deal.assigned_to !== selectedSellerId) continue;
 
         const metadata = entry.metadata as { from?: string; to?: string } | null;
         const stageTo = metadata?.to;
@@ -167,9 +179,10 @@ export default function Results() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [currentUserId, role, selectedFunnelId, historyDate]);
+  }, [currentUserId, role, selectedFunnelId, historyDate, selectedSellerId]);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
+  useEffect(() => { fetchSellers(); }, [fetchSellers]);
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
   useEffect(() => { fetchStageHistory(); }, [fetchStageHistory]);
 
@@ -407,7 +420,20 @@ export default function Results() {
             <History className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Histórico por Etapa</h2>
           </div>
-          <div className="sm:ml-auto">
+          <div className="flex items-center gap-3 sm:ml-auto">
+            {role === "admin" && (
+              <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todos os vendedores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os vendedores</SelectItem>
+                  {sellers.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {renderDatePicker("Data", historyDate, setHistoryDate)}
           </div>
         </div>
