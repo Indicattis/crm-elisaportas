@@ -443,35 +443,14 @@ export default function Results() {
         </div>
       )}
 
-      {/* Deals Section */}
+      {/* Deals Table */}
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-64 w-full" />
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
-          <TabsList>
-            <TabsTrigger value="sold" className="gap-2 data-[state=active]:text-success">
-              <TrendingUp className="h-4 w-4" />
-              Vendidas
-              <Badge className="ml-1 bg-success/15 text-success border-0 hover:bg-success/25">{filterBySearch(soldDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="lost" className="gap-2 data-[state=active]:text-destructive">
-              <XCircle className="h-4 w-4" />
-              Perdidas
-              <Badge className="ml-1 bg-destructive/15 text-destructive border-0 hover:bg-destructive/25">{filterBySearch(lostDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2 data-[state=active]:text-warning">
-              <Archive className="h-4 w-4" />
-              Arquivadas
-              <Badge className="ml-1 bg-warning/15 text-warning border-0 hover:bg-warning/25">{filterBySearch(archivedDeals).length}</Badge>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
-          <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
-          <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
-        </Tabs>
+        renderTable(getActiveDeals())
       )}
 
       {/* Stage History Section */}
