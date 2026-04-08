@@ -313,6 +313,22 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       setCreatingTask(false);
     }
   };
+  const handleReloadTasks = async () => {
+    if (!deal || reloadingTasks) return;
+    setReloadingTasks(true);
+    try {
+      await deletePendingDealTasks(deal.id);
+      if (deal.funnel_id) {
+        await createDealTasksForColumn(deal.id, deal.status, deal.funnel_id);
+      }
+      await fetchDealTasks(deal.id);
+      toast({ title: "Tarefas recarregadas" });
+    } catch (err: any) {
+      toast({ title: "Erro ao recarregar", description: err.message, variant: "destructive" });
+    } finally {
+      setReloadingTasks(false);
+    }
+  };
 
 
   useEffect(() => {
