@@ -480,7 +480,7 @@ export function KanbanBoard() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome ou nº..."
+              placeholder="Buscar por nome, nº ou telefone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 w-56"
@@ -533,7 +533,8 @@ export function KanbanBoard() {
           deals={deals.filter(filterBySeller).filter((d) => {
             if (!searchQuery.trim()) return true;
             const q = searchQuery.toLowerCase().trim();
-            return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q));
+            const qDigits = q.replace(/\D/g, "");
+            return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q)) || (qDigits.length >= 4 && d.phone && d.phone.replace(/\D/g, "").includes(qDigits));
           })}
           columns={columns}
           dealTagsMap={dealTagsMap}
@@ -570,7 +571,9 @@ export function KanbanBoard() {
                   if (!q) return true;
                   const matchName = deal.title.toLowerCase().includes(q);
                   const matchNumber = deal.deal_number != null && String(deal.deal_number).includes(q);
-                  return matchName || matchNumber;
+                  const qDigits = q.replace(/\D/g, "");
+                  const matchPhone = qDigits.length >= 4 && deal.phone && deal.phone.replace(/\D/g, "").includes(qDigits);
+                  return matchName || matchNumber || matchPhone;
                 });
 
               return (
