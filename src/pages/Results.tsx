@@ -389,6 +389,42 @@ export default function Results() {
         </div>
       </div>
 
+      {/* Summary Cards */}
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl border border-success/20 bg-success/5 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-success/15 p-2.5">
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Vendidas</p>
+              <p className="text-lg font-bold text-success">{formatCurrency(soldDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{soldDeals.length} negociação{soldDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-destructive/15 p-2.5">
+              <XCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Perdidas</p>
+              <p className="text-lg font-bold text-destructive">{formatCurrency(lostDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{lostDeals.length} negociação{lostDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-warning/15 p-2.5">
+              <Archive className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Arquivadas</p>
+              <p className="text-lg font-bold text-warning">{formatCurrency(archivedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Deals Section */}
       {loading ? (
         <div className="space-y-3">
