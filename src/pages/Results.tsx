@@ -407,10 +407,20 @@ export default function Results() {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards as Filters */}
       {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-success/20 bg-success/5 p-4 flex items-center gap-3">
+          <button
+            onClick={() => setActiveFilter(f => f === "sold" ? null : "sold")}
+            className={cn(
+              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
+              activeFilter === "sold"
+                ? "border-success/40 bg-success/10 ring-2 ring-success/30"
+                : activeFilter === null
+                  ? "border-success/20 bg-success/5 hover:bg-success/10"
+                  : "border-border bg-card opacity-50 hover:opacity-75"
+            )}
+          >
             <div className="rounded-lg bg-success/15 p-2.5">
               <TrendingUp className="h-5 w-5 text-success" />
             </div>
@@ -419,8 +429,18 @@ export default function Results() {
               <p className="text-lg font-bold text-success">{formatCurrency(soldDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
               <p className="text-xs text-muted-foreground">{soldDeals.length} negociação{soldDeals.length !== 1 ? "ões" : ""}</p>
             </div>
-          </div>
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 flex items-center gap-3">
+          </button>
+          <button
+            onClick={() => setActiveFilter(f => f === "lost" ? null : "lost")}
+            className={cn(
+              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
+              activeFilter === "lost"
+                ? "border-destructive/40 bg-destructive/10 ring-2 ring-destructive/30"
+                : activeFilter === null
+                  ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
+                  : "border-border bg-card opacity-50 hover:opacity-75"
+            )}
+          >
             <div className="rounded-lg bg-destructive/15 p-2.5">
               <XCircle className="h-5 w-5 text-destructive" />
             </div>
@@ -429,8 +449,18 @@ export default function Results() {
               <p className="text-lg font-bold text-destructive">{formatCurrency(lostDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
               <p className="text-xs text-muted-foreground">{lostDeals.length} negociação{lostDeals.length !== 1 ? "ões" : ""}</p>
             </div>
-          </div>
-          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 flex items-center gap-3">
+          </button>
+          <button
+            onClick={() => setActiveFilter(f => f === "archived" ? null : "archived")}
+            className={cn(
+              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
+              activeFilter === "archived"
+                ? "border-warning/40 bg-warning/10 ring-2 ring-warning/30"
+                : activeFilter === null
+                  ? "border-warning/20 bg-warning/5 hover:bg-warning/10"
+                  : "border-border bg-card opacity-50 hover:opacity-75"
+            )}
+          >
             <div className="rounded-lg bg-warning/15 p-2.5">
               <Archive className="h-5 w-5 text-warning" />
             </div>
@@ -439,7 +469,7 @@ export default function Results() {
               <p className="text-lg font-bold text-warning">{formatCurrency(archivedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
               <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
             </div>
-          </div>
+          </button>
         </div>
       )}
 
