@@ -48,6 +48,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
+  const handleUpdateSortOrder = async (colId: string, sortOrder: string) => {
+    await supabase.from("funnel_columns").update({ sort_order: sortOrder } as any).eq("id", colId);
+    onChanged();
+  };
+
   const handleAdd = async () => {
     if (!newName.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -160,6 +165,22 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 {taskGroups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={(col as any).sort_order || "channel"}
+              onValueChange={(v) => handleUpdateSortOrder(col.id, v)}
+            >
+              <SelectTrigger className="w-40 h-8 text-xs">
+                <ArrowUpDown className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue placeholder="Ordenação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="channel">Canal de aquisição</SelectItem>
+                <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
+                <SelectItem value="created_at">Data de criação</SelectItem>
+                <SelectItem value="next_task">Próxima tarefa</SelectItem>
               </SelectContent>
             </Select>
 
