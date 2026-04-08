@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const COLOR_OPTIONS = [
@@ -45,6 +45,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
     await supabase.from("funnel_columns").update({ task_group_id: taskGroupId } as any).eq("id", colId);
+    onChanged();
+  };
+
+  const handleUpdateSortOrder = async (colId: string, sortOrder: string) => {
+    await supabase.from("funnel_columns").update({ sort_order: sortOrder } as any).eq("id", colId);
     onChanged();
   };
 
@@ -160,6 +165,22 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 {taskGroups.map((g) => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={(col as any).sort_order || "channel"}
+              onValueChange={(v) => handleUpdateSortOrder(col.id, v)}
+            >
+              <SelectTrigger className="w-40 h-8 text-xs">
+                <ArrowUpDown className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue placeholder="Ordenação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="channel">Canal de aquisição</SelectItem>
+                <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
+                <SelectItem value="created_at">Data de criação</SelectItem>
+                <SelectItem value="next_task">Próxima tarefa</SelectItem>
               </SelectContent>
             </Select>
 

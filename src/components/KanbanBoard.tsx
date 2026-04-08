@@ -39,6 +39,7 @@ interface FunnelColumn {
   name: string;
   color: string;
   position: number;
+  sort_order?: string;
 }
 
 export function KanbanBoard() {
@@ -64,6 +65,7 @@ export function KanbanBoard() {
   const [nextTaskMap, setNextTaskMap] = useState<Record<string, string>>({});
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
+  const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
@@ -285,10 +287,12 @@ export function KanbanBoard() {
   }, [fetchDailyColors]);
 
   useEffect(() => {
-    supabase.from("acquisition_channels").select("name, icon").then(({ data }) => {
-      const map: Record<string, string> = {};
-      (data || []).forEach((ch: any) => { map[ch.name] = ch.icon; });
-      setChannelIconMap(map);
+    supabase.from("acquisition_channels").select("name, icon, position").order("position").then(({ data }) => {
+      const iconMap: Record<string, string> = {};
+      const posMap: Record<string, number> = {};
+      (data || []).forEach((ch: any) => { iconMap[ch.name] = ch.icon; posMap[ch.name] = ch.position; });
+      setChannelIconMap(iconMap);
+      setChannelPositionMap(posMap);
     });
   }, []);
 
@@ -574,6 +578,20 @@ export function KanbanBoard() {
                   const qDigits = q.replace(/\D/g, "");
                   const matchPhone = qDigits.length >= 4 && deal.phone && deal.phone.replace(/\D/g, "").includes(qDigits);
                   return matchName || matchNumber || matchPhone;
+                })
+                .sort((a, b) => {
+                  const order = (column as any).sort_order || "channel";
+                  if (order === "alphabetical") return a.title.localeCompare(b.title);
+                  if (order === "created_at") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                  if (order === "next_task") {
+                    const tA = nextTaskMap[a.id] ? new Date(nextTaskMap[a.id]).getTime() : Infinity;
+                    const tB = nextTaskMap[b.id] ? new Date(nextTaskMap[b.id]).getTime() : Infinity;
+                    return tA - tB;
+                  }
+                  // channel (default)
+                  const pA = a.acquisition_channel ? (channelPositionMap[a.acquisition_channel] ?? 9999) : 9999;
+                  const pB = b.acquisition_channel ? (channelPositionMap[b.acquisition_channel] ?? 9999) : 9999;
+                  return pA - pB;
                 });
 
               return (
