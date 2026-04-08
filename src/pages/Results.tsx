@@ -68,6 +68,13 @@ export default function Results() {
     setFunnels(data || []);
   }, []);
 
+  // Fetch sellers for admin filter
+  const fetchSellers = useCallback(async () => {
+    if (role !== "admin") return;
+    const { data } = await supabase.from("profiles").select("id, full_name").order("full_name");
+    setSellers((data || []).map(p => ({ id: p.id, name: p.full_name || "Sem nome" })));
+  }, [role]);
+
   const fetchDeals = useCallback(async () => {
     setLoading(true);
     const fromISO = startOfDay(dateFrom).toISOString();
@@ -142,6 +149,7 @@ export default function Results() {
         if (!deal) continue;
         if (selectedFunnelId !== "all" && deal.funnel_id !== selectedFunnelId) continue;
         if (role !== "admin" && deal.assigned_to !== currentUserId) continue;
+        if (role === "admin" && selectedSellerId !== "all" && deal.assigned_to !== selectedSellerId) continue;
 
         const metadata = entry.metadata as { from?: string; to?: string } | null;
         const stageTo = metadata?.to;
@@ -171,7 +179,7 @@ export default function Results() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [currentUserId, role, selectedFunnelId, historyDate]);
+  }, [currentUserId, role, selectedFunnelId, historyDate, selectedSellerId]);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
