@@ -12,7 +12,38 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, phone, email, estado, cidade, funnel_id, status, canal_aquisicao } = await req.json();
+    const body = await req.json();
+    let { name, phone, email, estado, cidade, funnel_id, status, canal_aquisicao, flow_id } = body;
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // If flow_id is provided, load the flow config
+    let acquisition_channel = canal_aquisicao || null;
+    if (flow_id) {
+      const { data: flow, error: flowError } = await supabase
+        .from("lead_flows")
+        .select("funnel_id, status, acquisition_channel, active")
+        .eq("id", flow_id)
+        .single();
+
+      if (flowError || !flow) {
+        return new Response(
+          JSON.stringify({ error: "Fluxo não encontrado" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!flow.active) {
+        return new Response(
+          JSON.stringify({ error: "Fluxo inativo" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      funnel_id = flow.funnel_id;
+      status = flow.status;
+      if (flow.acquisition_channel) acquisition_channel = flow.acquisition_channel;
+    }
 
     if (!name || !funnel_id) {
       return new Response(
@@ -20,10 +51,6 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Get funnel owner as user_id for the deal
     const { data: funnel, error: funnelError } = await supabase
@@ -77,7 +104,7 @@ Deno.serve(async (req) => {
         state: estado || null,
         city: cidade || null,
         notes: null,
-        acquisition_channel: canal_aquisicao || null,
+        acquisition_channel: acquisition_channel || null,
       })
       .select("id")
       .single();

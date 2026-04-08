@@ -9,6 +9,7 @@ import { applyPhoneMask } from "@/lib/phone-mask";
 
 export default function LeadForm() {
   const [searchParams] = useSearchParams();
+  const flowId = searchParams.get("flow_id") || "";
   const funnelId = searchParams.get("funnel_id") || "";
   const status = searchParams.get("status") || "Lead";
 
@@ -23,8 +24,8 @@ export default function LeadForm() {
       setError("Nome é obrigatório");
       return;
     }
-    if (!funnelId) {
-      setError("Configuração inválida: funnel_id ausente");
+    if (!flowId && !funnelId) {
+      setError("Configuração inválida: flow_id ou funnel_id ausente");
       return;
     }
 
@@ -33,20 +34,27 @@ export default function LeadForm() {
 
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const body: Record<string, unknown> = {
+        name: form.name.trim(),
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        estado: form.estado.trim() || null,
+        cidade: form.cidade.trim() || null,
+      };
+
+      if (flowId) {
+        body.flow_id = flowId;
+      } else {
+        body.funnel_id = funnelId;
+        body.status = status;
+      }
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/submit-lead`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: form.name.trim(),
-            phone: form.phone.trim() || null,
-            email: form.email.trim() || null,
-            estado: form.estado.trim() || null,
-            cidade: form.cidade.trim() || null,
-            funnel_id: funnelId,
-            status,
-          }),
+          body: JSON.stringify(body),
         }
       );
 
