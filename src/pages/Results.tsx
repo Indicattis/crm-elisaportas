@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -37,7 +36,7 @@ export default function Results() {
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("sold");
+  const [activeFilter, setActiveFilter] = useState<"sold" | "lost" | "archived" | null>(null);
 
   // Date filters for deals (default: current month)
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
@@ -61,7 +60,7 @@ export default function Results() {
   }, []);
 
   // Reset page on filter changes
-  useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeTab, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo]);
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
@@ -224,7 +223,17 @@ export default function Results() {
     </Popover>
   );
 
-  const renderTable = (deals: Deal[], showLossReason = false) => {
+  const getActiveDeals = (): Deal[] => {
+    if (activeFilter === "sold") return soldDeals;
+    if (activeFilter === "lost") return lostDeals;
+    if (activeFilter === "archived") return archivedDeals;
+    return [...soldDeals, ...lostDeals, ...archivedDeals];
+  };
+
+  const showLossReason = activeFilter === "lost" || activeFilter === null;
+  const showStatusColumn = activeFilter === null;
+
+  const renderTable = (deals: Deal[]) => {
     const filtered = filterBySearch(deals);
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
     const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -233,6 +242,13 @@ export default function Results() {
       return <p className="text-muted-foreground text-center py-12">Nenhuma negociação encontrada.</p>;
     }
 
+    const statusBadge = (status: string, archived: boolean) => {
+      if (archived) return <Badge className="bg-warning/15 text-warning border-0">Arquivada</Badge>;
+      if (status === "Vendido") return <Badge className="bg-success/15 text-success border-0">Vendida</Badge>;
+      if (status === "Perdida") return <Badge className="bg-destructive/15 text-destructive border-0">Perdida</Badge>;
+      return <Badge variant="outline">{status}</Badge>;
+    };
+
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-border overflow-hidden">
@@ -240,6 +256,7 @@ export default function Results() {
             <TableHeader>
               <TableRow>
                 <TableHead>Título</TableHead>
+                {showStatusColumn && <TableHead>Status</TableHead>}
                 <TableHead>Valor</TableHead>
                 <TableHead>Responsável</TableHead>
                 {showLossReason && <TableHead>Motivo</TableHead>}
@@ -251,6 +268,7 @@ export default function Results() {
               {paginated.map(deal => (
                 <TableRow key={deal.id} className="hover:bg-accent/30 transition-colors">
                   <TableCell className="font-medium">{deal.title}</TableCell>
+                  {showStatusColumn && <TableCell>{statusBadge(deal.status, deal.archived)}</TableCell>}
                   <TableCell>
                     <span className="font-semibold text-success">{formatCurrency(deal.value)}</span>
                   </TableCell>
@@ -425,35 +443,14 @@ export default function Results() {
         </div>
       )}
 
-      {/* Deals Section */}
+      {/* Deals Table */}
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-64 w-full" />
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
-          <TabsList>
-            <TabsTrigger value="sold" className="gap-2 data-[state=active]:text-success">
-              <TrendingUp className="h-4 w-4" />
-              Vendidas
-              <Badge className="ml-1 bg-success/15 text-success border-0 hover:bg-success/25">{filterBySearch(soldDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="lost" className="gap-2 data-[state=active]:text-destructive">
-              <XCircle className="h-4 w-4" />
-              Perdidas
-              <Badge className="ml-1 bg-destructive/15 text-destructive border-0 hover:bg-destructive/25">{filterBySearch(lostDeals).length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2 data-[state=active]:text-warning">
-              <Archive className="h-4 w-4" />
-              Arquivadas
-              <Badge className="ml-1 bg-warning/15 text-warning border-0 hover:bg-warning/25">{filterBySearch(archivedDeals).length}</Badge>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
-          <TabsContent value="lost">{renderTable(lostDeals, true)}</TabsContent>
-          <TabsContent value="archived">{renderTable(archivedDeals)}</TabsContent>
-        </Tabs>
+        renderTable(getActiveDeals())
       )}
 
       {/* Stage History Section */}
