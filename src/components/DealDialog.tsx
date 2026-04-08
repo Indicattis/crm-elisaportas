@@ -40,12 +40,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const checkDuplicatePhone = useCallback((phoneValue: string, currentDealId?: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const digits = phoneValue.replace(/\D/g, "");
-    if (digits.length < 10) {
+    if (digits.length < 4) {
       setDuplicateInfo(null);
       return;
     }
     debounceRef.current = setTimeout(async () => {
-      let query = supabase.from("deals").select("id, title, status, assigned_to").eq("phone", phoneValue);
+      let query = supabase.from("deals").select("id, title, status, assigned_to, phone").ilike("phone", `%${digits.split("").join("%")}%`);
       if (currentDealId) query = query.neq("id", currentDealId);
       const { data } = await query.limit(1).maybeSingle();
       if (data) {
