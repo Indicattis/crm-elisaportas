@@ -231,6 +231,7 @@ export default function Results() {
   };
 
   const showLossReason = activeFilter === "lost" || activeFilter === null;
+  const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
 
   const renderTable = (deals: Deal[]) => {
@@ -259,7 +260,8 @@ export default function Results() {
                 {showStatusColumn && <TableHead>Status</TableHead>}
                 <TableHead>Valor</TableHead>
                 <TableHead>Responsável</TableHead>
-                {showLossReason && <TableHead>Motivo</TableHead>}
+                {showLossReason && <TableHead>Motivo Perda</TableHead>}
+                {showArchiveReason && <TableHead>Motivo Arquivamento</TableHead>}
                 <TableHead>Criação</TableHead>
                 <TableHead>Atualização</TableHead>
               </TableRow>
@@ -282,6 +284,13 @@ export default function Results() {
                     <TableCell>
                       {(deal as any).loss_reason ? (
                         <Badge className="bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20">{(deal as any).loss_reason}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                  )}
+                  {showArchiveReason && (
+                    <TableCell>
+                      {(deal as any).archive_reason ? (
+                        <Badge className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/20">{(deal as any).archive_reason}</Badge>
                       ) : "—"}
                     </TableCell>
                   )}
