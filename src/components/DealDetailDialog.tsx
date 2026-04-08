@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,6 +99,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [editCity, setEditCity] = useState("");
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
+  const [reloadingTasks, setReloadingTasks] = useState(false);
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
@@ -309,6 +311,22 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       toast({ title: "Erro ao criar tarefa", description: err.message, variant: "destructive" });
     } finally {
       setCreatingTask(false);
+    }
+  };
+  const handleReloadTasks = async () => {
+    if (!deal || reloadingTasks) return;
+    setReloadingTasks(true);
+    try {
+      await deletePendingDealTasks(deal.id);
+      if (deal.funnel_id) {
+        await createDealTasksForColumn(deal.id, deal.status, deal.funnel_id);
+      }
+      await fetchDealTasks(deal.id);
+      toast({ title: "Tarefas recarregadas" });
+    } catch (err: any) {
+      toast({ title: "Erro ao recarregar", description: err.message, variant: "destructive" });
+    } finally {
+      setReloadingTasks(false);
     }
   };
 
@@ -1037,6 +1055,18 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
                   {dealTasks.filter(t => t.completed).length}/{dealTasks.length}
                 </span>
+                {role === "admin" && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleReloadTasks}
+                    disabled={reloadingTasks}
+                    title="Recarregar tarefas automáticas"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${reloadingTasks ? "animate-spin" : ""}`} />
+                  </Button>
+                )}
                 <Button
                   size="icon"
                   variant="ghost"
