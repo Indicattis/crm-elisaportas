@@ -181,7 +181,11 @@ export default function Results() {
   const filterBySearch = (deals: Deal[]) => {
     if (!search.trim()) return deals;
     const q = search.toLowerCase();
-    return deals.filter(d => d.title.toLowerCase().includes(q));
+    const qDigits = q.replace(/\D/g, "");
+    return deals.filter(d =>
+      d.title.toLowerCase().includes(q) ||
+      (qDigits && d.phone && d.phone.replace(/\D/g, "").includes(qDigits))
+    );
   };
 
   const formatCurrency = (value: number | null) => {
