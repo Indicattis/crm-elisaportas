@@ -198,7 +198,7 @@ export function LeadFlowManager() {
                   <span>Coluna: <strong className="text-foreground">{flow.status}</strong></span>
                   {flow.acquisition_channel && (
                     <span className="flex items-center gap-1">
-                      Canal: {ChannelIcon && <ChannelIcon className="h-3.5 w-3.5" />}
+                      Canal: {ChannelIconComp && <ChannelIconComp className="h-3.5 w-3.5" />}
                       <strong className="text-foreground">{flow.acquisition_channel}</strong>
                     </span>
                   )}
@@ -265,11 +265,12 @@ export function LeadFlowManager() {
                 <SelectContent>
                   <SelectItem value="__none">Nenhum</SelectItem>
                   {channels.map(c => {
-                    const Icon = getChannelIcon(c.name);
+                    const iconData = getChannelIcon(c.name);
+                    const IconComp = iconData?.icon;
                     return (
                       <SelectItem key={c.id} value={c.name}>
                         <div className="flex items-center gap-2">
-                          {Icon && <Icon className="h-4 w-4" />}
+                          {IconComp && <IconComp className="h-4 w-4" />}
                           {c.name}
                         </div>
                       </SelectItem>
