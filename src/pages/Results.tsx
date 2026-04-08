@@ -420,7 +420,20 @@ export default function Results() {
             <History className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Histórico por Etapa</h2>
           </div>
-          <div className="sm:ml-auto">
+          <div className="flex items-center gap-3 sm:ml-auto">
+            {role === "admin" && (
+              <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todos os vendedores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os vendedores</SelectItem>
+                  {sellers.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {renderDatePicker("Data", historyDate, setHistoryDate)}
           </div>
         </div>
