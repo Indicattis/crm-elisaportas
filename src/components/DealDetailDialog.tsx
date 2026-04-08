@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
