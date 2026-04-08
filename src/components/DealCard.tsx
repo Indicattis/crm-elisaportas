@@ -30,6 +30,7 @@ interface DealCardProps {
   hasOverdueTasks?: boolean;
   dailyColor?: string;
   nextTaskDeadline?: string;
+  channelIconKey?: string;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
