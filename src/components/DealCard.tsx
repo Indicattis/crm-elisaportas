@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell, MapPin } from "lucide-react";
+import { getChannelIcon } from "@/lib/channel-icons";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -99,8 +100,26 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           {hasOverdueTasks && (
             <Bell className="h-3.5 w-3.5 text-red-500 fill-red-500 shrink-0" />
           )}
+          {deal.acquisition_channel && (() => {
+            const channelData = getChannelIcon(
+              deal.acquisition_channel === "Google" ? "google" :
+              deal.acquisition_channel === "Facebook" ? "facebook" :
+              deal.acquisition_channel === "Instagram" ? "instagram" :
+              deal.acquisition_channel === "Tiktok" ? "tiktok" :
+              deal.acquisition_channel === "WhatsApp" || deal.acquisition_channel === "Whatsapp" ? "whatsapp" :
+              deal.acquisition_channel === "LinkedIn" ? "linkedin" :
+              deal.acquisition_channel === "Youtube" ? "youtube" :
+              deal.acquisition_channel === "Twitter" || deal.acquisition_channel === "X" ? "x" :
+              deal.acquisition_channel === "E-mail" ? "mail" :
+              deal.acquisition_channel === "Indicação" ? "megaphone" :
+              deal.acquisition_channel === "Cliente fidelizado" ? "user-check" :
+              deal.acquisition_channel === "Autorizado" ? "shield" :
+              "megaphone"
+            );
+            const ChannelIcon = channelData.icon;
+            return <ChannelIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
+          })()}
           <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
-            
             {deal.title}
           </h4>
         </div>
