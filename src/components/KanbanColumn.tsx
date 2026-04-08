@@ -29,6 +29,7 @@ interface KanbanColumnProps {
   overdueDeals?: Set<string>;
   dailyColorsMap?: Record<string, string>;
   nextTaskMap?: Record<string, string>;
+  channelIconMap?: Record<string, string>;
   showDropSpacer?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
@@ -61,6 +62,7 @@ export function KanbanColumn({
   overdueDeals = new Set(),
   dailyColorsMap = {},
   nextTaskMap = {},
+  channelIconMap = {},
   showDropSpacer = false,
   onTagsChanged,
   onCapture,
@@ -137,6 +139,7 @@ export function KanbanColumn({
               hasOverdueTasks={overdueDeals.has(deal.id)}
               dailyColor={dailyColorsMap[deal.id]}
               nextTaskDeadline={nextTaskMap[deal.id]}
+              channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
               onTagsChanged={onTagsChanged}
               onCapture={onCapture}
               onColorChange={onColorChange}

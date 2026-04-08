@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell, MapPin } from "lucide-react";
+import { getChannelIcon } from "@/lib/channel-icons";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -29,6 +30,7 @@ interface DealCardProps {
   hasOverdueTasks?: boolean;
   dailyColor?: string;
   nextTaskDeadline?: string;
+  channelIconKey?: string;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
@@ -45,7 +47,7 @@ function hexToRgb(hex: string) {
 const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "green", green: "red" };
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 
-export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -99,8 +101,11 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           {hasOverdueTasks && (
             <Bell className="h-3.5 w-3.5 text-red-500 fill-red-500 shrink-0" />
           )}
+          {channelIconKey && (() => {
+            const ChannelIcon = getChannelIcon(channelIconKey).icon;
+            return <ChannelIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
+          })()}
           <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
-            
             {deal.title}
           </h4>
         </div>

@@ -63,6 +63,7 @@ export function KanbanBoard() {
   const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
   const [nextTaskMap, setNextTaskMap] = useState<Record<string, string>>({});
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
+  const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const { toast } = useToast();
@@ -282,6 +283,14 @@ export function KanbanBoard() {
   useEffect(() => {
     fetchDailyColors();
   }, [fetchDailyColors]);
+
+  useEffect(() => {
+    supabase.from("acquisition_channels").select("name, icon").then(({ data }) => {
+      const map: Record<string, string> = {};
+      (data || []).forEach((ch: any) => { map[ch.name] = ch.icon; });
+      setChannelIconMap(map);
+    });
+  }, []);
 
   const handleColorChange = async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
@@ -576,6 +585,7 @@ export function KanbanBoard() {
                   overdueDeals={overdueDeals}
                   dailyColorsMap={dailyColorsMap}
                   nextTaskMap={nextTaskMap}
+                  channelIconMap={channelIconMap}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}
