@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { applyPhoneMask } from "@/lib/phone-mask";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface ClientDialogProps {
@@ -84,7 +85,7 @@ export function ClientDialog({ open, onOpenChange, client, onSaved }: ClientDial
           </div>
           <div className="space-y-2">
             <Label>Telefone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
+            <Input value={phone} onChange={(e) => setPhone(applyPhoneMask(e.target.value))} placeholder="(00) 00000-0000" />
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={loading}>

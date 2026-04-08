@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { StateCitySelect } from "@/components/StateCitySelect";
+import { applyPhoneMask } from "@/lib/phone-mask";
 
 export default function LeadForm() {
   const [searchParams] = useSearchParams();
@@ -92,7 +93,7 @@ export default function LeadForm() {
           <Input
             id="phone"
             value={form.phone}
-            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, phone: applyPhoneMask(e.target.value) }))}
             placeholder="(00) 00000-0000"
           />
         </div>

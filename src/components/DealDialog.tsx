@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
+import { applyPhoneMask } from "@/lib/phone-mask";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
@@ -128,7 +129,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Telefone *</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="(00) 00000-0000" />
+              <Input value={phone} onChange={(e) => setPhone(applyPhoneMask(e.target.value))} required placeholder="(00) 00000-0000" />
             </div>
             <div className="space-y-2">
               <Label>E-mail</Label>
