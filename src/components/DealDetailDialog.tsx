@@ -1161,12 +1161,24 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            {dealTasks.length === 0 && !showNewTask ? (
+            {loadingTasks ? (
+              <div className="space-y-2 py-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-2 rounded-lg border border-border bg-card p-2.5 animate-pulse">
+                    <div className="h-4 w-4 rounded bg-muted mt-0.5" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-3/4 rounded bg-muted" />
+                      <div className="h-2.5 w-1/2 rounded bg-muted" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : dealTasks.length === 0 && !showNewTask ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
               <div className="space-y-2">
-                {dealTasks.filter(t => !t.completed).map((task) => {
-                  const isOverdue = new Date(task.deadline_at) < new Date();
+                {dealTasks.map((task) => {
+                  const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
                   const isCompleting = completingTaskIds.has(task.id);
                   const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
                     : task.type === "ligacao" ? <PhoneCall className="h-3.5 w-3.5" />
@@ -1175,7 +1187,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     <div
                       key={task.id}
                       className={`flex items-start gap-2 rounded-lg border p-2.5 transition-all duration-500 ease-out ${
-                        isCompleting ? "opacity-0 scale-95 max-h-0 overflow-hidden border-transparent p-0 m-0" : isOverdue ? "border-destructive/50 bg-destructive/5 max-h-40" : "border-border bg-card max-h-40"
+                        isCompleting ? "opacity-50 scale-95" : task.completed ? "border-border/50 bg-muted/30 opacity-60" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
                       }`}
                     >
                       <Checkbox
@@ -1185,8 +1197,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-muted-foreground">{typeIcon}</span>
-                          <span className="text-xs font-medium leading-tight text-foreground">
+                          <span className={`${task.completed ? "text-muted-foreground/50" : "text-muted-foreground"}`}>{typeIcon}</span>
+                          <span className={`text-xs font-medium leading-tight ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
                             {task.description || (task.type === "mensagem" ? "Enviar mensagem" : task.type === "ligacao" ? "Realizar ligação" : "Tarefa")}
                           </span>
                           {task.template_id && task.next_recurrence_at !== undefined && task.next_recurrence_at !== null && (
@@ -1195,12 +1207,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                         </div>
                         <div className="flex items-center gap-1.5 mt-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className={`text-[10px] ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          <span className={`text-[10px] ${task.completed ? "text-muted-foreground line-through" : isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                             {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5" />}
                             {format(new Date(task.deadline_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
                         </div>
-                        {(task.type === "mensagem" || task.type === "ligacao") && (
+                        {!task.completed && (task.type === "mensagem" || task.type === "ligacao") && (
                           <div className="mt-1.5">
                             {(deal as any).phone ? (
                               <Button
