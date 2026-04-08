@@ -37,7 +37,7 @@ export default function Results() {
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("sold");
+  const [activeFilter, setActiveFilter] = useState<"sold" | "lost" | "archived" | null>(null);
 
   // Date filters for deals (default: current month)
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
