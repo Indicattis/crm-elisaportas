@@ -172,7 +172,8 @@ export function LeadFlowManager() {
 
       <div className="space-y-3">
         {flows.map((flow) => {
-          const ChannelIcon = flow.acquisition_channel ? getChannelIcon(flow.acquisition_channel) : null;
+          const channelIconData = flow.acquisition_channel ? getChannelIcon(flow.acquisition_channel) : null;
+          const ChannelIconComp = channelIconData?.icon;
           return (
             <Card key={flow.id} className={!flow.active ? "opacity-60" : ""}>
               <CardHeader className="pb-2">
