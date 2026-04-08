@@ -1,0 +1,1 @@
+ALTER TABLE public.deals ADD COLUMN archive_reason TEXT;

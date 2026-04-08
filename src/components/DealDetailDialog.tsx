@@ -110,6 +110,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [creatingTask, setCreatingTask] = useState(false);
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [selectedLossReason, setSelectedLossReason] = useState<string>("");
+  const [showArchiveReasonDialog, setShowArchiveReasonDialog] = useState(false);
+  const [archiveReason, setArchiveReason] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
@@ -1281,14 +1283,18 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     size="sm"
                     variant="outline"
                     onClick={async () => {
-                      const isArchived = (deal as any).archived;
-                      const { error } = await (supabase.from("deals") as any).update({ archived: !isArchived }).eq("id", deal.id);
-                      if (error) {
-                        toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      if ((deal as any).archived) {
+                        const { error } = await (supabase.from("deals") as any).update({ archived: false, archive_reason: null }).eq("id", deal.id);
+                        if (error) {
+                          toast({ title: "Erro", description: error.message, variant: "destructive" });
+                        } else {
+                          toast({ title: "Negociação desarquivada!" });
+                          onUpdated();
+                          onOpenChange(false);
+                        }
                       } else {
-                        toast({ title: isArchived ? "Negociação desarquivada!" : "Negociação arquivada!" });
-                        onUpdated();
-                        onOpenChange(false);
+                        setArchiveReason("");
+                        setShowArchiveReasonDialog(true);
                       }
                     }}
                   >
@@ -1366,6 +1372,41 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowLossReasonDialog(false)}>Cancelar</Button>
           <Button onClick={confirmMarkAsLost} disabled={!selectedLossReason} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Archive Reason Dialog */}
+    <Dialog open={showArchiveReasonDialog} onOpenChange={setShowArchiveReasonDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Motivo do arquivamento</DialogTitle>
+        </DialogHeader>
+        <Textarea
+          placeholder="Descreva o motivo do arquivamento..."
+          value={archiveReason}
+          onChange={(e) => setArchiveReason(e.target.value)}
+          className="min-h-[100px]"
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowArchiveReasonDialog(false)}>Cancelar</Button>
+          <Button
+            disabled={!archiveReason.trim()}
+            onClick={async () => {
+              if (!deal) return;
+              const { error } = await (supabase.from("deals") as any).update({ archived: true, archive_reason: archiveReason.trim() }).eq("id", deal.id);
+              if (error) {
+                toast({ title: "Erro ao arquivar", description: error.message, variant: "destructive" });
+              } else {
+                toast({ title: "Negociação arquivada!" });
+                setShowArchiveReasonDialog(false);
+                onUpdated();
+                onOpenChange(false);
+              }
+            }}
+          >
             Confirmar
           </Button>
         </DialogFooter>
