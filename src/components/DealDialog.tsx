@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
 import { applyPhoneMask } from "@/lib/phone-mask";
+import { getChannelIcon } from "@/lib/channel-icons";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
@@ -34,6 +35,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [duplicateInfo, setDuplicateInfo] = useState<{ title: string; status: string; assignedName: string } | null>(null);
+  const [channelOptions, setChannelOptions] = useState<{ id: string; name: string; icon: string }[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
 
@@ -59,6 +61,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         setDuplicateInfo(null);
       }
     }, 500);
+  }, []);
+
+  useEffect(() => {
+    supabase.from("acquisition_channels").select("id, name, icon").order("position").then(({ data }) => {
+      if (data) setChannelOptions(data);
+    });
   }, []);
 
   useEffect(() => {
@@ -200,9 +208,18 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
               <SelectTrigger><SelectValue placeholder="Selecionar canal..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sem canal</SelectItem>
-                {["Google", "Facebook", "Instagram", "Tiktok", "Indicação", "Cliente fidelizado", "Autorizado"].map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
+                {channelOptions.map((c) => {
+                  const iconData = getChannelIcon(c.icon);
+                  const Icon = iconData.icon;
+                  return (
+                    <SelectItem key={c.id} value={c.name}>
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        {c.name}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
