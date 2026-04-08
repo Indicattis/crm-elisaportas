@@ -17,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
