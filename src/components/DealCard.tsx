@@ -78,13 +78,14 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
       {...attributes}
       {...listeners}
       data-deal-card
-      className="group cursor-pointer rounded-lg px-2.5 py-2 space-y-1 hover:shadow-md transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
+      className="group cursor-pointer rounded-xl px-3 py-2.5 space-y-1.5 hover:shadow-sm transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-1">
-        <div className="flex items-center gap-1 flex-1 min-w-0">
+      {/* Row 1: Status indicators + Title + Avatar */}
+      <div className="flex items-start justify-between gap-1.5">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
           <button
             className="shrink-0 h-3 w-3 rounded-full transition-all"
             style={{
@@ -105,7 +106,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
             const ChannelIcon = getChannelIcon(channelIconKey).icon;
             return <ChannelIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
           })()}
-          <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0 truncate">
             {deal.title}
           </h4>
         </div>
@@ -148,26 +149,28 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
             </Popover>
           )}
           {(deal as any).assigned_to && assignedProfile ? (
-            <Avatar className="h-7 w-7" title={assignedProfile.full_name || "Responsável"}>
+            <Avatar className="h-6 w-6" title={assignedProfile.full_name || "Responsável"}>
               {assignedProfile.avatar_url ? (
                 <AvatarImage src={assignedProfile.avatar_url} alt={assignedProfile.full_name || ""} />
               ) : null}
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+              <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
                 {(assignedProfile.full_name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
               </AvatarFallback>
             </Avatar>
           ) : (
             <button
-              className="h-7 w-7 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
+              className="h-6 w-6 rounded-full flex items-center justify-center border border-dashed border-muted-foreground/40 hover:bg-accent hover:border-primary transition-colors"
               title="Capturar negociação"
               onClick={(e) => { e.stopPropagation(); onCapture?.(deal.id); }}
             >
-              <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+              <UserPlus className="h-3 w-3 text-muted-foreground" />
             </button>
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between text-xs">
+
+      {/* Row 2: Phone + Heat + Time in stage */}
+      <div className="flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-2 text-muted-foreground">
           {(deal as any).phone && (
             <span className="flex items-center gap-1">
@@ -183,12 +186,14 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
             </span>
           )}
         </div>
-        <div className={`flex items-center gap-1 ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
+        <div className={`flex items-center gap-1 text-xs ${daysInStage <= 3 ? "text-green-600" : daysInStage <= 7 ? "text-yellow-600" : "text-destructive font-medium"}`}>
           <Clock className="h-3 w-3" />
           <span>{daysInStage === 0 ? `${hoursInStage}h` : `${daysInStage}d`}</span>
         </div>
       </div>
-      <div className="flex items-center justify-between text-xs">
+
+      {/* Row 3: Location + Next task */}
+      <div className="flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-1 text-muted-foreground min-w-0">
           {(deal.city || deal.state) && (
             <>
@@ -198,19 +203,21 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           )}
         </div>
         {nextTaskDeadline && (
-          <div className={`flex items-center gap-1 shrink-0 ${new Date(nextTaskDeadline) < new Date() ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+          <div className={`flex items-center gap-1 shrink-0 font-medium ${new Date(nextTaskDeadline) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
             <Clock className="h-3 w-3" />
             <span>{format(new Date(nextTaskDeadline), "dd/MM HH:mm")}</span>
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+
+      {/* Row 4: Created date + Value */}
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <Calendar className="h-3 w-3" />
           {format(new Date(deal.created_at), "dd/MM/yy")}
         </span>
         {deal.value && deal.value > 0 && (
-          <span className="bg-primary/10 text-primary font-bold text-xs rounded px-1.5 py-0.5 flex items-center gap-0.5">
+          <span className="bg-primary/10 text-primary font-bold text-xs rounded px-2 py-0.5 flex items-center gap-0.5">
             <DollarSign className="h-3 w-3" />
             R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
