@@ -426,6 +426,39 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_flows: {
+        Row: {
+          acquisition_channel: string | null
+          active: boolean
+          created_at: string
+          funnel_id: string
+          id: string
+          name: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          acquisition_channel?: string | null
+          active?: boolean
+          created_at?: string
+          funnel_id: string
+          id?: string
+          name: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          acquisition_channel?: string | null
+          active?: boolean
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          name?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

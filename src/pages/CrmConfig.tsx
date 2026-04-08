@@ -6,11 +6,12 @@ import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList, Code, Copy, Check, Megaphone } from "lucide-react";
+import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList, Code, Megaphone } from "lucide-react";
 import { TeamManager } from "@/components/TeamManager";
 import { FunnelMembersManager } from "@/components/FunnelMembersManager";
 import { TaskGroupManager } from "@/components/TaskGroupManager";
 import { AcquisitionChannelManager } from "@/components/AcquisitionChannelManager";
+import { LeadFlowManager } from "@/components/LeadFlowManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,7 +36,6 @@ export default function CrmConfig() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFunnel, setEditingFunnel] = useState<Funnel | null>(null);
   const [activeSection, setActiveSection] = useState<null | "funnels" | "tags" | "team" | "tasks" | "embed" | "channels">(null);
-  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [loadingFunnels, setLoadingFunnels] = useState(true);
   const { toast } = useToast();
 
@@ -205,8 +205,8 @@ export default function CrmConfig() {
                       <Code className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">Formulários</CardTitle>
-                      <CardDescription>Código embed para captura de leads</CardDescription>
+                      <CardTitle className="text-lg">Fluxos de Captação</CardTitle>
+                      <CardDescription>Gerencie fluxos automáticos de leads</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -305,66 +305,7 @@ export default function CrmConfig() {
             <Button variant="ghost" size="sm" onClick={() => setActiveSection(null)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h1 className="text-2xl font-bold text-foreground">Formulário de Leads (Embed)</h1>
-
-            {loadingFunnels ? (
-              <Skeleton className="h-40 w-full" />
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Selecione o funil de destino</label>
-                  <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-                    <SelectTrigger className="w-64">
-                      <SelectValue placeholder="Selecionar funil" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {funnels.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedFunnelId && columns.length > 0 && (
-                  <div className="space-y-3">
-                    {columns.map((col) => {
-                      const embedUrl = `${window.location.origin}/lead-form?funnel_id=${selectedFunnelId}&status=${encodeURIComponent(col.name)}`;
-                      const iframeCode = `<iframe src="${embedUrl}" width="100%" height="500" frameborder="0" style="border:none;"></iframe>`;
-
-                      return (
-                        <Card key={col.id}>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: col.color }} />
-                              {col.name}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="relative">
-                              <pre className="bg-muted rounded-md p-3 text-xs overflow-x-auto whitespace-pre-wrap break-all text-muted-foreground">
-                                {iframeCode}
-                              </pre>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="absolute top-2 right-2"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(iframeCode);
-                                  setCopiedEmbed(true);
-                                  setTimeout(() => setCopiedEmbed(false), 2000);
-                                }}
-                              >
-                                {copiedEmbed ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+            <LeadFlowManager />
           </>
         )}
       </div>
