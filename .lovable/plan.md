@@ -1,37 +1,72 @@
 
 
-# Verificacao de Duplicidade de Telefone ao Criar Negociacao
+# Canais de Aquisição Configuráveis com Ícones
 
-## Visao geral
+## Visão geral
 
-Ao criar (ou editar) uma negociacao, quando o usuario preencher o telefone, o sistema busca no banco se ja existe outra negociacao com o mesmo numero. Se existir, exibe um alerta amarelo (warning) informando: etapa do funil, nome do cliente e responsavel pelo atendimento. O usuario ainda pode prosseguir com a criacao -- e apenas um aviso, nao um bloqueio.
+Criar uma nova tabela `acquisition_channels` para armazenar os canais de aquisição de forma dinâmica (em vez de hardcoded no código). Adicionar um novo card "Canais de Aquisição" no hub de configuração do CRM, com uma seção dedicada para CRUD dos canais. Cada canal terá um nome e um ícone selecionável de um pacote pré-definido (Google, Facebook, Instagram, TikTok, Indicação, etc).
 
-## Alteracoes em `src/components/DealDialog.tsx`
+## 1. Migração — Nova tabela `acquisition_channels`
 
-### 1. Novo estado
-- `duplicateInfo`: `{ title: string; status: string; assignedName: string } | null`
+```sql
+CREATE TABLE public.acquisition_channels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  icon text NOT NULL DEFAULT 'megaphone',
+  position integer NOT NULL DEFAULT 0,
+  user_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-### 2. Verificacao ao alterar telefone
-- Criar funcao `checkDuplicatePhone(phoneValue: string)` com debounce (~500ms)
-- Extrair apenas digitos do telefone para comparacao
-- Buscar em `deals` onde os digitos do telefone coincidem, excluindo o deal atual (se editando)
-- Se encontrar, buscar o `assigned_to` na tabela `profiles` para obter o nome
-- Setar `duplicateInfo` com os dados encontrados
+ALTER TABLE public.acquisition_channels ENABLE ROW LEVEL SECURITY;
 
-### 3. Exibir alerta
-- Abaixo do campo de telefone, renderizar um `Alert` (variant warning/default) com icone `AlertTriangle`
-- Texto: "Telefone ja cadastrado na negociacao **{title}** (etapa: {status}), atendido por **{assignedName}**"
-- Estilo: borda amarela/laranja para chamar atencao sem bloquear
+-- Admins podem tudo, membros podem visualizar
+CREATE POLICY "Admins can manage channels" ON public.acquisition_channels
+  FOR ALL TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role) AND auth.uid() = user_id);
 
-### 4. Limpar ao fechar/resetar
-- Resetar `duplicateInfo` para null quando o dialog fecha ou telefone muda para vazio
+CREATE POLICY "Authenticated can view channels" ON public.acquisition_channels
+  FOR SELECT TO authenticated
+  USING (true);
 
-## Tambem verificar no submit-lead (edge function)
-- Adicionar verificacao similar na edge function `submit-lead` retornando um aviso no response (sem bloquear), para que leads externos tambem sejam alertados
+-- Inserir canais padrão (serão vinculados ao primeiro admin que acessar)
+```
+
+## 2. Novo componente `AcquisitionChannelManager`
+
+- Lista os canais com nome + ícone
+- Botão para adicionar novo canal (modal com campo nome + seletor de ícone)
+- Editar/excluir canais existentes
+- Reordenar por drag ou posição
+
+### Pacote de ícones pré-definidos
+
+Mapa de ícones SVG customizados para redes sociais (não disponíveis no Lucide):
+- Google, Facebook, Instagram, TikTok, WhatsApp, LinkedIn, YouTube, Twitter/X
+- Ícones genéricos do Lucide: Megaphone (indicação), UserCheck (cliente fidelizado), Shield (autorizado), Globe (site), Mail (email), Phone (telefone)
+
+O seletor mostrará uma grid de ícones clicáveis.
+
+## 3. Atualizar `CrmConfig.tsx`
+
+- Adicionar `"channels"` ao type de `activeSection`
+- Novo card com ícone `Megaphone` e título "Canais de Aquisição"
+- Nova seção renderizando `<AcquisitionChannelManager />`
+
+## 4. Atualizar `DealDialog.tsx`
+
+- Substituir a lista hardcoded de canais por um fetch da tabela `acquisition_channels`
+- Exibir o ícone do canal ao lado do nome no Select
 
 ## Arquivos afetados
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---|---|
-| `src/components/DealDialog.tsx` | Adicionar verificacao de duplicidade e alerta visual |
+| Migração SQL | Nova tabela `acquisition_channels` com RLS |
+| `src/components/AcquisitionChannelManager.tsx` | Novo componente de gestão de canais |
+| `src/components/ChannelIconPicker.tsx` | Novo componente seletor de ícones |
+| `src/lib/channel-icons.tsx` | Mapa de ícones SVG para redes sociais |
+| `src/pages/CrmConfig.tsx` | Novo card e seção "Canais de Aquisição" |
+| `src/components/DealDialog.tsx` | Buscar canais do banco em vez de lista hardcoded |
 
