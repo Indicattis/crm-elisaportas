@@ -1,42 +1,42 @@
 
 
-# Corrigir Arquivamento de Negociacao
+# Ordenação de negociações por etapa (coluna do funil)
 
-## Problema
+## Visão geral
 
-A politica RLS de UPDATE na tabela `deals` nao inclui excecao para administradores. O usuario atual (admin) nao e dono da negociacao #43 nem membro do funil, entao o UPDATE e bloqueado silenciosamente pelo banco.
+Adicionar uma coluna `sort_order` na tabela `funnel_columns` para que cada etapa do funil tenha sua própria regra de ordenação. Um selectbox será adicionado na configuração de cada coluna em `/crm-config`. O Kanban aplicará a ordenação configurada ao exibir os deals.
 
-Politica atual de UPDATE:
-```
-(user_id = auth.uid()) OR (EXISTS (SELECT 1 FROM funnel_members fm WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid()))
-```
+## Alterações
 
-Falta: `has_role(auth.uid(), 'admin')`.
+### 1. Migração SQL
+- Adicionar coluna `sort_order text NOT NULL DEFAULT 'channel'` na tabela `funnel_columns`
+- Valores possíveis: `alphabetical`, `created_at`, `next_task`, `channel`
 
-## Solucao
+### 2. `src/components/FunnelColumnList.tsx`
+- Adicionar um novo `Select` em cada linha de coluna com as opções:
+  - `channel` — Canal de aquisição (padrão)
+  - `alphabetical` — Ordem alfabética
+  - `created_at` — Data de criação
+  - `next_task` — Próxima tarefa
+- Persistir no banco via `supabase.from("funnel_columns").update({ sort_order })`
 
-Uma unica migracao SQL para atualizar a politica de UPDATE da tabela `deals`:
+### 3. `src/components/KanbanBoard.tsx`
+- Expandir a interface `FunnelColumn` para incluir `sort_order`
+- Após filtrar os deals por coluna (~linha 566-577), aplicar `.sort()` baseado no `sort_order` da coluna:
+  - `alphabetical`: `deal.title.localeCompare()`
+  - `created_at`: comparar `deal.created_at`
+  - `next_task`: comparar `nextTaskMap[deal.id]` (deals sem tarefa ficam por último)
+  - `channel`: comparar pela posição do canal de aquisição usando os dados já carregados (`channelIconMap` ou buscar posições dos canais)
+- Para a ordenação por canal, carregar as posições dos canais de aquisição (`acquisition_channels.position`) e ordenar os deals pela posição do seu `acquisition_channel`
 
-```sql
-DROP POLICY "Users can update accessible deals" ON public.deals;
+### 4. Dados de posição dos canais
+- O `KanbanBoard` já carrega `channelIconMap` (nome → ícone). Expandir para também carregar `channelPositionMap` (nome → posição) a partir da tabela `acquisition_channels`
 
-CREATE POLICY "Users can update accessible deals"
-ON public.deals FOR UPDATE TO authenticated
-USING (
-  has_role(auth.uid(), 'admin'::app_role)
-  OR user_id = auth.uid()
-  OR EXISTS (
-    SELECT 1 FROM funnel_members fm
-    WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid()
-  )
-);
-```
+## Arquivos afetados
 
-Nenhuma alteracao de codigo necessaria.
-
-## Arquivo afetado
-
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---|---|
-| Migracao SQL | Adicionar `has_role(admin)` na politica UPDATE de `deals` |
+| Migração SQL | Adicionar coluna `sort_order` em `funnel_columns` |
+| `src/components/FunnelColumnList.tsx` | Adicionar selectbox de ordenação por coluna |
+| `src/components/KanbanBoard.tsx` | Aplicar ordenação dos deals conforme `sort_order` da coluna |
 
