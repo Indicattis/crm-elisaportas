@@ -39,6 +39,29 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check for duplicate phone
+    let duplicateWarning: string | null = null;
+    if (phone) {
+      const { data: existing } = await supabase
+        .from("deals")
+        .select("title, status, assigned_to")
+        .eq("phone", phone)
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        let assignedName = "Não atribuído";
+        if (existing.assigned_to) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", existing.assigned_to)
+            .maybeSingle();
+          if (profile?.full_name) assignedName = profile.full_name;
+        }
+        duplicateWarning = `Telefone já cadastrado na negociação "${existing.title}" (etapa: ${existing.status}), atendido por ${assignedName}`;
+      }
+    }
+
     // Store estado/cidade in dedicated columns
     const { data: deal, error: dealError } = await supabase
       .from("deals")
@@ -118,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, deal_id: deal.id }),
+      JSON.stringify({ success: true, deal_id: deal.id, ...(duplicateWarning ? { warning: duplicateWarning } : {}) }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
