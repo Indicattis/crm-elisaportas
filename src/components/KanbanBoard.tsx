@@ -533,7 +533,8 @@ export function KanbanBoard() {
           deals={deals.filter(filterBySeller).filter((d) => {
             if (!searchQuery.trim()) return true;
             const q = searchQuery.toLowerCase().trim();
-            return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q));
+            const qDigits = q.replace(/\D/g, "");
+            return d.title.toLowerCase().includes(q) || (d.deal_number != null && String(d.deal_number).includes(q)) || (qDigits.length >= 4 && d.phone && d.phone.replace(/\D/g, "").includes(qDigits));
           })}
           columns={columns}
           dealTagsMap={dealTagsMap}
@@ -570,7 +571,9 @@ export function KanbanBoard() {
                   if (!q) return true;
                   const matchName = deal.title.toLowerCase().includes(q);
                   const matchNumber = deal.deal_number != null && String(deal.deal_number).includes(q);
-                  return matchName || matchNumber;
+                  const qDigits = q.replace(/\D/g, "");
+                  const matchPhone = qDigits.length >= 4 && deal.phone && deal.phone.replace(/\D/g, "").includes(qDigits);
+                  return matchName || matchNumber || matchPhone;
                 });
 
               return (
