@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon } from "lucide-react";
+import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User } from "lucide-react";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -249,19 +249,26 @@ export default function Results() {
             </TableHeader>
             <TableBody>
               {paginated.map(deal => (
-                <TableRow key={deal.id}>
+                <TableRow key={deal.id} className="hover:bg-accent/30 transition-colors">
                   <TableCell className="font-medium">{deal.title}</TableCell>
-                  <TableCell>{formatCurrency(deal.value)}</TableCell>
-                  <TableCell>{deal.assigned_to ? profilesMap[deal.assigned_to] || "—" : "Sem responsável"}</TableCell>
+                  <TableCell>
+                    <span className="font-semibold text-success">{formatCurrency(deal.value)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{deal.assigned_to ? profilesMap[deal.assigned_to] || "—" : "Sem responsável"}</span>
+                    </div>
+                  </TableCell>
                   {showLossReason && (
                     <TableCell>
                       {(deal as any).loss_reason ? (
-                        <Badge variant="outline">{(deal as any).loss_reason}</Badge>
+                        <Badge className="bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20">{(deal as any).loss_reason}</Badge>
                       ) : "—"}
                     </TableCell>
                   )}
-                  <TableCell>{formatDateCell(deal.created_at)}</TableCell>
-                  <TableCell>{formatDateCell(deal.updated_at)}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.created_at)}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.updated_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -336,12 +343,12 @@ export default function Results() {
           </TableHeader>
           <TableBody>
             {stageHistory.map((row) => (
-              <TableRow key={row.stage}>
+              <TableRow key={row.stage} className="hover:bg-accent/30 transition-colors">
                 <TableCell>
-                  <Badge variant="outline">{row.stage}</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">{row.stage}</Badge>
                 </TableCell>
-                <TableCell className="text-right">{row.count}</TableCell>
-                <TableCell className="text-right">{formatCurrency(row.totalValue)}</TableCell>
+                <TableCell className="text-right font-medium">{row.count}</TableCell>
+                <TableCell className="text-right font-semibold text-success">{formatCurrency(row.totalValue)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -382,6 +389,42 @@ export default function Results() {
         </div>
       </div>
 
+      {/* Summary Cards */}
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl border border-success/20 bg-success/5 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-success/15 p-2.5">
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Vendidas</p>
+              <p className="text-lg font-bold text-success">{formatCurrency(soldDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{soldDeals.length} negociação{soldDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-destructive/15 p-2.5">
+              <XCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Perdidas</p>
+              <p className="text-lg font-bold text-destructive">{formatCurrency(lostDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{lostDeals.length} negociação{lostDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-warning/15 p-2.5">
+              <Archive className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Arquivadas</p>
+              <p className="text-lg font-bold text-warning">{formatCurrency(archivedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Deals Section */}
       {loading ? (
         <div className="space-y-3">
@@ -391,20 +434,20 @@ export default function Results() {
       ) : (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
           <TabsList>
-            <TabsTrigger value="sold" className="gap-2">
+            <TabsTrigger value="sold" className="gap-2 data-[state=active]:text-success">
               <TrendingUp className="h-4 w-4" />
               Vendidas
-              <Badge variant="secondary" className="ml-1">{filterBySearch(soldDeals).length}</Badge>
+              <Badge className="ml-1 bg-success/15 text-success border-0 hover:bg-success/25">{filterBySearch(soldDeals).length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="lost" className="gap-2">
+            <TabsTrigger value="lost" className="gap-2 data-[state=active]:text-destructive">
               <XCircle className="h-4 w-4" />
               Perdidas
-              <Badge variant="secondary" className="ml-1">{filterBySearch(lostDeals).length}</Badge>
+              <Badge className="ml-1 bg-destructive/15 text-destructive border-0 hover:bg-destructive/25">{filterBySearch(lostDeals).length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2">
+            <TabsTrigger value="archived" className="gap-2 data-[state=active]:text-warning">
               <Archive className="h-4 w-4" />
               Arquivadas
-              <Badge variant="secondary" className="ml-1">{filterBySearch(archivedDeals).length}</Badge>
+              <Badge className="ml-1 bg-warning/15 text-warning border-0 hover:bg-warning/25">{filterBySearch(archivedDeals).length}</Badge>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="sold">{renderTable(soldDeals)}</TabsContent>
