@@ -1,44 +1,37 @@
 
 
-# Corrigir RLS de INSERT na tabela deals para admins
+# Verificacao de Duplicidade de Telefone ao Criar Negociacao
 
-## Problema
+## Visao geral
 
-A politica de INSERT da tabela `deals` exige que o usuario autenticado seja dono do funil OU membro do funil. Administradores (como Luan Pescador) nao sao donos nem membros do funil "Vendas", entao o INSERT e bloqueado pelo RLS.
+Ao criar (ou editar) uma negociacao, quando o usuario preencher o telefone, o sistema busca no banco se ja existe outra negociacao com o mesmo numero. Se existir, exibe um alerta amarelo (warning) informando: etapa do funil, nome do cliente e responsavel pelo atendimento. O usuario ainda pode prosseguir com a criacao -- e apenas um aviso, nao um bloqueio.
 
-A politica atual:
-```
-auth.uid() = user_id
-AND (funnel_id IS NULL OR user owns funnel OR user is funnel member)
-```
+## Alteracoes em `src/components/DealDialog.tsx`
 
-Falta a verificacao de admin, que ja existe nas politicas de SELECT e UPDATE.
+### 1. Novo estado
+- `duplicateInfo`: `{ title: string; status: string; assignedName: string } | null`
 
-## Solucao
+### 2. Verificacao ao alterar telefone
+- Criar funcao `checkDuplicatePhone(phoneValue: string)` com debounce (~500ms)
+- Extrair apenas digitos do telefone para comparacao
+- Buscar em `deals` onde os digitos do telefone coincidem, excluindo o deal atual (se editando)
+- Se encontrar, buscar o `assigned_to` na tabela `profiles` para obter o nome
+- Setar `duplicateInfo` com os dados encontrados
 
-Uma unica migracao SQL para substituir a politica de INSERT, adicionando `has_role(auth.uid(), 'admin')` como condicao alternativa:
+### 3. Exibir alerta
+- Abaixo do campo de telefone, renderizar um `Alert` (variant warning/default) com icone `AlertTriangle`
+- Texto: "Telefone ja cadastrado na negociacao **{title}** (etapa: {status}), atendido por **{assignedName}**"
+- Estilo: borda amarela/laranja para chamar atencao sem bloquear
 
-```sql
-DROP POLICY "Users can create deals in accessible funnels" ON public.deals;
+### 4. Limpar ao fechar/resetar
+- Resetar `duplicateInfo` para null quando o dialog fecha ou telefone muda para vazio
 
-CREATE POLICY "Users can create deals in accessible funnels" ON public.deals
-FOR INSERT TO authenticated
-WITH CHECK (
-  auth.uid() = user_id
-  AND (
-    has_role(auth.uid(), 'admin'::app_role)
-    OR funnel_id IS NULL
-    OR EXISTS (SELECT 1 FROM funnels f WHERE f.id = deals.funnel_id AND f.user_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM funnel_members fm WHERE fm.funnel_id = deals.funnel_id AND fm.user_id = auth.uid())
-  )
-);
-```
+## Tambem verificar no submit-lead (edge function)
+- Adicionar verificacao similar na edge function `submit-lead` retornando um aviso no response (sem bloquear), para que leads externos tambem sejam alertados
 
-Nenhuma alteracao de codigo necessaria.
-
-## Arquivo afetado
+## Arquivos afetados
 
 | Arquivo | Acao |
 |---|---|
-| Migracao SQL | Atualizar politica INSERT da tabela deals |
+| `src/components/DealDialog.tsx` | Adicionar verificacao de duplicidade e alerta visual |
 
