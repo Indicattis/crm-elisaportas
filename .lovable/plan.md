@@ -1,40 +1,44 @@
 
 
-# Reestruturar página /results
+# Corrigir Historico por Etapa nao retornando dados
 
-## Visão geral
+## Problema
 
-Mover o "Histórico por Etapa" de sidebar lateral para abaixo da seção de negociações. Adicionar paginação (10 itens/página) e filtro de data (padrão: mês atual) nas negociações. Filtro de data do histórico com padrão: dia anterior.
+Duas causas impedem o historico de aparecer:
 
-## Alterações em `src/pages/Results.tsx`
+1. **RLS da tabela `deal_history`**: A politica de SELECT exige que o usuario seja dono do deal (`d.user_id = auth.uid()`) OU membro do funil. Nao ha excecao para admins. Assim, um admin que nao e dono nem membro do funil nao ve nenhum registro de historico.
 
-### Layout
-- Remover layout `flex gap-6` com sidebar lateral
-- Usar layout vertical (`space-y-8`): seção negociações em cima, histórico embaixo
+2. **Codigo ja filtra por role** (linha ~139): `if (role !== "admin" && deal.assigned_to !== currentUserId) continue;` — isso esta correto, mas so funciona se os dados chegarem do banco.
 
-### Filtro de data nas negociações
-- Dois date pickers (início/fim) usando Popover+Calendar
-- Padrão: primeiro dia do mês atual → hoje
-- Filtrar `soldDeals`, `lostDeals`, `archivedDeals` por `updated_at` entre as datas selecionadas (via `.gte()` e `.lte()` no Supabase query)
+## Solucao
 
-### Paginação nas negociações
-- Estado `page` (default 1), constante `PAGE_SIZE = 10`
-- No `renderTable`, fatiar `filtered.slice((page-1)*10, page*10)`
-- Renderizar componente Pagination abaixo da tabela com navegação de páginas
-- Resetar página ao mudar tab, busca ou filtro
+### 1. Migracao SQL — Adicionar excecao de admin na RLS de deal_history (SELECT)
 
-### Filtro de data no histórico
-- Um date picker para selecionar o dia do histórico
-- Padrão: dia anterior (`new Date(Date.now() - 86400000)`)
-- Filtrar `deal_history` query com `.gte("created_at", startOfDay)` e `.lt("created_at", endOfDay)`
+Atualizar a politica de SELECT para incluir admins:
 
-### Seção do histórico
-- Ocupar largura total em vez de `w-80`
-- Remover `ScrollArea` com height fixo, deixar fluir naturalmente
+```sql
+DROP POLICY "Users can view accessible deal_history" ON deal_history;
+
+CREATE POLICY "Users can view accessible deal_history"
+ON deal_history FOR SELECT TO authenticated
+USING (
+  has_role(auth.uid(), 'admin'::app_role)
+  OR EXISTS (
+    SELECT 1 FROM deals d
+    WHERE d.id = deal_history.deal_id
+    AND (d.user_id = auth.uid() OR EXISTS (
+      SELECT 1 FROM funnel_members fm
+      WHERE fm.funnel_id = d.funnel_id AND fm.user_id = auth.uid()
+    ))
+  )
+);
+```
+
+Nenhuma alteracao de codigo necessaria — o `fetchStageHistory` ja funciona corretamente, so precisa receber os dados do banco.
 
 ## Arquivo afetado
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---|---|
-| `src/pages/Results.tsx` | Reestruturar layout, adicionar paginação e filtros de data |
+| Migracao SQL | Atualizar RLS SELECT de `deal_history` para incluir admins |
 
