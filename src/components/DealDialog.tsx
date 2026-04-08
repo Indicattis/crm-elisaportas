@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
@@ -31,7 +33,33 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ title: string; status: string; assignedName: string } | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
+
+  const checkDuplicatePhone = useCallback((phoneValue: string, currentDealId?: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const digits = phoneValue.replace(/\D/g, "");
+    if (digits.length < 10) {
+      setDuplicateInfo(null);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      let query = supabase.from("deals").select("id, title, status, assigned_to").eq("phone", phoneValue);
+      if (currentDealId) query = query.neq("id", currentDealId);
+      const { data } = await query.limit(1).maybeSingle();
+      if (data) {
+        let assignedName = "Não atribuído";
+        if (data.assigned_to) {
+          const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", data.assigned_to).maybeSingle();
+          if (profile?.full_name) assignedName = profile.full_name;
+        }
+        setDuplicateInfo({ title: data.title, status: data.status, assignedName });
+      } else {
+        setDuplicateInfo(null);
+      }
+    }, 500);
+  }, []);
 
   useEffect(() => {
     if (deal) {
@@ -53,6 +81,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setState("");
       setCity("");
     }
+    setDuplicateInfo(null);
   }, [deal, defaultStatus, open, statuses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
