@@ -6,14 +6,12 @@ import { TagManager } from "@/components/TagManager";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList, Code, Copy, Check, Megaphone } from "lucide-react";
+import { Plus, Pencil, Trash2, GitBranch, Tag, ArrowLeft, Users, ClipboardList, Code, Megaphone } from "lucide-react";
+import { TeamManager } from "@/components/TeamManager";
 import { FunnelMembersManager } from "@/components/FunnelMembersManager";
 import { TaskGroupManager } from "@/components/TaskGroupManager";
 import { AcquisitionChannelManager } from "@/components/AcquisitionChannelManager";
 import { LeadFlowManager } from "@/components/LeadFlowManager";
-import { FunnelMembersManager } from "@/components/FunnelMembersManager";
-import { TaskGroupManager } from "@/components/TaskGroupManager";
-import { AcquisitionChannelManager } from "@/components/AcquisitionChannelManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
