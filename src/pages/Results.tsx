@@ -61,7 +61,7 @@ export default function Results() {
   }, []);
 
   // Reset page on filter changes
-  useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeTab, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo]);
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
