@@ -17,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, ImagePlus, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,6 +35,15 @@ interface Tag {
   id: string;
   name: string;
   color: string;
+}
+
+interface DealAttachment {
+  id: string;
+  deal_id: string;
+  user_id: string;
+  file_path: string;
+  file_name: string;
+  created_at: string;
 }
 
 type DealData = Tables<"deals">;
@@ -117,6 +126,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [archiveReason, setArchiveReason] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachments, setAttachments] = useState<DealAttachment[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
   const { role } = useUserRole();
 
@@ -239,6 +251,70 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   }, [deal]);
 
+  const fetchAttachments = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_attachments")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("created_at", { ascending: false });
+    setAttachments((data as DealAttachment[]) || []);
+  }, [deal]);
+
+  const handleUploadImage = async (file: File) => {
+    if (!deal || uploadingImage) return;
+    setUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `${deal.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("deal-attachments")
+        .upload(filePath, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { error: insertError } = await supabase.from("deal_attachments").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        file_path: filePath,
+        file_name: file.name || `image.${ext}`,
+      } as any);
+      if (insertError) throw insertError;
+      fetchAttachments();
+      toast({ title: "Imagem anexada!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao anexar imagem", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachment: DealAttachment) => {
+    try {
+      await supabase.storage.from("deal-attachments").remove([attachment.file_path]);
+      await supabase.from("deal_attachments").delete().eq("id", attachment.id);
+      fetchAttachments();
+      toast({ title: "Anexo removido" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleUploadImage(file);
+          return;
+        }
+      }
+    }
+  };
+
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
     const updateData: any = { completed };
@@ -343,6 +419,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       
       fetchDealTasks(deal.id);
       fetchHistory();
+      fetchAttachments();
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -608,7 +685,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={dialogContentRef} className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent ref={dialogContentRef} className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0" onPaste={handlePaste}>
         {/* Header */}
         <DialogHeader
           className="px-6 pt-6 pb-4 rounded-t-lg"
@@ -939,6 +1016,66 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             </div>
           )}
 
+
+          <Separator />
+
+          {/* Attachments section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <ImagePlus className="h-4 w-4" />
+                Anexos
+              </h3>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadImage(file);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[10px] px-2 gap-1"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImagePlus className="h-3 w-3" />}
+                {uploadingImage ? "Enviando..." : "Anexar imagem"}
+              </Button>
+              <span className="text-[10px] text-muted-foreground">ou Ctrl+V</span>
+            </div>
+            {attachments.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {attachments.map((att) => {
+                  const publicUrl = supabase.storage.from("deal-attachments").getPublicUrl(att.file_path).data.publicUrl;
+                  return (
+                    <div key={att.id} className="group/att relative rounded-lg border border-border overflow-hidden bg-muted/30">
+                      <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={publicUrl}
+                          alt={att.file_name}
+                          className="w-full h-20 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                      </a>
+                      {(currentUserId === att.user_id || role === "admin") && (
+                        <button
+                          onClick={() => handleDeleteAttachment(att)}
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <Separator />
 
