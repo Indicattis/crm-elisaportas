@@ -235,7 +235,7 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
-  const showDeleteColumn = activeFilter === "archived";
+  const showDeleteColumn = activeFilter === "archived" || activeFilter === null;
 
   const handleDeleteDeal = async (dealId: string) => {
     const { error } = await supabase.from("deals").delete().eq("id", dealId);
@@ -277,7 +277,7 @@ export default function Results() {
                 {showArchiveReason && <TableHead>Motivo Arquivamento</TableHead>}
                 <TableHead>Criação</TableHead>
                 <TableHead>Atualização</TableHead>
-                {showDeleteColumn && <TableHead className="w-12"></TableHead>}
+                {showDeleteColumn && <TableHead className="w-28 text-right">Excluir</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -311,31 +311,40 @@ export default function Results() {
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.created_at)}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.updated_at)}</TableCell>
                   {showDeleteColumn && (
-                    <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={() => handleDeleteDeal(deal.id)}
+                    <TableCell className="text-right">
+                      {deal.archived ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
+                              <Trash2 className="h-4 w-4" />
                               Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => handleDeleteDeal(deal.id)}
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
