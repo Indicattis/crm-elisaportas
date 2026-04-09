@@ -251,6 +251,70 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
   }, [deal]);
 
+  const fetchAttachments = useCallback(async () => {
+    if (!deal) return;
+    const { data } = await supabase
+      .from("deal_attachments")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("created_at", { ascending: false });
+    setAttachments((data as DealAttachment[]) || []);
+  }, [deal]);
+
+  const handleUploadImage = async (file: File) => {
+    if (!deal || uploadingImage) return;
+    setUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `${deal.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("deal-attachments")
+        .upload(filePath, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { error: insertError } = await supabase.from("deal_attachments").insert({
+        deal_id: deal.id,
+        user_id: user.id,
+        file_path: filePath,
+        file_name: file.name || `image.${ext}`,
+      } as any);
+      if (insertError) throw insertError;
+      fetchAttachments();
+      toast({ title: "Imagem anexada!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao anexar imagem", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachment: DealAttachment) => {
+    try {
+      await supabase.storage.from("deal-attachments").remove([attachment.file_path]);
+      await supabase.from("deal_attachments").delete().eq("id", attachment.id);
+      fetchAttachments();
+      toast({ title: "Anexo removido" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleUploadImage(file);
+          return;
+        }
+      }
+    }
+  };
+
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
     const updateData: any = { completed };
