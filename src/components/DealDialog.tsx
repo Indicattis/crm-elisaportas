@@ -125,11 +125,14 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       } as any;
 
       if (deal) {
+        if (role === "admin" && assignedTo) {
+          payload.assigned_to = assignedTo;
+        }
         const { error } = await supabase.from("deals").update(payload).eq("id", deal.id);
         if (error) throw error;
         toast({ title: "Negociação atualizada!" });
       } else {
-        payload.assigned_to = user.id;
+        payload.assigned_to = (role === "admin" && assignedTo) ? assignedTo : user.id;
         const { data: newDeal, error } = await supabase.from("deals").insert(payload).select("id").single();
         if (error) throw error;
         toast({ title: "Negociação criada!" });
