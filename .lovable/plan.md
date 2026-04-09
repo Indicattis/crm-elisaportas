@@ -1,29 +1,49 @@
 
 
-# Adicionar filtros de Estado e Cidade no cabeçalho do Kanban
+# Anexar imagens nas negociações (Ctrl+V e botão)
 
 ## Visão geral
 
-Adicionar o componente `StateCitySelect` (já existente) na barra de filtros do KanbanBoard, ao lado do filtro de vendedor. Os deals serão filtrados por estado e cidade selecionados.
+Permitir que usuários anexem imagens em negociações via Ctrl+V (paste de print screen) ou clicando em um botão de upload. As imagens serão armazenadas em um bucket de storage e referenciadas em uma tabela `deal_attachments`. Serão exibidas como thumbnails clicáveis dentro do modal da negociação.
 
-## Alterações em `src/components/KanbanBoard.tsx`
+## Alterações
 
-### Estado
-- Adicionar `filterState` e `filterCity` como novos estados (`useState("")`)
-- Importar `StateCitySelect` de `@/components/StateCitySelect`
+### 1. Storage — criar bucket `deal-attachments`
+Migração SQL:
+- Criar bucket `deal-attachments` (público para leitura)
+- Políticas RLS: autenticados podem inserir/deletar no bucket, todos podem ler
 
-### Filtro na barra de cabeçalho
-- Inserir `StateCitySelect` após o select de vendedor, usando o modo `compact` para manter a altura consistente com os outros filtros
-- Props: `state={filterState}`, `city={filterCity}`, `onStateChange`, `onCityChange`
+### 2. Tabela `deal_attachments`
+Migração SQL:
+```sql
+CREATE TABLE deal_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  file_path text NOT NULL,
+  file_name text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE deal_attachments ENABLE ROW LEVEL SECURITY;
+```
+- RLS: SELECT via `can_access_deal()`, INSERT para autenticados com `can_access_deal()`, DELETE para dono ou admin
 
-### Lógica de filtragem
-- Adicionar um filtro nos deals (tanto na view kanban quanto na list view) que verifica:
-  - Se `filterState` está preenchido, `deal.state === filterState`
-  - Se `filterCity` está preenchido, `deal.city === filterCity`
+### 3. `src/components/DealDetailDialog.tsx`
+- Adicionar estado `attachments` e `uploadingImage`
+- Função `fetchAttachments()` para carregar anexos do deal
+- Função `handleUploadImage(file: File)` que faz upload ao storage e insere na tabela
+- Handler `onPaste` no `DialogContent` que detecta imagens no clipboard e chama `handleUploadImage`
+- Botão de anexar imagem (ícone de câmera/imagem) ao lado do botão de enviar comentário, com `<input type="file" accept="image/*" hidden />`
+- Seção de galeria de anexos: thumbnails clicáveis que abrem a imagem em nova aba, com botão de deletar (dono ou admin)
 
-## Arquivo afetado
+### 4. Exibição
+- Seção "Anexos" entre as tarefas e os comentários, mostrando grid de thumbnails
+- Cada thumbnail com botão X para remover
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Adicionar estados, componente e lógica de filtro |
+| Migração SQL | Criar bucket e tabela `deal_attachments` com RLS |
+| `src/components/DealDetailDialog.tsx` | Paste handler, upload, galeria de anexos |
 
