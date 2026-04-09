@@ -419,6 +419,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       
       fetchDealTasks(deal.id);
       fetchHistory();
+      fetchAttachments();
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
