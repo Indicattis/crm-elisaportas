@@ -126,6 +126,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [archiveReason, setArchiveReason] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachments, setAttachments] = useState<DealAttachment[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
   const { role } = useUserRole();
 
