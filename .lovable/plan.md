@@ -1,42 +1,29 @@
 
 
-# Atribuição automática (roleta) nos Fluxos de Captação
+# Adicionar botão "Desqualificar" no modal da negociação
 
 ## Visão geral
 
-Adicionar um campo `assignment_mode` na tabela `lead_flows` com duas opções: "Sem dono" (padrão atual) e "Roleta" (distribui automaticamente entre os membros do funil). A edge function `submit-lead` implementará a lógica de roleta.
+Separar a ação de desqualificar da ação "Perdida". Um novo botão "Desqualificar" será exibido no rodapé do modal, disponível para administradores e o responsável pela negociação. Ao clicar, abre um dialog pedindo justificativa em texto livre. A negociação será marcada com status "Desqualificada" e a justificativa salva em `loss_reason`.
 
 ## Alterações
 
-### 1. Migração SQL
-- Adicionar coluna `assignment_mode` na tabela `lead_flows`:
-  ```sql
-  ALTER TABLE public.lead_flows ADD COLUMN assignment_mode text NOT NULL DEFAULT 'unassigned';
-  ```
-  Valores possíveis: `unassigned` (sem dono) e `round_robin` (roleta).
+### 1. `src/components/DealDetailDialog.tsx`
 
-### 2. `src/components/LeadFlowManager.tsx`
-- Adicionar estado `assignmentMode` no formulário
-- Adicionar selectbox "Atribuição" com opções:
-  - `unassigned` → "Sem dono"
-  - `round_robin` → "Roleta (distribuição automática)"
-- Incluir `assignment_mode` no payload de save
-- Exibir o modo de atribuição no card do fluxo
-- Carregar o valor ao editar
+- Adicionar estado `showDisqualifyDialog` e `disqualifyReason`
+- Remover "Desqualificado" da lista `LOSS_REASONS` (já que terá botão próprio)
+- Adicionar botão "Desqualificar" no rodapé, visível quando `role === "admin"` ou `deal.assigned_to === currentUserId`
+- Adicionar dialog de desqualificação com `Textarea` para justificativa obrigatória
+- Ao confirmar: atualizar deal com `status: "Desqualificada"` e `loss_reason: disqualifyReason`, registrar no histórico, fechar modal
 
-### 3. `supabase/functions/submit-lead/index.ts`
-- Carregar `assignment_mode` junto com os dados do fluxo
-- Se `round_robin`:
-  - Buscar membros do funil via `funnel_members` (pelo `funnel_id` do fluxo)
-  - Contar deals ativos (não arquivados) de cada membro naquele funil
-  - Atribuir o `assigned_to` ao membro com menos deals (distribuição equilibrada)
-- Se `unassigned`: manter comportamento atual (sem `assigned_to`)
+### 2. `src/components/KanbanBoard.tsx`
+
+- Verificar se o status "Desqualificada" precisa de tratamento especial na filtragem (deals desqualificadas não devem aparecer no kanban ativo, similar a "Perdida")
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar coluna `assignment_mode` em `lead_flows` |
-| `src/components/LeadFlowManager.tsx` | Adicionar selectbox de modo de atribuição |
-| `supabase/functions/submit-lead/index.ts` | Implementar lógica de roleta |
+| `src/components/DealDetailDialog.tsx` | Adicionar botão, dialog e lógica de desqualificação |
+| `src/components/KanbanBoard.tsx` | Garantir que deals "Desqualificada" sejam filtradas como "Perdida" |
 
