@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { createNotification } from "@/lib/notifications";
 import { LayoutGrid, List, Search, User } from "lucide-react";
+import { StateCitySelect } from "./StateCitySelect";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
@@ -68,6 +69,8 @@ export function KanbanBoard() {
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [filterState, setFilterState] = useState("");
+  const [filterCity, setFilterCity] = useState("");
   const { toast } = useToast();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -459,6 +462,12 @@ export function KanbanBoard() {
     return deal.assigned_to === selectedSellerId;
   }, [selectedSellerId]);
 
+  const filterByLocation = useCallback((deal: Deal) => {
+    if (filterState && deal.state !== filterState) return false;
+    if (filterCity && deal.city !== filterCity) return false;
+    return true;
+  }, [filterState, filterCity]);
+
   return (
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
@@ -505,6 +514,13 @@ export function KanbanBoard() {
               ))}
             </SelectContent>
           </Select>
+          <StateCitySelect
+            state={filterState}
+            city={filterCity}
+            onStateChange={setFilterState}
+            onCityChange={setFilterCity}
+            compact
+          />
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
@@ -534,7 +550,7 @@ export function KanbanBoard() {
         </div>
       ) : viewMode === "list" ? (
         <DealsListView
-          deals={deals.filter(filterBySeller).filter((d) => {
+          deals={deals.filter(filterBySeller).filter(filterByLocation).filter((d) => {
             if (!searchQuery.trim()) return true;
             const q = searchQuery.toLowerCase().trim();
             const qDigits = q.replace(/\D/g, "");
@@ -570,6 +586,7 @@ export function KanbanBoard() {
               const columnDeals = deals
                 .filter((deal) => deal.status === column.name)
                 .filter(filterBySeller)
+                .filter(filterByLocation)
                 .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id)
                 .filter((deal) => {
                   if (!q) return true;
