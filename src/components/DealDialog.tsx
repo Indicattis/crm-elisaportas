@@ -12,6 +12,7 @@ import { createDealTasksForColumn } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import { getChannelIcon } from "@/lib/channel-icons";
+import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
