@@ -1,25 +1,23 @@
 
 
-# Corrigir busca de cidades com acentos no StateCitySelect
+# Adicionar ordenação por valor nas etapas do funil
 
-## Problema
+## Alterações
 
-A cidade "Taió" existe nos dados de SC, mas o componente `Command` (cmdk) usa comparação padrão que não normaliza acentos. Buscar "taio" não encontra "Taió", dando a impressão de que a cidade não existe.
+### 1. `src/components/FunnelColumnList.tsx`
+- Adicionar duas novas opções no `<Select>` de ordenação:
+  - `value_desc` → "Maior valor"
+  - `value_asc` → "Menor valor"
 
-## Solução
+### 2. `src/components/KanbanBoard.tsx`
+- Na lógica de `.sort()` (linha ~599), adicionar dois novos casos:
+  - `value_desc`: ordenar por `deal.deal_value` decrescente (maior primeiro), tratando `null`/`undefined` como 0
+  - `value_asc`: ordenar por `deal.deal_value` crescente (menor primeiro)
 
-Adicionar um `filter` customizado no componente `Command` dentro de `StateCitySelect.tsx` que normalize acentos antes de comparar:
-
-```tsx
-<Command filter={(value, search) => {
-  const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  return normalize(value).includes(normalize(search)) ? 1 : 0;
-}}>
-```
-
-## Arquivo afetado
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/StateCitySelect.tsx` | Adicionar filtro customizado sem acentos no `Command` |
+| `src/components/FunnelColumnList.tsx` | Adicionar opções "Maior valor" e "Menor valor" no select |
+| `src/components/KanbanBoard.tsx` | Adicionar lógica de sort por valor |
 
