@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User } from "lucide-react";
+import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -233,6 +235,17 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
+  const showDeleteColumn = activeFilter === "archived";
+
+  const handleDeleteDeal = async (dealId: string) => {
+    const { error } = await supabase.from("deals").delete().eq("id", dealId);
+    if (error) {
+      toast.error("Erro ao excluir negociação");
+      return;
+    }
+    toast.success("Negociação excluída com sucesso");
+    fetchDeals();
+  };
 
   const renderTable = (deals: Deal[]) => {
     const filtered = filterBySearch(deals);
@@ -264,6 +277,7 @@ export default function Results() {
                 {showArchiveReason && <TableHead>Motivo Arquivamento</TableHead>}
                 <TableHead>Criação</TableHead>
                 <TableHead>Atualização</TableHead>
+                {showDeleteColumn && <TableHead className="w-12"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -296,6 +310,34 @@ export default function Results() {
                   )}
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.created_at)}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.updated_at)}</TableCell>
+                  {showDeleteColumn && (
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDeleteDeal(deal.id)}
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
