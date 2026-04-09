@@ -37,6 +37,15 @@ interface Tag {
   color: string;
 }
 
+interface DealAttachment {
+  id: string;
+  deal_id: string;
+  user_id: string;
+  file_path: string;
+  file_name: string;
+  created_at: string;
+}
+
 type DealData = Tables<"deals">;
 
 interface DealComment {
