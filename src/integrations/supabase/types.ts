@@ -471,6 +471,7 @@ export type Database = {
         Row: {
           acquisition_channel: string | null
           active: boolean
+          assignment_mode: string
           created_at: string
           funnel_id: string
           id: string
@@ -481,6 +482,7 @@ export type Database = {
         Insert: {
           acquisition_channel?: string | null
           active?: boolean
+          assignment_mode?: string
           created_at?: string
           funnel_id: string
           id?: string
@@ -491,6 +493,7 @@ export type Database = {
         Update: {
           acquisition_channel?: string | null
           active?: boolean
+          assignment_mode?: string
           created_at?: string
           funnel_id?: string
           id?: string
