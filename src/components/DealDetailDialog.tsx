@@ -1019,6 +1019,66 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
           <Separator />
 
+          {/* Attachments section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <ImagePlus className="h-4 w-4" />
+                Anexos
+              </h3>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadImage(file);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[10px] px-2 gap-1"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImagePlus className="h-3 w-3" />}
+                {uploadingImage ? "Enviando..." : "Anexar imagem"}
+              </Button>
+              <span className="text-[10px] text-muted-foreground">ou Ctrl+V</span>
+            </div>
+            {attachments.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {attachments.map((att) => {
+                  const publicUrl = supabase.storage.from("deal-attachments").getPublicUrl(att.file_path).data.publicUrl;
+                  return (
+                    <div key={att.id} className="group/att relative rounded-lg border border-border overflow-hidden bg-muted/30">
+                      <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={publicUrl}
+                          alt={att.file_name}
+                          className="w-full h-20 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                      </a>
+                      {(currentUserId === att.user_id || role === "admin") && (
+                        <button
+                          onClick={() => handleDeleteAttachment(att)}
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Comments section */}
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">Comentários e Histórico</h3>
