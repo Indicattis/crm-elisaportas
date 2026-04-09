@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, Bell, MapPin } from "lucide-react";
+import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, MapPin } from "lucide-react";
 import { getChannelIcon } from "@/lib/channel-icons";
+import { applyPhoneMask } from "@/lib/phone-mask";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -172,7 +173,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           {(deal as any).phone && (
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">{(deal as any).phone}</span>
+              <span className="truncate max-w-[120px]">{applyPhoneMask((deal as any).phone)}</span>
             </span>
           )}
           {deal.heat > 0 && (
