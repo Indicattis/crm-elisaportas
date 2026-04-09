@@ -131,6 +131,7 @@ export function KanbanBoard() {
       .eq("archived", false)
       .neq("status", "Perdida")
       .neq("status", "Vendido")
+      .neq("status", "Desqualificada")
       .order("created_at", { ascending: false });
 
     if (error) {
