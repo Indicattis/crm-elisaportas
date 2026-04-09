@@ -124,6 +124,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [selectedLossReason, setSelectedLossReason] = useState<string>("");
   const [showArchiveReasonDialog, setShowArchiveReasonDialog] = useState(false);
   const [archiveReason, setArchiveReason] = useState("");
+  const [showDisqualifyDialog, setShowDisqualifyDialog] = useState(false);
+  const [disqualifyReason, setDisqualifyReason] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -570,13 +572,43 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   };
 
   const LOSS_REASONS = [
-    "Desqualificado",
     "Perca por orçamento",
     "Perca por prazo",
     "Perca por qualidade",
     "Perca por logística",
     "Perca por atendimento",
   ];
+
+  const handleDisqualify = () => {
+    setDisqualifyReason("");
+    setShowDisqualifyDialog(true);
+  };
+
+  const confirmDisqualify = async () => {
+    if (!deal || !disqualifyReason.trim()) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("deals").update({
+        status: "Desqualificada",
+        loss_reason: disqualifyReason.trim(),
+      } as any).eq("id", deal.id);
+      if (error) throw error;
+      if (user) {
+        await supabase.from("deal_history").insert({
+          deal_id: deal.id,
+          user_id: user.id,
+          event_type: "disqualified",
+          description: `Desqualificou: ${disqualifyReason.trim()}`,
+        } as any);
+      }
+      toast({ title: "Negociação desqualificada" });
+      setShowDisqualifyDialog(false);
+      onUpdated();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Erro ao desqualificar", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleMarkAsLost = () => {
     setSelectedLossReason("");
@@ -1523,6 +1555,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     Sair da negociação
                   </Button>
                 )}
+                {(role === "admin" || (deal.assigned_to && deal.assigned_to === currentUserId)) && (
+                  <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={handleDisqualify}>
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Desqualificar
+                  </Button>
+                )}
                 <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
                   <XCircle className="h-4 w-4 mr-1" />
                   Perdida
@@ -1589,6 +1627,31 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 onOpenChange(false);
               }
             }}
+          >
+            Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Disqualify Reason Dialog */}
+    <Dialog open={showDisqualifyDialog} onOpenChange={setShowDisqualifyDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Desqualificar negociação</DialogTitle>
+        </DialogHeader>
+        <Textarea
+          placeholder="Descreva o motivo da desqualificação..."
+          value={disqualifyReason}
+          onChange={(e) => setDisqualifyReason(e.target.value)}
+          className="min-h-[100px]"
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowDisqualifyDialog(false)}>Cancelar</Button>
+          <Button
+            disabled={!disqualifyReason.trim()}
+            onClick={confirmDisqualify}
+            className="bg-orange-600 hover:bg-orange-700 text-white"
           >
             Confirmar
           </Button>
