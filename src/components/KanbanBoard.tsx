@@ -605,6 +605,8 @@ export function KanbanBoard() {
                     const tB = nextTaskMap[b.id] ? new Date(nextTaskMap[b.id]).getTime() : Infinity;
                     return tA - tB;
                   }
+                  if (order === "value_desc") return (b.value || 0) - (a.value || 0);
+                  if (order === "value_asc") return (a.value || 0) - (b.value || 0);
                   // channel (default)
                   const pA = a.acquisition_channel ? (channelPositionMap[a.acquisition_channel] ?? 9999) : 9999;
                   const pB = b.acquisition_channel ? (channelPositionMap[b.acquisition_channel] ?? 9999) : 9999;
