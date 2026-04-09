@@ -98,7 +98,10 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setChannel("");
       setState("");
       setCity("");
-      setAssignedTo("");
+      // Default to current user
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        setAssignedTo(user?.id || "");
+      });
     }
     setDuplicateInfo(null);
   }, [deal, defaultStatus, open, statuses]);
