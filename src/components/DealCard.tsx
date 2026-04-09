@@ -173,7 +173,7 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
           {(deal as any).phone && (
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">{(deal as any).phone}</span>
+              <span className="truncate max-w-[120px]">{applyPhoneMask((deal as any).phone)}</span>
             </span>
           )}
           {deal.heat > 0 && (
