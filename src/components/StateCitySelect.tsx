@@ -60,7 +60,10 @@ export function StateCitySelect({ state, city, onStateChange, onCityChange, disa
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[250px] p-0" align="start">
-            <Command>
+            <Command filter={(value, search) => {
+              const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+              return normalize(value).includes(normalize(search)) ? 1 : 0;
+            }}>
               <CommandInput placeholder="Buscar cidade..." />
               <CommandList>
                 <CommandEmpty>Nenhuma cidade encontrada.</CommandEmpty>
