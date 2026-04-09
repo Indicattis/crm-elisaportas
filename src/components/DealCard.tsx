@@ -99,9 +99,6 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
               onColorChange?.(deal.id, next);
             }}
           />
-          {hasOverdueTasks && (
-            <Bell className="h-3.5 w-3.5 text-red-500 fill-red-500 shrink-0" />
-          )}
           {channelIconKey && (() => {
             const ChannelIcon = getChannelIcon(channelIconKey).icon;
             return <ChannelIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
