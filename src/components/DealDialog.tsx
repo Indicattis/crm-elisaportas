@@ -88,6 +88,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setChannel((deal as any).acquisition_channel || "");
       setState((deal as any).state || "");
       setCity((deal as any).city || "");
+      setAssignedTo(deal.assigned_to || "");
     } else {
       setTitle("");
       setPhone("");
@@ -97,6 +98,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setChannel("");
       setState("");
       setCity("");
+      setAssignedTo("");
     }
     setDuplicateInfo(null);
   }, [deal, defaultStatus, open, statuses]);
