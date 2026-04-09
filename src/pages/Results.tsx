@@ -235,6 +235,17 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
+  const showDeleteColumn = activeFilter === "archived";
+
+  const handleDeleteDeal = async (dealId: string) => {
+    const { error } = await supabase.from("deals").delete().eq("id", dealId);
+    if (error) {
+      toast.error("Erro ao excluir negociação");
+      return;
+    }
+    toast.success("Negociação excluída com sucesso");
+    fetchDeals();
+  };
 
   const renderTable = (deals: Deal[]) => {
     const filtered = filterBySearch(deals);
