@@ -243,6 +243,19 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             onStateChange={setState}
             onCityChange={setCity}
           />
+          {role === "admin" && (
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger><SelectValue placeholder="Selecionar responsável..." /></SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex gap-2 justify-end">
             {deal && (
               <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
