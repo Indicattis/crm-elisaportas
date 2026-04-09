@@ -12,6 +12,7 @@ import { createDealTasksForColumn } from "@/lib/deal-tasks";
 import { StateCitySelect } from "@/components/StateCitySelect";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import { getChannelIcon } from "@/lib/channel-icons";
+import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
@@ -33,11 +34,14 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [channel, setChannel] = useState("");
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [duplicateInfo, setDuplicateInfo] = useState<{ title: string; status: string; assignedName: string } | null>(null);
   const [channelOptions, setChannelOptions] = useState<{ id: string; name: string; icon: string }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string }[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
+  const { role } = useUserRole();
 
   const checkDuplicatePhone = useCallback((phoneValue: string, currentDealId?: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -67,7 +71,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
     supabase.from("acquisition_channels").select("id, name, icon").order("position").then(({ data }) => {
       if (data) setChannelOptions(data);
     });
-  }, []);
+    if (role === "admin") {
+      supabase.from("profiles").select("id, full_name").order("full_name").then(({ data }) => {
+        setTeamMembers((data || []).filter((p) => p.full_name).map((p) => ({ id: p.id, full_name: p.full_name! })));
+      });
+    }
+  }, [role]);
 
   useEffect(() => {
     if (deal) {
@@ -79,6 +88,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setChannel((deal as any).acquisition_channel || "");
       setState((deal as any).state || "");
       setCity((deal as any).city || "");
+      setAssignedTo(deal.assigned_to || "");
     } else {
       setTitle("");
       setPhone("");
@@ -88,6 +98,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setChannel("");
       setState("");
       setCity("");
+      setAssignedTo("");
     }
     setDuplicateInfo(null);
   }, [deal, defaultStatus, open, statuses]);
@@ -114,11 +125,14 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       } as any;
 
       if (deal) {
+        if (role === "admin" && assignedTo) {
+          payload.assigned_to = assignedTo;
+        }
         const { error } = await supabase.from("deals").update(payload).eq("id", deal.id);
         if (error) throw error;
         toast({ title: "Negociação atualizada!" });
       } else {
-        payload.assigned_to = user.id;
+        payload.assigned_to = (role === "admin" && assignedTo) ? assignedTo : user.id;
         const { data: newDeal, error } = await supabase.from("deals").insert(payload).select("id").single();
         if (error) throw error;
         toast({ title: "Negociação criada!" });
@@ -229,6 +243,19 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             onStateChange={setState}
             onCityChange={setCity}
           />
+          {role === "admin" && (
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger><SelectValue placeholder="Selecionar responsável..." /></SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex gap-2 justify-end">
             {deal && (
               <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
