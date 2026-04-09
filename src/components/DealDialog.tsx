@@ -71,7 +71,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
     supabase.from("acquisition_channels").select("id, name, icon").order("position").then(({ data }) => {
       if (data) setChannelOptions(data);
     });
-  }, []);
+    if (role === "admin") {
+      supabase.from("profiles").select("id, full_name").order("full_name").then(({ data }) => {
+        setTeamMembers((data || []).filter((p) => p.full_name).map((p) => ({ id: p.id, full_name: p.full_name! })));
+      });
+    }
+  }, [role]);
 
   useEffect(() => {
     if (deal) {
