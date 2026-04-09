@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_flows ADD COLUMN assignment_mode text NOT NULL DEFAULT 'unassigned';

@@ -17,6 +17,7 @@ interface LeadFlow {
   funnel_id: string;
   status: string;
   acquisition_channel: string | null;
+  assignment_mode: string;
   active: boolean;
   created_at: string;
 }
@@ -52,6 +53,7 @@ export function LeadFlowManager() {
   const [funnelId, setFunnelId] = useState("");
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
+  const [assignmentMode, setAssignmentMode] = useState("unassigned");
   const [active, setActive] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -94,6 +96,7 @@ export function LeadFlowManager() {
     setFunnelId(funnels[0]?.id || "");
     setStatus("");
     setChannel("");
+    setAssignmentMode("unassigned");
     setActive(true);
     setDialogOpen(true);
   };
@@ -104,6 +107,7 @@ export function LeadFlowManager() {
     setFunnelId(flow.funnel_id);
     setStatus(flow.status);
     setChannel(flow.acquisition_channel || "");
+    setAssignmentMode(flow.assignment_mode || "unassigned");
     setActive(flow.active);
     setDialogOpen(true);
   };
@@ -122,6 +126,7 @@ export function LeadFlowManager() {
       funnel_id: funnelId,
       status,
       acquisition_channel: channel || null,
+      assignment_mode: assignmentMode,
       active,
       user_id: user.id,
     };
@@ -202,6 +207,7 @@ export function LeadFlowManager() {
                       <strong className="text-foreground">{flow.acquisition_channel}</strong>
                     </span>
                   )}
+                  <span>Atribuição: <strong className="text-foreground">{flow.assignment_mode === "round_robin" ? "Roleta" : "Sem dono"}</strong></span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => copyEmbed(flow)}>
@@ -276,6 +282,17 @@ export function LeadFlowManager() {
                       </SelectItem>
                     );
                   })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Atribuição</Label>
+              <Select value={assignmentMode} onValueChange={setAssignmentMode}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Sem dono</SelectItem>
+                  <SelectItem value="round_robin">Roleta (distribuição automática)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
