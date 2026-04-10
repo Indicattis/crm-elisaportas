@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2, Ban } from "lucide-react";
+import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2, Ban, Undo2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
@@ -255,7 +255,7 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
-  const showDeleteColumn = activeFilter === "archived" || activeFilter === null;
+  const showActionsColumn = activeFilter === "archived" || activeFilter === "disqualified" || activeFilter === null;
 
   const handleDeleteDeal = async (dealId: string) => {
     const { error } = await supabase.from("deals").delete().eq("id", dealId);
@@ -264,6 +264,49 @@ export default function Results() {
       return;
     }
     toast.success("Negociação excluída com sucesso");
+    fetchDeals();
+  };
+
+  const handleRestoreDeal = async (deal: Deal) => {
+    if (!deal.funnel_id) {
+      toast.error("Negociação sem funil associado");
+      return;
+    }
+    const { data: firstCol } = await supabase
+      .from("funnel_columns")
+      .select("name")
+      .eq("funnel_id", deal.funnel_id)
+      .eq("is_notice", false)
+      .order("position", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!firstCol) {
+      toast.error("Não foi possível encontrar a primeira etapa do funil");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("deals")
+      .update({ status: firstCol.name, loss_reason: null })
+      .eq("id", deal.id);
+
+    if (error) {
+      toast.error("Erro ao retornar negociação");
+      return;
+    }
+
+    if (currentUserId) {
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: currentUserId,
+        event_type: "restored",
+        description: `Negociação retornada ao Kanban na etapa "${firstCol.name}"`,
+        metadata: { from: "Desqualificado", to: firstCol.name },
+      });
+    }
+
+    toast.success(`Negociação retornada para "${firstCol.name}"`);
     fetchDeals();
   };
 
@@ -298,7 +341,7 @@ export default function Results() {
                 {showArchiveReason && <TableHead>Motivo Arquivamento</TableHead>}
                 <TableHead>Criação</TableHead>
                 <TableHead>Atualização</TableHead>
-                {showDeleteColumn && <TableHead className="w-28 text-right">Excluir</TableHead>}
+                {showActionsColumn && <TableHead className="w-32 text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -331,41 +374,72 @@ export default function Results() {
                   )}
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.created_at)}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.updated_at)}</TableCell>
-                  {showDeleteColumn && (
+                  {showActionsColumn && (
                     <TableCell className="text-right">
-                      {deal.archived ? (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Excluir
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => handleDeleteDeal(deal.id)}
+                      <div className="flex items-center justify-end gap-1">
+                        {deal.archived && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
+                                <Trash2 className="h-4 w-4" />
                                 Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => handleDeleteDeal(deal.id)}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {deal.status === "Desqualificado" && !deal.archived && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                <Undo2 className="h-4 w-4" />
+                                Retornar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Retornar ao Kanban</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Deseja retornar "{deal.title}" para a primeira etapa do funil? A negociação voltará a aparecer no Kanban.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRestoreDeal(deal)}>
+                                  Retornar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {!deal.archived && deal.status !== "Desqualificado" && (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
