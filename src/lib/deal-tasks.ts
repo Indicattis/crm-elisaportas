@@ -36,7 +36,7 @@ export async function createDealTasksForColumn(dealId: string, columnName: strin
   // Fetch templates for this group
   const { data: templates } = await supabase
     .from("task_templates")
-    .select("id, type, description, deadline_hours, recurrence_type, recurrence_value")
+    .select("id, type, description, deadline_hours, recurrence_type, recurrence_value, stage_id")
     .eq("group_id", taskGroupId)
     .order("position");
 
