@@ -248,7 +248,8 @@ export default function Results() {
     if (activeFilter === "sold") return soldDeals;
     if (activeFilter === "lost") return lostDeals;
     if (activeFilter === "archived") return archivedDeals;
-    return [...soldDeals, ...lostDeals, ...archivedDeals];
+    if (activeFilter === "disqualified") return disqualifiedDeals;
+    return [...soldDeals, ...lostDeals, ...archivedDeals, ...disqualifiedDeals];
   };
 
   const showLossReason = activeFilter === "lost" || activeFilter === null;
