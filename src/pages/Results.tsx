@@ -255,7 +255,7 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
-  const showDeleteColumn = activeFilter === "archived" || activeFilter === null;
+  const showActionsColumn = activeFilter === "archived" || activeFilter === "disqualified" || activeFilter === null;
 
   const handleDeleteDeal = async (dealId: string) => {
     const { error } = await supabase.from("deals").delete().eq("id", dealId);
@@ -264,6 +264,49 @@ export default function Results() {
       return;
     }
     toast.success("Negociação excluída com sucesso");
+    fetchDeals();
+  };
+
+  const handleRestoreDeal = async (deal: Deal) => {
+    if (!deal.funnel_id) {
+      toast.error("Negociação sem funil associado");
+      return;
+    }
+    const { data: firstCol } = await supabase
+      .from("funnel_columns")
+      .select("name")
+      .eq("funnel_id", deal.funnel_id)
+      .eq("is_notice", false)
+      .order("position", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!firstCol) {
+      toast.error("Não foi possível encontrar a primeira etapa do funil");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("deals")
+      .update({ status: firstCol.name, loss_reason: null })
+      .eq("id", deal.id);
+
+    if (error) {
+      toast.error("Erro ao retornar negociação");
+      return;
+    }
+
+    if (currentUserId) {
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: currentUserId,
+        event_type: "restored",
+        description: `Negociação retornada ao Kanban na etapa "${firstCol.name}"`,
+        metadata: { from: "Desqualificado", to: firstCol.name },
+      });
+    }
+
+    toast.success(`Negociação retornada para "${firstCol.name}"`);
     fetchDeals();
   };
 
