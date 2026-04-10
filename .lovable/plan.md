@@ -1,45 +1,30 @@
 
 
-# Coluna de Avisos no Funil
+# Mover configurações de coluna para uma Sidebar (Sheet)
 
 ## Visão geral
 
-Adicionar um novo tipo de coluna no funil: "coluna de aviso". Visualmente, ela aparece no Kanban como uma coluna recolhida (barra vertical fina) exibindo um texto de aviso configurável. Não aceita negociações — serve apenas como separador visual informativo entre etapas.
+Cada linha de coluna no funil atualmente exibe todas as configurações inline (checkboxes, selects, popover). A proposta é simplificar a linha, mantendo apenas nome, cor, setas de posição e delete, e adicionar um botão de engrenagem que abre um `Sheet` lateral com todas as configurações da coluna selecionada.
 
 ## Alterações
 
-### 1. Migração SQL
+### `src/components/FunnelColumnList.tsx`
 
-Adicionar duas colunas em `funnel_columns`:
+1. **Importar** `Sheet`, `SheetContent`, `SheetHeader`, `SheetTitle` de `@/components/ui/sheet`
+2. **Adicionar estado** `editingColumnId` para controlar qual coluna está com o sheet aberto
+3. **Linha da coluna**: manter apenas setas, cor, nome, botão de engrenagem (`Settings` icon) e botão de excluir
+4. **Sheet lateral**: ao clicar na engrenagem, abre um Sheet com:
+   - Checkbox "Coluna de aviso" + textarea do texto (se ativado)
+   - Checkbox "Bolas coloridas" (se não for aviso)
+   - Select "Grupo de tarefas" (se não for aviso)
+   - Select "Ordenação" (se não for aviso)
+   - Checkboxes "Ações permitidas" (se não for aviso)
 
-```sql
-ALTER TABLE public.funnel_columns
-ADD COLUMN is_notice boolean NOT NULL DEFAULT false,
-ADD COLUMN notice_text text;
-```
-
-### 2. `src/components/FunnelColumnList.tsx`
-
-- Adicionar checkbox "Coluna de aviso" por coluna
-- Quando marcada, exibir campo de texto para o aviso e ocultar seletores irrelevantes (grupo de tarefas, ordenação, ações permitidas)
-- Salvar `is_notice` e `notice_text` no banco
-
-### 3. `src/components/KanbanBoard.tsx`
-
-- Ao renderizar colunas, identificar colunas com `is_notice = true`
-- Renderizar um componente de aviso em vez de `KanbanColumn` — barra vertical fina (similar ao collapsed) com o texto de aviso, sem droppable, sem deals
-- Não filtrar deals para colunas de aviso (elas não têm deals)
-
-### 4. `src/components/KanbanColumn.tsx` (ou novo componente)
-
-- Criar renderização de "notice column": barra vertical com a cor da coluna, exibindo o texto de aviso em vertical, sem botão de adicionar, sem contagem, não droppable nem colapsável
+A lógica e handlers existentes permanecem iguais, apenas muda onde os controles são renderizados.
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar `is_notice` e `notice_text` em `funnel_columns` |
-| `src/components/FunnelColumnList.tsx` | UI para configurar coluna como aviso |
-| `src/components/KanbanBoard.tsx` | Renderizar coluna de aviso diferenciada |
-| `src/components/KanbanColumn.tsx` | Adicionar modo de renderização "notice" |
+| `src/components/FunnelColumnList.tsx` | Refatorar UI: linha simplificada + Sheet com configurações |
 
