@@ -274,8 +274,8 @@ export default function Dashboard() {
       </div>
 
       {dealsLoading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
+          {Array.from({ length: 7 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
