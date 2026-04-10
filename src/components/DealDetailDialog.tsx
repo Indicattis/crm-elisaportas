@@ -434,16 +434,27 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchHistory();
       fetchAttachments();
 
-      // Fetch allowed actions for the current column
+      // Fetch allowed actions and task stages for the current column
       if (deal.funnel_id && deal.status) {
         supabase
           .from("funnel_columns")
-          .select("allowed_actions")
+          .select("allowed_actions, task_group_id")
           .eq("funnel_id", deal.funnel_id)
           .eq("name", deal.status)
           .maybeSingle()
-          .then(({ data }) => {
+          .then(async ({ data }) => {
             setAllowedActions((data as any)?.allowed_actions || ["sold", "lost", "disqualified"]);
+            const groupId = (data as any)?.task_group_id;
+            if (groupId) {
+              const { data: stages } = await supabase
+                .from("task_group_stages")
+                .select("*")
+                .eq("group_id", groupId)
+                .order("position");
+              setTaskStages((stages as TaskStage[]) || []);
+            } else {
+              setTaskStages([]);
+            }
           });
       }
     }
