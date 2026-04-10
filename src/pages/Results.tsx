@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { applyPhoneMask } from "@/lib/phone-mask";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -350,6 +351,7 @@ export default function Results() {
                 <TableRow key={deal.id} className="hover:bg-accent/30 transition-colors">
                   <TableCell className="font-medium">{deal.title}</TableCell>
                   {showStatusColumn && <TableCell>{statusBadge(deal.status, deal.archived)}</TableCell>}
+                  <TableCell className="text-muted-foreground text-sm">{deal.phone ? applyPhoneMask(deal.phone) : "—"}</TableCell>
                   <TableCell>
                     <span className="font-semibold text-success">{formatCurrency(deal.value)}</span>
                   </TableCell>
