@@ -844,14 +844,19 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           {/* Main content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           {/* Contact section */}
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
-              <Phone className="h-4 w-4" />
+          <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm backdrop-blur-sm">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center h-6 w-6 rounded-md bg-primary/10">
+                <Phone className="h-3.5 w-3.5 text-primary" />
+              </div>
               Contato
             </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-3.5 w-3.5" />
+            <div className="space-y-2.5">
+              {/* Phone */}
+              <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
+                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
+                  <Phone className="h-3.5 w-3.5 text-primary" />
+                </div>
                 {editingField === "phone" as any ? (
                   <Input
                     autoFocus
@@ -865,34 +870,42 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       setEditingField(null);
                     }}
                     onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
-                    className="h-6 text-xs w-40"
+                    className="h-7 text-sm flex-1"
                     placeholder="Telefone"
                   />
                 ) : (
                   <span
-                    className="cursor-pointer hover:text-foreground transition-colors"
+                    className="text-sm cursor-pointer hover:text-primary transition-colors flex-1"
                     onClick={() => { setEditPhone((deal as any).phone || ""); setEditingField("phone" as any); }}
                   >
-                    {(deal as any).phone || <span className="italic">Adicionar telefone</span>}
+                    {(deal as any).phone ? (
+                      <span className="font-medium text-foreground">{(deal as any).phone}</span>
+                    ) : (
+                      <span className="italic text-muted-foreground">Adicionar telefone</span>
+                    )}
                   </span>
                 )}
                 {(deal as any).phone && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-7 w-7 rounded-full hover:bg-green-500/10"
                     onClick={() => {
                       const p = formatPhoneForWhatsapp((deal as any).phone);
                       window.open(`https://wa.me/${p}`, "_blank");
                     }}
                     title="WhatsApp"
                   >
-                    <MessageSquare className="h-3.5 w-3.5 text-green-600" />
+                    <MessageSquare className="h-3.5 w-3.5 text-green-500" />
                   </Button>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="h-3.5 w-3.5" />
+
+              {/* Email */}
+              <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
+                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
+                  <Mail className="h-3.5 w-3.5 text-primary" />
+                </div>
                 {editingField === "email" as any ? (
                   <Input
                     autoFocus
@@ -907,21 +920,28 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       setEditingField(null);
                     }}
                     onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditingField(null); }}
-                    className="h-6 text-xs w-48"
+                    className="h-7 text-sm flex-1"
                     placeholder="E-mail"
                   />
                 ) : (
                   <span
-                    className="cursor-pointer hover:text-foreground transition-colors"
+                    className="text-sm cursor-pointer hover:text-primary transition-colors flex-1"
                     onClick={() => { setEditEmail((deal as any).email || ""); setEditingField("email" as any); }}
                   >
-                    {(deal as any).email || <span className="italic">Adicionar e-mail</span>}
+                    {(deal as any).email ? (
+                      <span className="font-medium text-foreground">{(deal as any).email}</span>
+                    ) : (
+                      <span className="italic text-muted-foreground">Adicionar e-mail</span>
+                    )}
                   </span>
                 )}
               </div>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 shrink-0 mt-1" />
+
+              {/* Location */}
+              <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
+                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                </div>
                 {editingField === "state" as any ? (
                   <StateCitySelect
                     state={editState}
@@ -945,14 +965,19 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                   />
                 ) : (
                   <span
-                    className="cursor-pointer hover:text-foreground transition-colors"
+                    className="text-sm cursor-pointer hover:text-primary transition-colors flex-1"
                     onClick={() => { setEditState((deal as any).state || ""); setEditCity((deal as any).city || ""); setEditingField("state" as any); }}
                   >
-                    {[(deal as any).state, (deal as any).city].filter(Boolean).join(" - ") || <span className="italic">Adicionar localização</span>}
+                    {[(deal as any).state, (deal as any).city].filter(Boolean).join(" - ") ? (
+                      <span className="font-medium text-foreground">{[(deal as any).state, (deal as any).city].filter(Boolean).join(" - ")}</span>
+                    ) : (
+                      <span className="italic text-muted-foreground">Adicionar localização</span>
+                    )}
                   </span>
                 )}
               </div>
             </div>
+          </div>
 
           {/* Info section */}
           <div className="grid grid-cols-4 gap-2">
