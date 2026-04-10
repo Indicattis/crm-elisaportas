@@ -1,29 +1,41 @@
 
 
-# Adicionar botão "Desqualificar" no modal da negociação
+# Ações permitidas por etapa do funil
 
 ## Visão geral
 
-Separar a ação de desqualificar da ação "Perdida". Um novo botão "Desqualificar" será exibido no rodapé do modal, disponível para administradores e o responsável pela negociação. Ao clicar, abre um dialog pedindo justificativa em texto livre. A negociação será marcada com status "Desqualificada" e a justificativa salva em `loss_reason`.
+Adicionar uma configuração por coluna de funil que define quais ações finais o vendedor pode executar nas negociações daquela etapa: "Vendido", "Perdida" e "Desqualificar". Administradores sempre terão acesso a todas as ações, independente da configuração.
 
 ## Alterações
 
-### 1. `src/components/DealDetailDialog.tsx`
+### 1. Migração SQL
 
-- Adicionar estado `showDisqualifyDialog` e `disqualifyReason`
-- Remover "Desqualificado" da lista `LOSS_REASONS` (já que terá botão próprio)
-- Adicionar botão "Desqualificar" no rodapé, visível quando `role === "admin"` ou `deal.assigned_to === currentUserId`
-- Adicionar dialog de desqualificação com `Textarea` para justificativa obrigatória
-- Ao confirmar: atualizar deal com `status: "Desqualificada"` e `loss_reason: disqualifyReason`, registrar no histórico, fechar modal
+Adicionar coluna `allowed_actions` na tabela `funnel_columns`:
 
-### 2. `src/components/KanbanBoard.tsx`
+```sql
+ALTER TABLE public.funnel_columns 
+ADD COLUMN allowed_actions text[] NOT NULL DEFAULT ARRAY['sold','lost','disqualified'];
+```
 
-- Verificar se o status "Desqualificada" precisa de tratamento especial na filtragem (deals desqualificadas não devem aparecer no kanban ativo, similar a "Perdida")
+Valores possíveis no array: `sold`, `lost`, `disqualified`. Por padrão, todas as ações estarão habilitadas.
+
+### 2. `src/components/FunnelColumnList.tsx`
+
+- Adicionar um seletor multi-check (checkboxes) por coluna para definir quais ações são permitidas: Vendido, Perdida, Desqualificar
+- Salvar o array `allowed_actions` ao alterar
+- Exibir de forma compacta ao lado dos outros seletores da coluna
+
+### 3. `src/components/DealDetailDialog.tsx`
+
+- Carregar `allowed_actions` da coluna atual do deal (buscar em `funnel_columns` pelo `funnel_id` + `status`)
+- Para vendedores: exibir os botões "Vendido", "Perdida" e "Desqualificar" apenas se a ação correspondente estiver em `allowed_actions`
+- Para administradores: exibir todos os botões sempre (ignorar restrição)
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | Adicionar botão, dialog e lógica de desqualificação |
-| `src/components/KanbanBoard.tsx` | Garantir que deals "Desqualificada" sejam filtradas como "Perdida" |
+| Migração SQL | Adicionar coluna `allowed_actions` em `funnel_columns` |
+| `src/components/FunnelColumnList.tsx` | Adicionar checkboxes de ações permitidas por coluna |
+| `src/components/DealDetailDialog.tsx` | Filtrar botões de ação conforme `allowed_actions` e role |
 
