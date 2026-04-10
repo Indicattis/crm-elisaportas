@@ -658,6 +658,7 @@ export function KanbanBoard() {
                   dailyColorsMap={dailyColorsMap}
                   nextTaskMap={nextTaskMap}
                   channelIconMap={channelIconMap}
+                  hasDailyColor={(column as any).has_daily_color !== false}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}

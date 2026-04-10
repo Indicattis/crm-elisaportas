@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,6 +75,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   const handleUpdateNoticeText = async (colId: string, text: string) => {
     await supabase.from("funnel_columns").update({ notice_text: text } as any).eq("id", colId);
+    onChanged();
+  };
+
+  const handleUpdateHasDailyColor = async (colId: string, hasDailyColor: boolean) => {
+    await supabase.from("funnel_columns").update({ has_daily_color: hasDailyColor } as any).eq("id", colId);
     onChanged();
   };
 
@@ -184,6 +189,16 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               />
               <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
             </label>
+
+            {!(col as any).is_notice && (
+200:               <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Bolas coloridas">
+                <Checkbox
+                  checked={(col as any).has_daily_color !== false}
+                  onCheckedChange={(v) => handleUpdateHasDailyColor(col.id, !!v)}
+                />
+                <Circle className="h-3.5 w-3.5 text-green-500" />
+              </label>
+            )}
 
             {(col as any).is_notice ? (
               <Textarea
