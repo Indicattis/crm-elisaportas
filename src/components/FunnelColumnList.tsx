@@ -24,7 +24,14 @@ interface FunnelColumn {
   name: string;
   color: string;
   position: number;
+  allowed_actions?: string[];
 }
+
+const ACTION_OPTIONS = [
+  { value: "sold", label: "Vendido" },
+  { value: "lost", label: "Perdida" },
+  { value: "disqualified", label: "Desqualificar" },
+];
 
 interface Props {
   funnelId: string;
