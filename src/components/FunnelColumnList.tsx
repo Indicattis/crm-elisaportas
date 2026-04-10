@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 const COLOR_OPTIONS = [
@@ -64,6 +65,16 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   const handleUpdateAllowedActions = async (colId: string, actions: string[]) => {
     await supabase.from("funnel_columns").update({ allowed_actions: actions } as any).eq("id", colId);
+    onChanged();
+  };
+
+  const handleUpdateIsNotice = async (colId: string, isNotice: boolean) => {
+    await supabase.from("funnel_columns").update({ is_notice: isNotice } as any).eq("id", colId);
+    onChanged();
+  };
+
+  const handleUpdateNoticeText = async (colId: string, text: string) => {
+    await supabase.from("funnel_columns").update({ notice_text: text } as any).eq("id", colId);
     onChanged();
   };
 
@@ -166,68 +177,91 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               }}
             />
 
-            <Select
-              value={(col as any).task_group_id || "none"}
-              onValueChange={(v) => handleUpdateTaskGroup(col.id, v === "none" ? null : v)}
-            >
-              <SelectTrigger className="w-40 h-8 text-xs">
-                <ClipboardList className="h-3 w-3 mr-1 shrink-0" />
-                <SelectValue placeholder="Grupo de tarefas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem grupo</SelectItem>
-                {taskGroups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Coluna de aviso">
+              <Checkbox
+                checked={(col as any).is_notice || false}
+                onCheckedChange={(v) => handleUpdateIsNotice(col.id, !!v)}
+              />
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+            </label>
 
-            <Select
-              value={(col as any).sort_order || "channel"}
-              onValueChange={(v) => handleUpdateSortOrder(col.id, v)}
-            >
-              <SelectTrigger className="w-40 h-8 text-xs">
-                <ArrowUpDown className="h-3 w-3 mr-1 shrink-0" />
-                <SelectValue placeholder="Ordenação" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="channel">Canal de aquisição</SelectItem>
-                <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
-                <SelectItem value="created_at">Data de criação</SelectItem>
-                <SelectItem value="next_task">Próxima tarefa</SelectItem>
-                <SelectItem value="value_desc">Maior valor</SelectItem>
-                <SelectItem value="value_asc">Menor valor</SelectItem>
-              </SelectContent>
-            </Select>
+            {(col as any).is_notice ? (
+              <Textarea
+                className="flex-1 min-h-[32px] h-8 text-xs resize-none"
+                placeholder="Texto do aviso..."
+                defaultValue={(col as any).notice_text || ""}
+                onBlur={(e) => {
+                  if (e.target.value !== ((col as any).notice_text || "")) {
+                    handleUpdateNoticeText(col.id, e.target.value);
+                  }
+                }}
+              />
+            ) : (
+              <>
+                <Select
+                  value={(col as any).task_group_id || "none"}
+                  onValueChange={(v) => handleUpdateTaskGroup(col.id, v === "none" ? null : v)}
+                >
+                  <SelectTrigger className="w-40 h-8 text-xs">
+                    <ClipboardList className="h-3 w-3 mr-1 shrink-0" />
+                    <SelectValue placeholder="Grupo de tarefas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem grupo</SelectItem>
+                    {taskGroups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" title="Ações permitidas">
-                  <Shield className="h-3.5 w-3.5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-3" align="end">
-                <p className="text-xs font-medium mb-2 text-muted-foreground">Ações do vendedor</p>
-                {ACTION_OPTIONS.map((action) => {
-                  const currentActions = (col as any).allowed_actions || ["sold", "lost", "disqualified"];
-                  const checked = currentActions.includes(action.value);
-                  return (
-                    <label key={action.value} className="flex items-center gap-2 py-1 cursor-pointer">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) => {
-                          const next = v
-                            ? [...currentActions, action.value]
-                            : currentActions.filter((a: string) => a !== action.value);
-                          handleUpdateAllowedActions(col.id, next);
-                        }}
-                      />
-                      <span className="text-sm">{action.label}</span>
-                    </label>
-                  );
-                })}
-              </PopoverContent>
-            </Popover>
+                <Select
+                  value={(col as any).sort_order || "channel"}
+                  onValueChange={(v) => handleUpdateSortOrder(col.id, v)}
+                >
+                  <SelectTrigger className="w-40 h-8 text-xs">
+                    <ArrowUpDown className="h-3 w-3 mr-1 shrink-0" />
+                    <SelectValue placeholder="Ordenação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="channel">Canal de aquisição</SelectItem>
+                    <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
+                    <SelectItem value="created_at">Data de criação</SelectItem>
+                    <SelectItem value="next_task">Próxima tarefa</SelectItem>
+                    <SelectItem value="value_desc">Maior valor</SelectItem>
+                    <SelectItem value="value_asc">Menor valor</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Ações permitidas">
+                      <Shield className="h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-3" align="end">
+                    <p className="text-xs font-medium mb-2 text-muted-foreground">Ações do vendedor</p>
+                    {ACTION_OPTIONS.map((action) => {
+                      const currentActions = (col as any).allowed_actions || ["sold", "lost", "disqualified"];
+                      const checked = currentActions.includes(action.value);
+                      return (
+                        <label key={action.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...currentActions, action.value]
+                                : currentActions.filter((a: string) => a !== action.value);
+                              handleUpdateAllowedActions(col.id, next);
+                            }}
+                          />
+                          <span className="text-sm">{action.label}</span>
+                        </label>
+                      );
+                    })}
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>

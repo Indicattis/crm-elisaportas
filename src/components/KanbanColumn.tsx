@@ -31,6 +31,8 @@ interface KanbanColumnProps {
   nextTaskMap?: Record<string, string>;
   channelIconMap?: Record<string, string>;
   showDropSpacer?: boolean;
+  isNotice?: boolean;
+  noticeText?: string;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
@@ -66,6 +68,8 @@ export function KanbanColumn({
   nextTaskMap = {},
   channelIconMap = {},
   showDropSpacer = false,
+  isNotice = false,
+  noticeText = "",
   collapsed = false,
   onToggleCollapse,
   onTagsChanged,
@@ -85,6 +89,30 @@ export function KanbanColumn({
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
+
+  if (isNotice) {
+    const noticeBg = color
+      ? isDark ? hexToRgba(color, 0.25) : color
+      : "hsl(var(--muted) / 0.3)";
+    return (
+      <div
+        className="flex w-14 flex-shrink-0 flex-col rounded-2xl overflow-hidden h-full"
+        style={{ backgroundColor: noticeBg }}
+      >
+        <div
+          className="flex flex-col items-center justify-center py-4 px-1 h-full"
+          style={{ backgroundColor: color ? (isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)) : undefined }}
+        >
+          <span
+            className="text-xs font-bold text-white/90 text-center leading-tight"
+            style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+          >
+            {noticeText || status}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const totalValue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0);
   const headerBg = color ? (isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)) : undefined;
