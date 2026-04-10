@@ -61,13 +61,41 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const { toast } = useToast();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
+  const requirementsColumn = columns.find((c) => c.id === requirementsColumnId);
 
   const fetchTaskGroups = useCallback(async () => {
     const { data } = await supabase.from("task_groups").select("id, name").order("name");
     setTaskGroups(data || []);
   }, []);
 
+  const fetchRequirements = useCallback(async () => {
+    const colIds = columns.map((c) => c.id);
+    if (colIds.length === 0) { setRequirements({}); return; }
+    const { data } = await supabase
+      .from("column_entry_requirements")
+      .select("column_id, field_name")
+      .in("column_id", colIds);
+    const map: Record<string, string[]> = {};
+    (data || []).forEach((r: any) => {
+      if (!map[r.column_id]) map[r.column_id] = [];
+      map[r.column_id].push(r.field_name);
+    });
+    setRequirements(map);
+  }, [columns]);
+
   useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
+  useEffect(() => { fetchRequirements(); }, [fetchRequirements]);
+
+  const handleToggleRequirement = async (colId: string, fieldName: string, checked: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    if (checked) {
+      await supabase.from("column_entry_requirements").insert({ column_id: colId, field_name: fieldName, user_id: user.id } as any);
+    } else {
+      await supabase.from("column_entry_requirements").delete().eq("column_id", colId).eq("field_name", fieldName);
+    }
+    fetchRequirements();
+  };
 
   const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
     await supabase.from("funnel_columns").update({ task_group_id: taskGroupId } as any).eq("id", colId);
