@@ -423,6 +423,19 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchDealTasks(deal.id);
       fetchHistory();
       fetchAttachments();
+
+      // Fetch allowed actions for the current column
+      if (deal.funnel_id && deal.status) {
+        supabase
+          .from("funnel_columns")
+          .select("allowed_actions")
+          .eq("funnel_id", deal.funnel_id)
+          .eq("name", deal.status)
+          .maybeSingle()
+          .then(({ data }) => {
+            setAllowedActions((data as any)?.allowed_actions || ["sold", "lost", "disqualified"]);
+          });
+      }
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
