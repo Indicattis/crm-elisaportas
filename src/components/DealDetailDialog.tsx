@@ -1407,8 +1407,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             ) : dealTasks.length === 0 && !showNewTask ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">Sem tarefas para esta etapa</p>
             ) : (
-              <div className="space-y-2">
-                {dealTasks.map((task) => {
+              (() => {
+                // Group tasks by stage
+                const renderTask = (task: DealTask) => {
                   const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
                   const isCompleting = completingTaskIds.has(task.id);
                   const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
@@ -1473,8 +1474,45 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                       </div>
                     </div>
                   );
-                })}
-              </div>
+                };
+
+                if (taskStages.length > 0) {
+                  const unstaged = dealTasks.filter(t => !t.stage_id);
+                  return (
+                    <div className="space-y-3">
+                      {taskStages.map(stage => {
+                        const stageTasks = dealTasks.filter(t => t.stage_id === stage.id);
+                        if (stageTasks.length === 0) return null;
+                        const completedCount = stageTasks.filter(t => t.completed).length;
+                        return (
+                          <div key={stage.id} className="space-y-1.5">
+                            <div className="flex items-center gap-2 px-1">
+                              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+                              <span className="text-[11px] font-semibold text-foreground">{stage.name}</span>
+                              <span className="text-[10px] text-muted-foreground">{completedCount}/{stageTasks.length}</span>
+                            </div>
+                            {stageTasks.map(renderTask)}
+                          </div>
+                        );
+                      })}
+                      {unstaged.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 px-1">
+                            <span className="text-[11px] font-semibold text-muted-foreground">Sem etapa</span>
+                          </div>
+                          {unstaged.map(renderTask)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-2">
+                    {dealTasks.map(renderTask)}
+                  </div>
+                );
+              })()
             )}
           </div>
         </div>
