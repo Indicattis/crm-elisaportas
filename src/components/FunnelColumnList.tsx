@@ -200,6 +200,34 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               </SelectContent>
             </Select>
 
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Ações permitidas">
+                  <Shield className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-3" align="end">
+                <p className="text-xs font-medium mb-2 text-muted-foreground">Ações do vendedor</p>
+                {ACTION_OPTIONS.map((action) => {
+                  const currentActions = (col as any).allowed_actions || ["sold", "lost", "disqualified"];
+                  const checked = currentActions.includes(action.value);
+                  return (
+                    <label key={action.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const next = v
+                            ? [...currentActions, action.value]
+                            : currentActions.filter((a: string) => a !== action.value);
+                          handleUpdateAllowedActions(col.id, next);
+                        }}
+                      />
+                      <span className="text-sm">{action.label}</span>
+                    </label>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
