@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2 } from "lucide-react";
+import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2, Ban } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
@@ -35,10 +35,11 @@ export default function Results() {
   const [soldDeals, setSoldDeals] = useState<Deal[]>([]);
   const [lostDeals, setLostDeals] = useState<Deal[]>([]);
   const [archivedDeals, setArchivedDeals] = useState<Deal[]>([]);
+  const [disqualifiedDeals, setDisqualifiedDeals] = useState<Deal[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [activeFilter, setActiveFilter] = useState<"sold" | "lost" | "archived" | null>(null);
+  const [activeFilter, setActiveFilter] = useState<"sold" | "lost" | "archived" | "disqualified" | null>(null);
 
   // Date filters for deals (default: current month)
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
@@ -105,11 +106,17 @@ export default function Results() {
     if (selectedDealsSellerId) archivedQuery = archivedQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: archived } = await archivedQuery.order("updated_at", { ascending: false });
 
+    let disqualifiedQuery = supabase.from("deals").select("*").eq("status", "Desqualificado").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
+    if (selectedFunnelId !== "all") disqualifiedQuery = disqualifiedQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) disqualifiedQuery = disqualifiedQuery.eq("assigned_to", selectedDealsSellerId);
+    const { data: disqualified } = await disqualifiedQuery.order("updated_at", { ascending: false });
+
     setSoldDeals(sold || []);
     setLostDeals(lost || []);
     setArchivedDeals(archived || []);
+    setDisqualifiedDeals(disqualified || []);
 
-    const allDeals = [...(sold || []), ...(lost || []), ...(archived || [])];
+    const allDeals = [...(sold || []), ...(lost || []), ...(archived || []), ...(disqualified || [])];
     const assignedIds = [...new Set(allDeals.filter(d => d.assigned_to).map(d => d.assigned_to as string))];
     if (assignedIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", assignedIds);
@@ -241,7 +248,8 @@ export default function Results() {
     if (activeFilter === "sold") return soldDeals;
     if (activeFilter === "lost") return lostDeals;
     if (activeFilter === "archived") return archivedDeals;
-    return [...soldDeals, ...lostDeals, ...archivedDeals];
+    if (activeFilter === "disqualified") return disqualifiedDeals;
+    return [...soldDeals, ...lostDeals, ...archivedDeals, ...disqualifiedDeals];
   };
 
   const showLossReason = activeFilter === "lost" || activeFilter === null;
@@ -272,6 +280,7 @@ export default function Results() {
       if (archived) return <Badge className="bg-warning/15 text-warning border-0">Arquivada</Badge>;
       if (status === "Vendido") return <Badge className="bg-success/15 text-success border-0">Vendida</Badge>;
       if (status === "Perdida") return <Badge className="bg-destructive/15 text-destructive border-0">Perdida</Badge>;
+      if (status === "Desqualificado") return <Badge className="bg-muted text-muted-foreground border-0">Desqualificado</Badge>;
       return <Badge variant="outline">{status}</Badge>;
     };
 
@@ -496,7 +505,7 @@ export default function Results() {
 
       {/* Summary Cards as Filters */}
       {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <button
             onClick={() => setActiveFilter(f => f === "sold" ? null : "sold")}
             className={cn(
@@ -555,6 +564,26 @@ export default function Results() {
               <p className="text-xs text-muted-foreground font-medium">Arquivadas</p>
               <p className="text-lg font-bold text-warning">{formatCurrency(archivedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
               <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveFilter(f => f === "disqualified" ? null : "disqualified")}
+            className={cn(
+              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
+              activeFilter === "disqualified"
+                ? "border-muted-foreground/40 bg-muted ring-2 ring-muted-foreground/30"
+                : activeFilter === null
+                  ? "border-muted-foreground/20 bg-muted/50 hover:bg-muted"
+                  : "border-border bg-card opacity-50 hover:opacity-75"
+            )}
+          >
+            <div className="rounded-lg bg-muted-foreground/15 p-2.5">
+              <Ban className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Desqualificados</p>
+              <p className="text-lg font-bold text-muted-foreground">{formatCurrency(disqualifiedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{disqualifiedDeals.length} negociação{disqualifiedDeals.length !== 1 ? "ões" : ""}</p>
             </div>
           </button>
         </div>
