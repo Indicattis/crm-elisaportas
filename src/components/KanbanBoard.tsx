@@ -596,6 +596,21 @@ export function KanbanBoard() {
             onMouseLeave={handleGrabMouseLeave}
           >
             {columns.map((column) => {
+              if ((column as any).is_notice) {
+                return (
+                  <KanbanColumn
+                    key={column.id}
+                    status={column.name}
+                    color={column.color}
+                    deals={[]}
+                    isNotice
+                    noticeText={(column as any).notice_text || ""}
+                    onAddDeal={() => {}}
+                    onEditDeal={() => {}}
+                  />
+                );
+              }
+
               const isDraggingAcrossColumns = Boolean(
                 activeDeal && activeOverStatus && activeOverStatus !== activeDeal.status
               );
