@@ -62,6 +62,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
+  const handleUpdateAllowedActions = async (colId: string, actions: string[]) => {
+    await supabase.from("funnel_columns").update({ allowed_actions: actions } as any).eq("id", colId);
+    onChanged();
+  };
+
   const handleAdd = async () => {
     if (!newName.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
