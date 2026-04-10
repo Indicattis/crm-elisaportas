@@ -39,10 +39,11 @@ export default function Dashboard() {
   });
 
   const { data: deals, isLoading: dealsLoading } = useQuery({
-    queryKey: ["dashboard-deals", selectedFunnel, startDate?.toISOString(), endDate?.toISOString()],
+    queryKey: ["dashboard-deals", selectedFunnel, selectedSeller, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       let q = supabase.from("deals").select("*");
       if (selectedFunnel !== "all") q = q.eq("funnel_id", selectedFunnel);
+      if (selectedSeller !== "all") q = q.eq("assigned_to", selectedSeller);
       if (startDate) q = q.gte("created_at", startDate.toISOString());
       if (endDate) {
         const end = new Date(endDate);
@@ -252,6 +253,17 @@ export default function Dashboard() {
               <SelectItem value="all">Todos os funis</SelectItem>
               {funnels?.map((f) => (
                 <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedSeller} onValueChange={(v) => setSelectedSeller(v)} disabled={role === "vendedor"}>
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <SelectValue placeholder="Todos os vendedores" />
+            </SelectTrigger>
+            <SelectContent>
+              {role === "admin" && <SelectItem value="all">Todos os vendedores</SelectItem>}
+              {profiles?.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.full_name || p.email || "Sem nome"}</SelectItem>
               ))}
             </SelectContent>
           </Select>
