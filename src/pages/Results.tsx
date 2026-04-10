@@ -505,7 +505,7 @@ export default function Results() {
 
       {/* Summary Cards as Filters */}
       {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <button
             onClick={() => setActiveFilter(f => f === "sold" ? null : "sold")}
             className={cn(
