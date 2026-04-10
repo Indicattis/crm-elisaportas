@@ -1,41 +1,45 @@
 
 
-# Ações permitidas por etapa do funil
+# Coluna de Avisos no Funil
 
 ## Visão geral
 
-Adicionar uma configuração por coluna de funil que define quais ações finais o vendedor pode executar nas negociações daquela etapa: "Vendido", "Perdida" e "Desqualificar". Administradores sempre terão acesso a todas as ações, independente da configuração.
+Adicionar um novo tipo de coluna no funil: "coluna de aviso". Visualmente, ela aparece no Kanban como uma coluna recolhida (barra vertical fina) exibindo um texto de aviso configurável. Não aceita negociações — serve apenas como separador visual informativo entre etapas.
 
 ## Alterações
 
 ### 1. Migração SQL
 
-Adicionar coluna `allowed_actions` na tabela `funnel_columns`:
+Adicionar duas colunas em `funnel_columns`:
 
 ```sql
-ALTER TABLE public.funnel_columns 
-ADD COLUMN allowed_actions text[] NOT NULL DEFAULT ARRAY['sold','lost','disqualified'];
+ALTER TABLE public.funnel_columns
+ADD COLUMN is_notice boolean NOT NULL DEFAULT false,
+ADD COLUMN notice_text text;
 ```
-
-Valores possíveis no array: `sold`, `lost`, `disqualified`. Por padrão, todas as ações estarão habilitadas.
 
 ### 2. `src/components/FunnelColumnList.tsx`
 
-- Adicionar um seletor multi-check (checkboxes) por coluna para definir quais ações são permitidas: Vendido, Perdida, Desqualificar
-- Salvar o array `allowed_actions` ao alterar
-- Exibir de forma compacta ao lado dos outros seletores da coluna
+- Adicionar checkbox "Coluna de aviso" por coluna
+- Quando marcada, exibir campo de texto para o aviso e ocultar seletores irrelevantes (grupo de tarefas, ordenação, ações permitidas)
+- Salvar `is_notice` e `notice_text` no banco
 
-### 3. `src/components/DealDetailDialog.tsx`
+### 3. `src/components/KanbanBoard.tsx`
 
-- Carregar `allowed_actions` da coluna atual do deal (buscar em `funnel_columns` pelo `funnel_id` + `status`)
-- Para vendedores: exibir os botões "Vendido", "Perdida" e "Desqualificar" apenas se a ação correspondente estiver em `allowed_actions`
-- Para administradores: exibir todos os botões sempre (ignorar restrição)
+- Ao renderizar colunas, identificar colunas com `is_notice = true`
+- Renderizar um componente de aviso em vez de `KanbanColumn` — barra vertical fina (similar ao collapsed) com o texto de aviso, sem droppable, sem deals
+- Não filtrar deals para colunas de aviso (elas não têm deals)
+
+### 4. `src/components/KanbanColumn.tsx` (ou novo componente)
+
+- Criar renderização de "notice column": barra vertical com a cor da coluna, exibindo o texto de aviso em vertical, sem botão de adicionar, sem contagem, não droppable nem colapsável
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar coluna `allowed_actions` em `funnel_columns` |
-| `src/components/FunnelColumnList.tsx` | Adicionar checkboxes de ações permitidas por coluna |
-| `src/components/DealDetailDialog.tsx` | Filtrar botões de ação conforme `allowed_actions` e role |
+| Migração SQL | Adicionar `is_notice` e `notice_text` em `funnel_columns` |
+| `src/components/FunnelColumnList.tsx` | UI para configurar coluna como aviso |
+| `src/components/KanbanBoard.tsx` | Renderizar coluna de aviso diferenciada |
+| `src/components/KanbanColumn.tsx` | Adicionar modo de renderização "notice" |
 
