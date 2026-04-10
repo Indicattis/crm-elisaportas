@@ -127,6 +127,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [showDisqualifyDialog, setShowDisqualifyDialog] = useState(false);
   const [disqualifyReason, setDisqualifyReason] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [allowedActions, setAllowedActions] = useState<string[]>(["sold", "lost", "disqualified"]);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<DealAttachment[]>([]);
