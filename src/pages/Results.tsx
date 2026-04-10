@@ -106,7 +106,7 @@ export default function Results() {
     if (selectedDealsSellerId) archivedQuery = archivedQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: archived } = await archivedQuery.order("updated_at", { ascending: false });
 
-    let disqualifiedQuery = supabase.from("deals").select("*").eq("status", "Desqualificado").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
+    let disqualifiedQuery = supabase.from("deals").select("*").in("status", ["Desqualificado", "Desqualificada"]).eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") disqualifiedQuery = disqualifiedQuery.eq("funnel_id", selectedFunnelId);
     if (selectedDealsSellerId) disqualifiedQuery = disqualifiedQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: disqualified } = await disqualifiedQuery.order("updated_at", { ascending: false });
