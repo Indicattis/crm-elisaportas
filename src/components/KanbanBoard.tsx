@@ -68,6 +68,7 @@ export function KanbanBoard() {
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
+  const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
@@ -283,13 +284,14 @@ export function KanbanBoard() {
     if (deals.length === 0) {
       setOverdueDeals(new Set());
       setNextTaskMap({});
+      setDealStageMap({});
       return;
     }
 
     const dealIds = deals.map((deal) => deal.id);
     const { data } = await supabase
       .from("deal_tasks")
-      .select("deal_id, deadline_at")
+      .select("deal_id, deadline_at, stage_id")
       .in("deal_id", dealIds)
       .eq("completed", false)
       .order("deadline_at", { ascending: true });
@@ -297,14 +299,45 @@ export function KanbanBoard() {
     const overdue = new Set<string>();
     const nextMap: Record<string, string> = {};
     const now = new Date().toISOString();
+    const dealStageIds: Record<string, Set<string>> = {};
 
     (data || []).forEach((task: any) => {
       if (task.deadline_at < now) overdue.add(task.deal_id);
       if (!nextMap[task.deal_id]) nextMap[task.deal_id] = task.deadline_at;
+      if (task.stage_id) {
+        if (!dealStageIds[task.deal_id]) dealStageIds[task.deal_id] = new Set();
+        dealStageIds[task.deal_id].add(task.stage_id);
+      }
     });
 
     setOverdueDeals(overdue);
     setNextTaskMap(nextMap);
+
+    // Fetch stage info for all referenced stage_ids
+    const allStageIds = [...new Set(Object.values(dealStageIds).flatMap(s => [...s]))];
+    if (allStageIds.length > 0) {
+      const { data: stages } = await supabase
+        .from("task_group_stages")
+        .select("id, name, color, position")
+        .in("id", allStageIds);
+
+      if (stages) {
+        const stageById = new Map(stages.map((s: any) => [s.id, s]));
+        const stageMap: Record<string, { name: string; color: string }> = {};
+        for (const [dealId, stageIdSet] of Object.entries(dealStageIds)) {
+          // Pick the stage with the lowest position
+          let best: any = null;
+          for (const sid of stageIdSet) {
+            const s = stageById.get(sid);
+            if (s && (!best || s.position < best.position)) best = s;
+          }
+          if (best) stageMap[dealId] = { name: best.name, color: best.color };
+        }
+        setDealStageMap(stageMap);
+      }
+    } else {
+      setDealStageMap({});
+    }
   }, [deals]);
 
   useEffect(() => {
