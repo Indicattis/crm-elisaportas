@@ -981,10 +981,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
           {/* Info section */}
           <div className="grid grid-cols-4 gap-2">
-            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
-              <div className="flex items-center gap-1">
-                <DollarSign className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Valor</span>
+            <div className="flex flex-col gap-1 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15">
+                  <DollarSign className="h-3 w-3 text-primary" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70">Valor</span>
               </div>
               {editingField === "value" ? (
                 <Input
@@ -1005,26 +1007,32 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 </span>
               )}
             </div>
-            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
-              <div className="flex items-center gap-1">
-                <CalendarIcon className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Criado em</span>
+            <div className="flex flex-col gap-1 rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/8 to-blue-500/3 px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center h-5 w-5 rounded-md bg-blue-500/15">
+                  <CalendarIcon className="h-3 w-3 text-blue-500" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500/70">Criado em</span>
               </div>
               <span className="text-sm font-bold text-foreground">{format(new Date(deal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
             </div>
-            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Na etapa</span>
+            <div className={`flex flex-col gap-1 rounded-xl border px-3 py-2.5 shadow-sm ${daysInStage > 7 ? "border-destructive/30 bg-gradient-to-br from-destructive/10 to-destructive/3" : "border-amber-500/20 bg-gradient-to-br from-amber-500/8 to-amber-500/3"}`}>
+              <div className="flex items-center gap-1.5">
+                <div className={`flex items-center justify-center h-5 w-5 rounded-md ${daysInStage > 7 ? "bg-destructive/15" : "bg-amber-500/15"}`}>
+                  <Clock className={`h-3 w-3 ${daysInStage > 7 ? "text-destructive" : "text-amber-500"}`} />
+                </div>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${daysInStage > 7 ? "text-destructive/70" : "text-amber-500/70"}`}>Na etapa</span>
               </div>
               <span className={`text-sm font-bold ${daysInStage > 7 ? "text-destructive" : "text-foreground"}`}>
                 {daysInStage === 0 ? `${hoursInStage}h` : `${daysInStage} dias`}
               </span>
             </div>
-            <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-card px-2.5 py-2">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Tempo total</span>
+            <div className="flex flex-col gap-1 rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/8 to-emerald-500/3 px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center h-5 w-5 rounded-md bg-emerald-500/15">
+                  <Clock className="h-3 w-3 text-emerald-500" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500/70">Tempo total</span>
               </div>
               <span className="text-sm font-bold text-foreground">
                 {(() => {
