@@ -1,0 +1,1 @@
+ALTER TABLE public.funnel_columns ADD COLUMN has_daily_color boolean NOT NULL DEFAULT true;
