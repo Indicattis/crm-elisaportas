@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
@@ -35,6 +35,8 @@ interface KanbanColumnProps {
   isNotice?: boolean;
   noticeText?: string;
   hasDailyColor?: boolean;
+  isCreatedAtSort?: boolean;
+  onToggleSort?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
@@ -74,6 +76,8 @@ export function KanbanColumn({
   isNotice = false,
   noticeText = "",
   hasDailyColor = true,
+  isCreatedAtSort = false,
+  onToggleSort,
   collapsed = false,
   onToggleCollapse,
   onTagsChanged,
@@ -183,6 +187,15 @@ export function KanbanColumn({
           <span className="text-xs font-semibold text-white/85">
             {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-6 w-6 hover:bg-white/15 ${isCreatedAtSort ? "text-white" : "text-white/50 hover:text-white/80"}`}
+            title={isCreatedAtSort ? "Ordenando por cadastro" : "Ordem padrão"}
+            onClick={(e) => { e.stopPropagation(); onToggleSort?.(); }}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

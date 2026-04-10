@@ -82,6 +82,20 @@ export function KanbanBoard() {
   });
   const [filterState, setFilterState] = useState("");
   const [filterCity, setFilterCity] = useState("");
+  const [userSortOverrides, setUserSortOverrides] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("kanban_sort_overrides");
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  const toggleSortOverride = useCallback((columnName: string) => {
+    setUserSortOverrides((prev) => {
+      const next = { ...prev, [columnName]: !prev[columnName] };
+      localStorage.setItem("kanban_sort_overrides", JSON.stringify(next));
+      return next;
+    });
+  }, []);
   const { toast } = useToast();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -708,7 +722,8 @@ export function KanbanBoard() {
                   return matchName || matchNumber || matchPhone;
                 })
                 .sort((a, b) => {
-                  const order = (column as any).sort_order || "channel";
+                  const isOverride = userSortOverrides[column.name];
+                  const order = isOverride ? "created_at" : ((column as any).sort_order || "channel");
                   if (order === "alphabetical") return a.title.localeCompare(b.title);
                   if (order === "created_at") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                   if (order === "next_task") {
@@ -744,6 +759,8 @@ export function KanbanBoard() {
                   )}
                   collapsed={collapsedColumns.has(column.name)}
                   onToggleCollapse={() => toggleColumnCollapse(column.name)}
+                  isCreatedAtSort={!!userSortOverrides[column.name]}
+                  onToggleSort={() => toggleSortOverride(column.name)}
                   onTagsChanged={handleTagToggle}
                   onCapture={handleCapture}
                   onColorChange={handleColorChange}
