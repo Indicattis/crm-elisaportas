@@ -40,11 +40,24 @@ interface Props {
   onChanged: () => void;
 }
 
+const REQUIREMENT_FIELDS = [
+  { value: "phone", label: "Telefone" },
+  { value: "email", label: "E-mail" },
+  { value: "value", label: "Valor" },
+  { value: "state", label: "Estado" },
+  { value: "city", label: "Cidade" },
+  { value: "acquisition_channel", label: "Canal de aquisição" },
+  { value: "notes", label: "Notas" },
+  { value: "task", label: "Tarefa obrigatória" },
+];
+
 export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
   const [taskGroups, setTaskGroups] = useState<{ id: string; name: string }[]>([]);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [requirementsColumnId, setRequirementsColumnId] = useState<string | null>(null);
+  const [requirements, setRequirements] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);

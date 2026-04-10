@@ -109,18 +109,18 @@ export function EntryRequirementsModal({
     setSaving(true);
     try {
       // Update deal with filled fields
-      const updates: Record<string, any> = {};
       const dealFieldReqs = missingFields.filter((r) => r.field_name !== "task");
       if (dealFieldReqs.length > 0) {
+        const vals: Record<string, any> = {
+          phone, email, notes, state, city,
+          acquisition_channel: channel,
+          value: value ? parseFloat(value) : null,
+        };
+        const updates: any = {};
         for (const req of dealFieldReqs) {
-          const vals: Record<string, any> = {
-            phone, email, notes, state, city,
-            acquisition_channel: channel,
-            value: value ? parseFloat(value) : null,
-          };
           updates[req.field_name] = vals[req.field_name];
         }
-        await supabase.from("deals").update(updates).eq("id", deal.id);
+        await supabase.from("deals").update(updates as any).eq("id", deal.id);
       }
 
       // Create task if required
