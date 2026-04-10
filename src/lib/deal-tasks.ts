@@ -50,6 +50,7 @@ export async function createDealTasksForColumn(dealId: string, columnName: strin
       type: t.type,
       description: t.description,
       deadline_at: new Date(now.getTime() + t.deadline_hours * 60 * 60 * 1000).toISOString(),
+      stage_id: t.stage_id || null,
     };
     // For recurring templates, set next_recurrence_at
     if (t.recurrence_type && t.recurrence_value != null) {

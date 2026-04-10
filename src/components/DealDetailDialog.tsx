@@ -67,6 +67,15 @@ interface DealTask {
   completed_by: string | null;
   template_id: string | null;
   next_recurrence_at: string | null;
+  stage_id: string | null;
+}
+
+interface TaskStage {
+  id: string;
+  group_id: string;
+  name: string;
+  color: string;
+  position: number;
 }
 
 interface DealHistoryEvent {
