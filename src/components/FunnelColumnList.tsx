@@ -58,6 +58,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [requirementsColumnId, setRequirementsColumnId] = useState<string | null>(null);
   const [requirements, setRequirements] = useState<Record<string, string[]>>({});
+  const [columnDealCounts, setColumnDealCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
@@ -83,8 +84,27 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     setRequirements(map);
   }, [columns]);
 
+  const fetchColumnDealCounts = useCallback(async () => {
+    const colNames = columns.map((c) => c.name);
+    if (colNames.length === 0) { setColumnDealCounts({}); return; }
+    const { data } = await supabase
+      .from("deals")
+      .select("status")
+      .eq("funnel_id", funnelId)
+      .eq("archived", false)
+      .in("status", colNames);
+    const counts: Record<string, number> = {};
+    columns.forEach((c) => { counts[c.id] = 0; });
+    (data || []).forEach((d: any) => {
+      const col = columns.find((c) => c.name === d.status);
+      if (col) counts[col.id] = (counts[col.id] || 0) + 1;
+    });
+    setColumnDealCounts(counts);
+  }, [columns, funnelId]);
+
   useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
   useEffect(() => { fetchRequirements(); }, [fetchRequirements]);
+  useEffect(() => { fetchColumnDealCounts(); }, [fetchColumnDealCounts]);
 
   const handleToggleRequirement = async (colId: string, fieldName: string, checked: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -235,9 +255,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               <Settings className="h-4 w-4" />
             </Button>
 
-            <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {(columnDealCounts[col.id] || 0) === 0 && (
+              <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         ))}
       </div>
