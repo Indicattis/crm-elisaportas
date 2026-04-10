@@ -58,6 +58,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [requirementsColumnId, setRequirementsColumnId] = useState<string | null>(null);
   const [requirements, setRequirements] = useState<Record<string, string[]>>({});
+  const [columnDealCounts, setColumnDealCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
