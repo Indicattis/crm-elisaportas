@@ -1,31 +1,39 @@
 
 
-# Desqualificados: cor cinza + retornar ao Kanban
+# Botão de alternância de ordenação pessoal no header da coluna Kanban
 
 ## Visão geral
 
-O card de Desqualificados já usa tons cinza (`muted-foreground`). A mudança principal é adicionar um botão "Retornar ao Kanban" nas negociações desqualificadas, permitindo reativá-las movendo-as para a primeira etapa do funil original.
+Adicionar um botão no header de cada coluna do Kanban que permite ao usuário logado alternar entre a **ordem padrão** (configurada pelo admin via `sort_order` da coluna) e a **ordem de cadastro** (`created_at`). Essa preferência é local ao usuário (armazenada em `localStorage`), não afeta os demais.
 
 ## Alterações
 
-### `src/pages/Results.tsx`
+### 1. `src/components/KanbanBoard.tsx`
 
-1. **Botão "Retornar" na tabela** — Na coluna de ações (onde já existe "Excluir" para arquivadas), adicionar um botão com ícone `Undo2` para deals desqualificados. Visível quando `activeFilter === "disqualified"` ou `activeFilter === null` (para deals com status "Desqualificado").
+- Criar state `userSortOverrides: Record<string, boolean>` (coluna → true = usar `created_at`, false = usar padrão). Inicializar a partir de `localStorage`.
+- Passar callback `onToggleSort` e prop `isCreatedAtSort` para cada `KanbanColumn`.
+- Na lógica de `.sort()`, verificar se existe override do usuário para a coluna antes de usar `sort_order` do banco.
+- Persistir no `localStorage` com chave como `kanban_sort_overrides`.
 
-2. **Função `handleRestoreDeal`**:
-   - Buscar as colunas do funil do deal (`funnel_columns` onde `funnel_id = deal.funnel_id`, `is_notice = false`, ordenado por `position`)
-   - Pegar o nome da primeira coluna (primeira etapa ativa)
-   - Atualizar o deal: `status = primeiraEtapa`, `loss_reason = null`
-   - Registrar no `deal_history` o evento de retorno
-   - Exibir toast de sucesso e recarregar deals
+### 2. `src/components/KanbanColumn.tsx`
 
-3. **Coluna de ações**: Renomear de "Excluir" para "Ações" e mostrar tanto o botão de excluir (para arquivadas) quanto o de retornar (para desqualificadas). Usar `showDeleteColumn` renomeado para `showActionsColumn` que será `true` quando o filtro for `archived`, `disqualified` ou `null`.
+- Aceitar novas props: `isCreatedAtSort?: boolean` e `onToggleSort?: () => void`.
+- No header (ao lado do botão `+`), renderizar um botão com ícone `ArrowUpDown` (ou `ArrowDownAZ` / `Clock`) que alterna a ordenação.
+- Tooltip ou visual sutil indicando o modo ativo.
 
-4. **Confirmação**: Usar `AlertDialog` para confirmar o retorno, similar ao de exclusão.
+## Detalhes técnicos
+
+| Item | Detalhe |
+|---|---|
+| Persistência | `localStorage` por usuário (sem tabela nova) |
+| Chave localStorage | `kanban_sort_overrides_{userId}` |
+| Ícone | `ArrowUpDown` do lucide-react |
+| Escopo | Apenas para o usuário logado, não altera config global |
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/Results.tsx` | Botão retornar + lógica de reativação |
+| `src/components/KanbanBoard.tsx` | State + lógica de override + persistência localStorage |
+| `src/components/KanbanColumn.tsx` | Botão de toggle no header |
 
