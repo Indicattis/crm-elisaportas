@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { startOfWeek, endOfWeek } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -10,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TrendingUp, DollarSign, Trophy, XCircle, Percent, Receipt, CalendarIcon, X } from "lucide-react";
+import { TrendingUp, DollarSign, Trophy, XCircle, Percent, Receipt, CalendarIcon, X, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +19,8 @@ export default function Dashboard() {
   const { role } = useUserRole();
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
   const [selectedSeller, setSelectedSeller] = useState<string>("all");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [startDate, setStartDate] = useState<Date | undefined>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [endDate, setEndDate] = useState<Date | undefined>(() => endOfWeek(new Date(), { weekStartsOn: 1 }));
 
   // Set current user as default seller for vendedor role
   useEffect(() => {
@@ -75,15 +76,17 @@ export default function Dashboard() {
 
   const kpis = useMemo(() => {
     if (!deals) return null;
-    const active = deals.filter((d) => !d.archived && d.status !== "Vendido" && d.status !== "Perdida");
+    const active = deals.filter((d) => !d.archived && d.status !== "Vendido" && d.status !== "Perdida" && d.status !== "Desqualificado");
     const won = deals.filter((d) => d.status === "Vendido");
     const lost = deals.filter((d) => d.status === "Perdida");
     const pipelineValue = active.reduce((s, d) => s + (Number(d.value) || 0), 0);
     const wonValue = won.reduce((s, d) => s + (Number(d.value) || 0), 0);
     const conversionRate = won.length + lost.length > 0 ? (won.length / (won.length + lost.length)) * 100 : 0;
     const avgTicket = won.length > 0 ? wonValue / won.length : 0;
+    const newDeals = deals.length;
 
     return {
+      newDeals,
       activeCount: active.length,
       pipelineValue,
       wonCount: won.length,
@@ -277,8 +280,9 @@ export default function Dashboard() {
           ))}
         </div>
       ) : kpis ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
           {[
+            { label: "Novas", value: kpis.newDeals, icon: PlusCircle },
             { label: "Ativas", value: kpis.activeCount, icon: TrendingUp },
             { label: "Pipeline", value: fmt(kpis.pipelineValue), icon: DollarSign },
             { label: "Vendidas", value: `${kpis.wonCount} (${fmt(kpis.wonValue)})`, icon: Trophy },
