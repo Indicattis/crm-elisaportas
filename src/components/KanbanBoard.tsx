@@ -654,6 +654,7 @@ export function KanbanBoard() {
           columns={columns}
           dealTagsMap={dealTagsMap}
           profilesMap={profilesMap}
+          dealStageMap={dealStageMap}
           onEditDeal={handleViewDeal}
           onCapture={handleCapture}
         />
@@ -736,6 +737,7 @@ export function KanbanBoard() {
                   dailyColorsMap={dailyColorsMap}
                   nextTaskMap={nextTaskMap}
                   channelIconMap={channelIconMap}
+                  dealStageMap={dealStageMap}
                   hasDailyColor={(column as any).has_daily_color !== false}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
