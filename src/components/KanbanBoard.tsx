@@ -748,6 +748,28 @@ export function KanbanBoard() {
           fetchDeals();
         }}
       />
+
+      {pendingMove && (
+        <EntryRequirementsModal
+          open={!!pendingMove}
+          onOpenChange={(open) => { if (!open) { setPendingMove(null); setPendingMoveReqs([]); } }}
+          deal={pendingMove.deal}
+          requirements={pendingMoveReqs}
+          targetStatus={pendingMove.targetStatus}
+          funnelId={selectedFunnelId}
+          onConfirm={async () => {
+            const { deal, targetStatus } = pendingMove;
+            setPendingMove(null);
+            setPendingMoveReqs([]);
+            // Re-fetch deal to get updated data
+            const { data: freshDeal } = await supabase.from("deals").select("*").eq("id", deal.id).single();
+            if (freshDeal) {
+              await executeDealMove(freshDeal, targetStatus);
+              fetchDeals();
+            }
+          }}
+        />
+      )}
     </>
   );
 }
