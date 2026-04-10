@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
@@ -31,6 +31,8 @@ interface KanbanColumnProps {
   nextTaskMap?: Record<string, string>;
   channelIconMap?: Record<string, string>;
   showDropSpacer?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
@@ -64,6 +66,8 @@ export function KanbanColumn({
   nextTaskMap = {},
   channelIconMap = {},
   showDropSpacer = false,
+  collapsed = false,
+  onToggleCollapse,
   onTagsChanged,
   onCapture,
   onColorChange,
@@ -92,6 +96,36 @@ export function KanbanColumn({
       ? "hsl(var(--accent) / 0.5)"
       : "hsl(var(--muted) / 0.3)";
 
+  if (collapsed) {
+    return (
+      <div
+        ref={setNodeRef}
+        className="flex w-12 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors h-full cursor-pointer"
+        style={{ backgroundColor: columnBg }}
+        onClick={onToggleCollapse}
+      >
+        <div
+          className="flex flex-col items-center py-3 px-1 h-full"
+          style={{ backgroundColor: headerBg }}
+        >
+          <ChevronRight className="h-4 w-4 text-white/80 mb-2 shrink-0" />
+          <span
+            className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0 mb-2"
+            style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+          >
+            {deals.length}
+          </span>
+          <span
+            className="text-xs font-bold text-white writing-vertical"
+            style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+          >
+            {status}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -99,8 +133,9 @@ export function KanbanColumn({
       style={{ backgroundColor: columnBg }}
     >
       <div
-        className="flex items-center justify-between px-3 h-[50px] max-h-[50px]"
+        className="flex items-center justify-between px-3 h-[50px] max-h-[50px] cursor-pointer"
         style={{ backgroundColor: headerBg }}
+        onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="text-sm font-bold text-white truncate">{status}</h3>
@@ -120,7 +155,7 @@ export function KanbanColumn({
             variant="ghost"
             size="icon"
             className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15"
-            onClick={() => onAddDeal(status)}
+            onClick={(e) => { e.stopPropagation(); onAddDeal(status); }}
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>
