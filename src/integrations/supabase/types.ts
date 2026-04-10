@@ -370,7 +370,9 @@ export type Database = {
           created_at: string
           funnel_id: string
           id: string
+          is_notice: boolean
           name: string
+          notice_text: string | null
           position: number
           sort_order: string
           task_group_id: string | null
@@ -382,7 +384,9 @@ export type Database = {
           created_at?: string
           funnel_id: string
           id?: string
+          is_notice?: boolean
           name: string
+          notice_text?: string | null
           position?: number
           sort_order?: string
           task_group_id?: string | null
@@ -394,7 +398,9 @@ export type Database = {
           created_at?: string
           funnel_id?: string
           id?: string
+          is_notice?: boolean
           name?: string
+          notice_text?: string | null
           position?: number
           sort_order?: string
           task_group_id?: string | null
