@@ -646,6 +646,8 @@ export function KanbanBoard() {
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}
+                  collapsed={collapsedColumns.has(column.name)}
+                  onToggleCollapse={() => toggleColumnCollapse(column.name)}
                   onTagsChanged={handleTagToggle}
                   onCapture={handleCapture}
                   onColorChange={handleColorChange}
