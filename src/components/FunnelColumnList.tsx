@@ -227,6 +227,10 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               }}
             />
 
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setRequirementsColumnId(col.id)} title="Requisitos de entrada">
+              <ShieldCheck className="h-4 w-4" />
+            </Button>
+
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingColumnId(col.id)} title="Configurações">
               <Settings className="h-4 w-4" />
             </Button>
@@ -380,6 +384,37 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                   </div>
                 </>
               )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Sheet de requisitos de entrada */}
+      <Sheet open={!!requirementsColumnId} onOpenChange={(open) => { if (!open) setRequirementsColumnId(null); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Requisitos de entrada — {requirementsColumn?.name}</SheetTitle>
+          </SheetHeader>
+
+          {requirementsColumn && (
+            <div className="space-y-4 mt-6">
+              <p className="text-sm text-muted-foreground">
+                Selecione os campos que devem estar preenchidos para um card entrar nesta etapa.
+              </p>
+
+              {REQUIREMENT_FIELDS.map((field) => {
+                const colReqs = requirements[requirementsColumn.id] || [];
+                const checked = colReqs.includes(field.value);
+                return (
+                  <label key={field.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => handleToggleRequirement(requirementsColumn.id, field.value, !!v)}
+                    />
+                    <span className="text-sm font-medium">{field.label}</span>
+                  </label>
+                );
+              })}
             </div>
           )}
         </SheetContent>
