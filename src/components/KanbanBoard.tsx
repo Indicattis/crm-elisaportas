@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
 import { DealDetailDialog } from "./DealDetailDialog";
+import { EntryRequirementsModal } from "./EntryRequirementsModal";
 import { DealCard } from "./DealCard";
 import { DealsListView } from "./DealsListView";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
