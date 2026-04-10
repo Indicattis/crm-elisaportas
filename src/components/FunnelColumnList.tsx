@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 
 const COLOR_OPTIONS = [
@@ -44,7 +44,10 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
   const [taskGroups, setTaskGroups] = useState<{ id: string; name: string }[]>([]);
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const editingColumn = columns.find((c) => c.id === editingColumnId);
 
   const fetchTaskGroups = useCallback(async () => {
     const { data } = await supabase.from("task_groups").select("id, name").order("name");
@@ -108,6 +111,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
+      if (editingColumnId === id) setEditingColumnId(null);
       onChanged();
     }
   };
@@ -182,101 +186,10 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               }}
             />
 
-            <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Coluna de aviso">
-              <Checkbox
-                checked={(col as any).is_notice || false}
-                onCheckedChange={(v) => handleUpdateIsNotice(col.id, !!v)}
-              />
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-            </label>
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingColumnId(col.id)} title="Configurações">
+              <Settings className="h-4 w-4" />
+            </Button>
 
-            {!(col as any).is_notice && (
-              <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Bolas coloridas">
-                <Checkbox
-                  checked={(col as any).has_daily_color !== false}
-                  onCheckedChange={(v) => handleUpdateHasDailyColor(col.id, !!v)}
-                />
-                <Circle className="h-3.5 w-3.5 text-green-500" />
-              </label>
-            )}
-
-            {(col as any).is_notice ? (
-              <Textarea
-                className="flex-1 min-h-[32px] h-8 text-xs resize-none"
-                placeholder="Texto do aviso..."
-                defaultValue={(col as any).notice_text || ""}
-                onBlur={(e) => {
-                  if (e.target.value !== ((col as any).notice_text || "")) {
-                    handleUpdateNoticeText(col.id, e.target.value);
-                  }
-                }}
-              />
-            ) : (
-              <>
-                <Select
-                  value={(col as any).task_group_id || "none"}
-                  onValueChange={(v) => handleUpdateTaskGroup(col.id, v === "none" ? null : v)}
-                >
-                  <SelectTrigger className="w-40 h-8 text-xs">
-                    <ClipboardList className="h-3 w-3 mr-1 shrink-0" />
-                    <SelectValue placeholder="Grupo de tarefas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem grupo</SelectItem>
-                    {taskGroups.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={(col as any).sort_order || "channel"}
-                  onValueChange={(v) => handleUpdateSortOrder(col.id, v)}
-                >
-                  <SelectTrigger className="w-40 h-8 text-xs">
-                    <ArrowUpDown className="h-3 w-3 mr-1 shrink-0" />
-                    <SelectValue placeholder="Ordenação" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="channel">Canal de aquisição</SelectItem>
-                    <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
-                    <SelectItem value="created_at">Data de criação</SelectItem>
-                    <SelectItem value="next_task">Próxima tarefa</SelectItem>
-                    <SelectItem value="value_desc">Maior valor</SelectItem>
-                    <SelectItem value="value_asc">Menor valor</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Ações permitidas">
-                      <Shield className="h-3.5 w-3.5" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-3" align="end">
-                    <p className="text-xs font-medium mb-2 text-muted-foreground">Ações do vendedor</p>
-                    {ACTION_OPTIONS.map((action) => {
-                      const currentActions = (col as any).allowed_actions || ["sold", "lost", "disqualified"];
-                      const checked = currentActions.includes(action.value);
-                      return (
-                        <label key={action.value} className="flex items-center gap-2 py-1 cursor-pointer">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) => {
-                              const next = v
-                                ? [...currentActions, action.value]
-                                : currentActions.filter((a: string) => a !== action.value);
-                              handleUpdateAllowedActions(col.id, next);
-                            }}
-                          />
-                          <span className="text-sm">{action.label}</span>
-                        </label>
-                      );
-                    })}
-                  </PopoverContent>
-                </Popover>
-              </>
-            )}
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -309,6 +222,127 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
           <Plus className="h-4 w-4 mr-1" /> Adicionar
         </Button>
       </div>
+
+      {/* Sheet de configurações da coluna */}
+      <Sheet open={!!editingColumnId} onOpenChange={(open) => { if (!open) setEditingColumnId(null); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Configurações — {editingColumn?.name}</SheetTitle>
+          </SheetHeader>
+
+          {editingColumn && (
+            <div className="space-y-6 mt-6">
+              {/* Coluna de aviso */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={(editingColumn as any).is_notice || false}
+                    onCheckedChange={(v) => handleUpdateIsNotice(editingColumn.id, !!v)}
+                  />
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm font-medium">Coluna de aviso</span>
+                </label>
+
+                {(editingColumn as any).is_notice && (
+                  <Textarea
+                    placeholder="Texto do aviso..."
+                    defaultValue={(editingColumn as any).notice_text || ""}
+                    key={editingColumn.id + "-notice"}
+                    onBlur={(e) => {
+                      if (e.target.value !== ((editingColumn as any).notice_text || "")) {
+                        handleUpdateNoticeText(editingColumn.id, e.target.value);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+
+              {!(editingColumn as any).is_notice && (
+                <>
+                  {/* Bolas coloridas */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={(editingColumn as any).has_daily_color !== false}
+                      onCheckedChange={(v) => handleUpdateHasDailyColor(editingColumn.id, !!v)}
+                    />
+                    <Circle className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium">Bolas coloridas</span>
+                  </label>
+
+                  {/* Grupo de tarefas */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-1.5">
+                      <ClipboardList className="h-4 w-4" /> Grupo de tarefas
+                    </label>
+                    <Select
+                      value={(editingColumn as any).task_group_id || "none"}
+                      onValueChange={(v) => handleUpdateTaskGroup(editingColumn.id, v === "none" ? null : v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Grupo de tarefas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem grupo</SelectItem>
+                        {taskGroups.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Ordenação */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-1.5">
+                      <ArrowUpDown className="h-4 w-4" /> Ordenação
+                    </label>
+                    <Select
+                      value={(editingColumn as any).sort_order || "channel"}
+                      onValueChange={(v) => handleUpdateSortOrder(editingColumn.id, v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ordenação" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="channel">Canal de aquisição</SelectItem>
+                        <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
+                        <SelectItem value="created_at">Data de criação</SelectItem>
+                        <SelectItem value="next_task">Próxima tarefa</SelectItem>
+                        <SelectItem value="value_desc">Maior valor</SelectItem>
+                        <SelectItem value="value_asc">Menor valor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Ações permitidas */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-1.5">
+                      <Shield className="h-4 w-4" /> Ações do vendedor
+                    </label>
+                    {ACTION_OPTIONS.map((action) => {
+                      const currentActions = (editingColumn as any).allowed_actions || ["sold", "lost", "disqualified"];
+                      const checked = currentActions.includes(action.value);
+                      return (
+                        <label key={action.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...currentActions, action.value]
+                                : currentActions.filter((a: string) => a !== action.value);
+                              handleUpdateAllowedActions(editingColumn.id, next);
+                            }}
+                          />
+                          <span className="text-sm">{action.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
