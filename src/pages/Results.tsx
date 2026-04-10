@@ -341,7 +341,7 @@ export default function Results() {
                 {showArchiveReason && <TableHead>Motivo Arquivamento</TableHead>}
                 <TableHead>Criação</TableHead>
                 <TableHead>Atualização</TableHead>
-                {showDeleteColumn && <TableHead className="w-28 text-right">Excluir</TableHead>}
+                {showActionsColumn && <TableHead className="w-32 text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -374,41 +374,72 @@ export default function Results() {
                   )}
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.created_at)}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{formatDateCell(deal.updated_at)}</TableCell>
-                  {showDeleteColumn && (
+                  {showActionsColumn && (
                     <TableCell className="text-right">
-                      {deal.archived ? (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Excluir
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => handleDeleteDeal(deal.id)}
+                      <div className="flex items-center justify-end gap-1">
+                        {deal.archived && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
+                                <Trash2 className="h-4 w-4" />
                                 Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir negociação</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir permanentemente "{deal.title}"? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => handleDeleteDeal(deal.id)}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {deal.status === "Desqualificado" && !deal.archived && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                <Undo2 className="h-4 w-4" />
+                                Retornar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Retornar ao Kanban</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Deseja retornar "{deal.title}" para a primeira etapa do funil? A negociação voltará a aparecer no Kanban.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRestoreDeal(deal)}>
+                                  Retornar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {!deal.archived && deal.status !== "Desqualificado" && (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
