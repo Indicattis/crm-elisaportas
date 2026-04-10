@@ -566,6 +566,26 @@ export default function Results() {
               <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
             </div>
           </button>
+          <button
+            onClick={() => setActiveFilter(f => f === "disqualified" ? null : "disqualified")}
+            className={cn(
+              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
+              activeFilter === "disqualified"
+                ? "border-muted-foreground/40 bg-muted ring-2 ring-muted-foreground/30"
+                : activeFilter === null
+                  ? "border-muted-foreground/20 bg-muted/50 hover:bg-muted"
+                  : "border-border bg-card opacity-50 hover:opacity-75"
+            )}
+          >
+            <div className="rounded-lg bg-muted-foreground/15 p-2.5">
+              <Ban className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Desqualificados</p>
+              <p className="text-lg font-bold text-muted-foreground">{formatCurrency(disqualifiedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground">{disqualifiedDeals.length} negociação{disqualifiedDeals.length !== 1 ? "ões" : ""}</p>
+            </div>
+          </button>
         </div>
       )}
 
