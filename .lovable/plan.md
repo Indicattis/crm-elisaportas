@@ -1,40 +1,31 @@
 
 
-# Mostrar etapa atual das tarefas no DealCard
+# Desqualificados: cor cinza + retornar ao Kanban
 
 ## Visão geral
 
-Exibir no card do Kanban a etapa (task group stage) em que a negociação se encontra — ou seja, a primeira etapa que ainda possui tarefas pendentes.
+O card de Desqualificados já usa tons cinza (`muted-foreground`). A mudança principal é adicionar um botão "Retornar ao Kanban" nas negociações desqualificadas, permitindo reativá-las movendo-as para a primeira etapa do funil original.
 
 ## Alterações
 
-### 1. `src/components/KanbanBoard.tsx` — Buscar etapa atual por deal
+### `src/pages/Results.tsx`
 
-- Na `fetchOverdueTasks` (ou em novo callback paralelo), além das tarefas pendentes, buscar também o `stage_id` de cada tarefa pendente
-- Para cada deal, identificar a etapa com menor `position` que tenha tarefas incompletas
-- Buscar os dados das stages (`task_group_stages`) para obter nome e cor
-- Criar um novo state `dealCurrentStageMap: Record<string, { name: string; color: string }>` e passá-lo ao `KanbanColumn`
+1. **Botão "Retornar" na tabela** — Na coluna de ações (onde já existe "Excluir" para arquivadas), adicionar um botão com ícone `Undo2` para deals desqualificados. Visível quando `activeFilter === "disqualified"` ou `activeFilter === null` (para deals com status "Desqualificado").
 
-### 2. `src/components/KanbanColumn.tsx` — Repassar ao DealCard
+2. **Função `handleRestoreDeal`**:
+   - Buscar as colunas do funil do deal (`funnel_columns` onde `funnel_id = deal.funnel_id`, `is_notice = false`, ordenado por `position`)
+   - Pegar o nome da primeira coluna (primeira etapa ativa)
+   - Atualizar o deal: `status = primeiraEtapa`, `loss_reason = null`
+   - Registrar no `deal_history` o evento de retorno
+   - Exibir toast de sucesso e recarregar deals
 
-- Aceitar nova prop `dealCurrentStageMap` e passá-la ao `DealCard` como `currentStage`
+3. **Coluna de ações**: Renomear de "Excluir" para "Ações" e mostrar tanto o botão de excluir (para arquivadas) quanto o de retornar (para desqualificadas). Usar `showDeleteColumn` renomeado para `showActionsColumn` que será `true` quando o filtro for `archived`, `disqualified` ou `null`.
 
-### 3. `src/components/DealCard.tsx` — Exibir a etapa
-
-- Nova prop opcional `currentStage?: { name: string; color: string }`
-- Renderizar um Badge/indicador compacto (nome da etapa com dot colorido) na Row 3 ou Row 2, ao lado das informações existentes
-- Se não houver etapa (sem tarefas ou sem stage_id), não exibir nada
-
-### 4. `src/components/DealsListView.tsx` — Coluna de etapa (opcional)
-
-- Adicionar coluna "Etapa" na tabela de lista, usando o mesmo map
+4. **Confirmação**: Usar `AlertDialog` para confirmar o retorno, similar ao de exclusão.
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Buscar e calcular etapa atual por deal |
-| `src/components/KanbanColumn.tsx` | Repassar prop `dealCurrentStageMap` |
-| `src/components/DealCard.tsx` | Exibir badge com nome/cor da etapa |
-| `src/components/DealsListView.tsx` | Coluna de etapa na lista |
+| `src/pages/Results.tsx` | Botão retornar + lógica de reativação |
 
