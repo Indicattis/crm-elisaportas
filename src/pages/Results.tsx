@@ -92,14 +92,17 @@ export default function Results() {
 
     let soldQuery = supabase.from("deals").select("*").eq("status", "Vendido").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") soldQuery = soldQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) soldQuery = soldQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: sold } = await soldQuery.order("updated_at", { ascending: false });
 
     let lostQuery = supabase.from("deals").select("*").eq("status", "Perdida").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") lostQuery = lostQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) lostQuery = lostQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: lost } = await lostQuery.order("updated_at", { ascending: false });
 
     let archivedQuery = supabase.from("deals").select("*").eq("archived", true).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") archivedQuery = archivedQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) archivedQuery = archivedQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: archived } = await archivedQuery.order("updated_at", { ascending: false });
 
     setSoldDeals(sold || []);
@@ -116,7 +119,7 @@ export default function Results() {
     }
 
     setLoading(false);
-  }, [selectedFunnelId, dateFrom, dateTo]);
+  }, [selectedFunnelId, dateFrom, dateTo, selectedDealsSellerId]);
 
   const fetchStageHistory = useCallback(async () => {
     if (!currentUserId) return;
