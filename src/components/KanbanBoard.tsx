@@ -130,6 +130,21 @@ export function KanbanBoard() {
       .eq("funnel_id", selectedFunnelId)
       .order("position");
     setColumns(data || []);
+
+    // Fetch entry requirements for all columns
+    if (data && data.length > 0) {
+      const colIds = data.map((c: any) => c.id);
+      const { data: reqs } = await supabase
+        .from("column_entry_requirements")
+        .select("column_id, field_name")
+        .in("column_id", colIds);
+      const map: Record<string, { field_name: string }[]> = {};
+      (reqs || []).forEach((r: any) => {
+        if (!map[r.column_id]) map[r.column_id] = [];
+        map[r.column_id].push({ field_name: r.field_name });
+      });
+      setEntryRequirements(map);
+    }
   }, [selectedFunnelId]);
 
   const fetchDeals = useCallback(async () => {
