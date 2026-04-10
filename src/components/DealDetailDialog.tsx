@@ -1485,13 +1485,20 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                         if (stageTasks.length === 0) return null;
                         const completedCount = stageTasks.filter(t => t.completed).length;
                         return (
-                          <div key={stage.id} className="space-y-1.5">
-                            <div className="flex items-center gap-2 px-1">
-                              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
-                              <span className="text-[11px] font-semibold text-foreground">{stage.name}</span>
-                              <span className="text-[10px] text-muted-foreground">{completedCount}/{stageTasks.length}</span>
+                          <div key={stage.id} className="flex gap-0">
+                            {/* Vertical line with dot */}
+                            <div className="flex flex-col items-center shrink-0 mr-2.5">
+                              <span className="h-2.5 w-2.5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: stage.color }} />
+                              <div className="flex-1 w-0.5 rounded-full min-h-[8px]" style={{ backgroundColor: stage.color, opacity: 0.35 }} />
                             </div>
-                            {stageTasks.map(renderTask)}
+                            {/* Stage content */}
+                            <div className="flex-1 space-y-1.5 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-semibold text-foreground">{stage.name}</span>
+                                <span className="text-[10px] text-muted-foreground">{completedCount}/{stageTasks.length}</span>
+                              </div>
+                              {stageTasks.map(renderTask)}
+                            </div>
                           </div>
                         );
                       })}
