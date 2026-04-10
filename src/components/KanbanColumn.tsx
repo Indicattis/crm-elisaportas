@@ -202,7 +202,7 @@ export function KanbanColumn({
               allTags={allTags}
               assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
               hasOverdueTasks={overdueDeals.has(deal.id)}
-              dailyColor={hasDailyColor ? dailyColorsMap[deal.id] : undefined}
+              dailyColor={hasDailyColor ? (dailyColorsMap[deal.id] || "red") : undefined}
               nextTaskDeadline={nextTaskMap[deal.id]}
               channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
               onTagsChanged={onTagsChanged}
