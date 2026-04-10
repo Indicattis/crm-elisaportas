@@ -106,11 +106,17 @@ export default function Results() {
     if (selectedDealsSellerId) archivedQuery = archivedQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: archived } = await archivedQuery.order("updated_at", { ascending: false });
 
+    let disqualifiedQuery = supabase.from("deals").select("*").eq("status", "Desqualificado").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
+    if (selectedFunnelId !== "all") disqualifiedQuery = disqualifiedQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) disqualifiedQuery = disqualifiedQuery.eq("assigned_to", selectedDealsSellerId);
+    const { data: disqualified } = await disqualifiedQuery.order("updated_at", { ascending: false });
+
     setSoldDeals(sold || []);
     setLostDeals(lost || []);
     setArchivedDeals(archived || []);
+    setDisqualifiedDeals(disqualified || []);
 
-    const allDeals = [...(sold || []), ...(lost || []), ...(archived || [])];
+    const allDeals = [...(sold || []), ...(lost || []), ...(archived || []), ...(disqualified || [])];
     const assignedIds = [...new Set(allDeals.filter(d => d.assigned_to).map(d => d.assigned_to as string))];
     if (assignedIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", assignedIds);
