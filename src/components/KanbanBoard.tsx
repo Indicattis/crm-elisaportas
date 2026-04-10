@@ -413,6 +413,45 @@ export function KanbanBoard() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    const newStatus = resolveStatusFromTargetId(over?.id ? String(over.id) : null);
+
+    setActiveDeal(null);
+    setActiveOverStatus(null);
+
+    if (!newStatus) return;
+
+    const dealId = active.id as string;
+    const validStatuses = columns.map((column) => column.name);
+    if (!validStatuses.includes(newStatus)) return;
+
+    const deal = deals.find((item) => item.id === dealId);
+    if (!deal || deal.status === newStatus) return;
+
+    // Check entry requirements for target column
+    const targetColumn = columns.find((c) => c.name === newStatus);
+    if (targetColumn) {
+      const reqs = entryRequirements[targetColumn.id] || [];
+      if (reqs.length > 0) {
+        // Check which fields are missing
+        const missing = reqs.filter((r) => {
+          if (r.field_name === "task") return true; // always require task creation
+          const val = deal[r.field_name as keyof Deal];
+          return val === null || val === undefined || val === "" || val === 0;
+        });
+
+        if (missing.length > 0) {
+          setPendingMove({ deal, targetStatus: newStatus });
+          setPendingMoveReqs(missing);
+          return;
+        }
+      }
+    }
+
+    await executeDealMove(deal, newStatus);
+  };
+
   const handleAddDeal = (status: string) => {
     setEditingDeal(null);
     setDefaultStatus(status);
