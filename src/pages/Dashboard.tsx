@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/contexts/RoleContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -14,9 +15,20 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
+  const { role } = useUserRole();
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
+  const [selectedSeller, setSelectedSeller] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+
+  // Set current user as default seller for vendedor role
+  useEffect(() => {
+    if (role === "vendedor") {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) setSelectedSeller(data.user.id);
+      });
+    }
+  }, [role]);
 
   const { data: funnels } = useQuery({
     queryKey: ["funnels"],
