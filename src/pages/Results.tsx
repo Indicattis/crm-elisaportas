@@ -51,9 +51,10 @@ export default function Results() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { role } = useUserRole();
 
-  // Seller filter for history (admin only)
+  // Seller filter
   const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
   const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+  const [selectedDealsSellerId, setSelectedDealsSellerId] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -69,12 +70,20 @@ export default function Results() {
     setFunnels(data || []);
   }, []);
 
-  // Fetch sellers for admin filter
+  // Fetch sellers
   const fetchSellers = useCallback(async () => {
-    if (role !== "admin") return;
     const { data } = await supabase.from("profiles").select("id, full_name").order("full_name");
     setSellers((data || []).map(p => ({ id: p.id, name: p.full_name || "Sem nome" })));
-  }, [role]);
+  }, []);
+
+  // Set default seller filter based on role
+  useEffect(() => {
+    if (currentUserId && role) {
+      if (role === "vendedor") {
+        setSelectedDealsSellerId(currentUserId);
+      }
+    }
+  }, [currentUserId, role]);
 
   const fetchDeals = useCallback(async () => {
     setLoading(true);
