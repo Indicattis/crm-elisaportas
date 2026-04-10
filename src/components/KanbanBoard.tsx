@@ -69,6 +69,12 @@ export function KanbanBoard() {
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem("kanban-collapsed-columns");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
   const [filterState, setFilterState] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const { toast } = useToast();
