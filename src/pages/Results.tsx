@@ -335,6 +335,7 @@ export default function Results() {
               <TableRow>
                 <TableHead>Título</TableHead>
                 {showStatusColumn && <TableHead>Status</TableHead>}
+                <TableHead>Telefone</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Responsável</TableHead>
                 {showLossReason && <TableHead>Motivo Perda</TableHead>}
