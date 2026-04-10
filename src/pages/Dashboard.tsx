@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/contexts/RoleContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -14,9 +15,20 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
+  const { role } = useUserRole();
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
+  const [selectedSeller, setSelectedSeller] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+
+  // Set current user as default seller for vendedor role
+  useEffect(() => {
+    if (role === "vendedor") {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) setSelectedSeller(data.user.id);
+      });
+    }
+  }, [role]);
 
   const { data: funnels } = useQuery({
     queryKey: ["funnels"],
@@ -27,10 +39,11 @@ export default function Dashboard() {
   });
 
   const { data: deals, isLoading: dealsLoading } = useQuery({
-    queryKey: ["dashboard-deals", selectedFunnel, startDate?.toISOString(), endDate?.toISOString()],
+    queryKey: ["dashboard-deals", selectedFunnel, selectedSeller, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       let q = supabase.from("deals").select("*");
       if (selectedFunnel !== "all") q = q.eq("funnel_id", selectedFunnel);
+      if (selectedSeller !== "all") q = q.eq("assigned_to", selectedSeller);
       if (startDate) q = q.gte("created_at", startDate.toISOString());
       if (endDate) {
         const end = new Date(endDate);
@@ -240,6 +253,17 @@ export default function Dashboard() {
               <SelectItem value="all">Todos os funis</SelectItem>
               {funnels?.map((f) => (
                 <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedSeller} onValueChange={(v) => setSelectedSeller(v)} disabled={role === "vendedor"}>
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <SelectValue placeholder="Todos os vendedores" />
+            </SelectTrigger>
+            <SelectContent>
+              {role === "admin" && <SelectItem value="all">Todos os vendedores</SelectItem>}
+              {profiles?.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.full_name || p.email || "Sem nome"}</SelectItem>
               ))}
             </SelectContent>
           </Select>
