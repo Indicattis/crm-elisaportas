@@ -476,6 +476,21 @@ export default function Results() {
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={selectedDealsSellerId || "all"}
+            onValueChange={(v) => setSelectedDealsSellerId(v === "all" ? "" : v)}
+            disabled={role === "vendedor"}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Todos os vendedores" />
+            </SelectTrigger>
+            <SelectContent>
+              {role === "admin" && <SelectItem value="all">Todos os vendedores</SelectItem>}
+              {sellers.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
