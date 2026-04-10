@@ -420,6 +420,16 @@ export function KanbanBoard() {
     setDetailOpen(true);
   };
 
+  const toggleColumnCollapse = useCallback((columnName: string) => {
+    setCollapsedColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(columnName)) next.delete(columnName);
+      else next.add(columnName);
+      localStorage.setItem("kanban-collapsed-columns", JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
   const handleCapture = async (dealId: string) => {
     const {
       data: { user },
