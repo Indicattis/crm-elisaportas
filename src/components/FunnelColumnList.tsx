@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings, ShieldCheck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -40,21 +40,62 @@ interface Props {
   onChanged: () => void;
 }
 
+const REQUIREMENT_FIELDS = [
+  { value: "phone", label: "Telefone" },
+  { value: "email", label: "E-mail" },
+  { value: "value", label: "Valor" },
+  { value: "state", label: "Estado" },
+  { value: "city", label: "Cidade" },
+  { value: "acquisition_channel", label: "Canal de aquisição" },
+  { value: "notes", label: "Notas" },
+  { value: "task", label: "Tarefa obrigatória" },
+];
+
 export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
   const [taskGroups, setTaskGroups] = useState<{ id: string; name: string }[]>([]);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [requirementsColumnId, setRequirementsColumnId] = useState<string | null>(null);
+  const [requirements, setRequirements] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
+  const requirementsColumn = columns.find((c) => c.id === requirementsColumnId);
 
   const fetchTaskGroups = useCallback(async () => {
     const { data } = await supabase.from("task_groups").select("id, name").order("name");
     setTaskGroups(data || []);
   }, []);
 
+  const fetchRequirements = useCallback(async () => {
+    const colIds = columns.map((c) => c.id);
+    if (colIds.length === 0) { setRequirements({}); return; }
+    const { data } = await supabase
+      .from("column_entry_requirements")
+      .select("column_id, field_name")
+      .in("column_id", colIds);
+    const map: Record<string, string[]> = {};
+    (data || []).forEach((r: any) => {
+      if (!map[r.column_id]) map[r.column_id] = [];
+      map[r.column_id].push(r.field_name);
+    });
+    setRequirements(map);
+  }, [columns]);
+
   useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
+  useEffect(() => { fetchRequirements(); }, [fetchRequirements]);
+
+  const handleToggleRequirement = async (colId: string, fieldName: string, checked: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    if (checked) {
+      await supabase.from("column_entry_requirements").insert({ column_id: colId, field_name: fieldName, user_id: user.id } as any);
+    } else {
+      await supabase.from("column_entry_requirements").delete().eq("column_id", colId).eq("field_name", fieldName);
+    }
+    fetchRequirements();
+  };
 
   const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
     await supabase.from("funnel_columns").update({ task_group_id: taskGroupId } as any).eq("id", colId);
@@ -185,6 +226,10 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 if (e.target.value !== col.name) handleUpdateName(col.id, e.target.value);
               }}
             />
+
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setRequirementsColumnId(col.id)} title="Requisitos de entrada">
+              <ShieldCheck className="h-4 w-4" />
+            </Button>
 
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingColumnId(col.id)} title="Configurações">
               <Settings className="h-4 w-4" />
@@ -339,6 +384,37 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                   </div>
                 </>
               )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Sheet de requisitos de entrada */}
+      <Sheet open={!!requirementsColumnId} onOpenChange={(open) => { if (!open) setRequirementsColumnId(null); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Requisitos de entrada — {requirementsColumn?.name}</SheetTitle>
+          </SheetHeader>
+
+          {requirementsColumn && (
+            <div className="space-y-4 mt-6">
+              <p className="text-sm text-muted-foreground">
+                Selecione os campos que devem estar preenchidos para um card entrar nesta etapa.
+              </p>
+
+              {REQUIREMENT_FIELDS.map((field) => {
+                const colReqs = requirements[requirementsColumn.id] || [];
+                const checked = colReqs.includes(field.value);
+                return (
+                  <label key={field.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => handleToggleRequirement(requirementsColumn.id, field.value, !!v)}
+                    />
+                    <span className="text-sm font-medium">{field.label}</span>
+                  </label>
+                );
+              })}
             </div>
           )}
         </SheetContent>

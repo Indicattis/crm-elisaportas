@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
 import { DealDetailDialog } from "./DealDetailDialog";
+import { EntryRequirementsModal } from "./EntryRequirementsModal";
 import { DealCard } from "./DealCard";
 import { DealsListView } from "./DealsListView";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -69,6 +70,9 @@ export function KanbanBoard() {
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
+  const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
+  const [pendingMoveReqs, setPendingMoveReqs] = useState<{ field_name: string }[]>([]);
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem("kanban-collapsed-columns");
@@ -126,6 +130,21 @@ export function KanbanBoard() {
       .eq("funnel_id", selectedFunnelId)
       .order("position");
     setColumns(data || []);
+
+    // Fetch entry requirements for all columns
+    if (data && data.length > 0) {
+      const colIds = data.map((c: any) => c.id);
+      const { data: reqs } = await supabase
+        .from("column_entry_requirements")
+        .select("column_id, field_name")
+        .in("column_id", colIds);
+      const map: Record<string, { field_name: string }[]> = {};
+      (reqs || []).forEach((r: any) => {
+        if (!map[r.column_id]) map[r.column_id] = [];
+        map[r.column_id].push({ field_name: r.field_name });
+      });
+      setEntryRequirements(map);
+    }
   }, [selectedFunnelId]);
 
   const fetchDeals = useCallback(async () => {
@@ -352,25 +371,12 @@ export function KanbanBoard() {
     setActiveOverStatus(null);
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    const newStatus = resolveStatusFromTargetId(over?.id ? String(over.id) : null);
-
-    setActiveDeal(null);
-    setActiveOverStatus(null);
-
-    if (!newStatus) return;
-
-    const dealId = active.id as string;
-    const validStatuses = columns.map((column) => column.name);
-    if (!validStatuses.includes(newStatus)) return;
-
-    const deal = deals.find((item) => item.id === dealId);
-    if (!deal || deal.status === newStatus) return;
+  const executeDealMove = async (deal: Deal, newStatus: string) => {
+    const dealId = deal.id;
+    const oldStatus = deal.status;
 
     setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus } : item)));
 
-    const oldStatus = deal.status;
     const { error } = await supabase.from("deals").update({ status: newStatus }).eq("id", dealId);
 
     if (error) {
@@ -405,6 +411,45 @@ export function KanbanBoard() {
         });
       }
     }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    const newStatus = resolveStatusFromTargetId(over?.id ? String(over.id) : null);
+
+    setActiveDeal(null);
+    setActiveOverStatus(null);
+
+    if (!newStatus) return;
+
+    const dealId = active.id as string;
+    const validStatuses = columns.map((column) => column.name);
+    if (!validStatuses.includes(newStatus)) return;
+
+    const deal = deals.find((item) => item.id === dealId);
+    if (!deal || deal.status === newStatus) return;
+
+    // Check entry requirements for target column
+    const targetColumn = columns.find((c) => c.name === newStatus);
+    if (targetColumn) {
+      const reqs = entryRequirements[targetColumn.id] || [];
+      if (reqs.length > 0) {
+        // Check which fields are missing
+        const missing = reqs.filter((r) => {
+          if (r.field_name === "task") return true; // always require task creation
+          const val = deal[r.field_name as keyof Deal];
+          return val === null || val === undefined || val === "" || val === 0;
+        });
+
+        if (missing.length > 0) {
+          setPendingMove({ deal, targetStatus: newStatus });
+          setPendingMoveReqs(missing);
+          return;
+        }
+      }
+    }
+
+    await executeDealMove(deal, newStatus);
   };
 
   const handleAddDeal = (status: string) => {
@@ -703,6 +748,28 @@ export function KanbanBoard() {
           fetchDeals();
         }}
       />
+
+      {pendingMove && (
+        <EntryRequirementsModal
+          open={!!pendingMove}
+          onOpenChange={(open) => { if (!open) { setPendingMove(null); setPendingMoveReqs([]); } }}
+          deal={pendingMove.deal}
+          requirements={pendingMoveReqs}
+          targetStatus={pendingMove.targetStatus}
+          funnelId={selectedFunnelId}
+          onConfirm={async () => {
+            const { deal, targetStatus } = pendingMove;
+            setPendingMove(null);
+            setPendingMoveReqs([]);
+            // Re-fetch deal to get updated data
+            const { data: freshDeal } = await supabase.from("deals").select("*").eq("id", deal.id).single();
+            if (freshDeal) {
+              await executeDealMove(freshDeal, targetStatus);
+              fetchDeals();
+            }
+          }}
+        />
+      )}
     </>
   );
 }
