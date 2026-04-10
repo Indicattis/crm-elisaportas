@@ -371,25 +371,12 @@ export function KanbanBoard() {
     setActiveOverStatus(null);
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    const newStatus = resolveStatusFromTargetId(over?.id ? String(over.id) : null);
-
-    setActiveDeal(null);
-    setActiveOverStatus(null);
-
-    if (!newStatus) return;
-
-    const dealId = active.id as string;
-    const validStatuses = columns.map((column) => column.name);
-    if (!validStatuses.includes(newStatus)) return;
-
-    const deal = deals.find((item) => item.id === dealId);
-    if (!deal || deal.status === newStatus) return;
+  const executeDealMove = async (deal: Deal, newStatus: string) => {
+    const dealId = deal.id;
+    const oldStatus = deal.status;
 
     setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus } : item)));
 
-    const oldStatus = deal.status;
     const { error } = await supabase.from("deals").update({ status: newStatus }).eq("id", dealId);
 
     if (error) {
