@@ -1,55 +1,40 @@
 
 
-# Requisitos de Entrada por Coluna do Funil
+# Mostrar etapa atual das tarefas no DealCard
 
 ## Visão geral
 
-Cada coluna do funil poderá ter "requisitos de entrada" configuráveis — campos obrigatórios da negociação e/ou a exigência de criar uma tarefa com data. Quando um card for arrastado para uma coluna com requisitos, o sistema valida se os dados estão preenchidos. Se faltar algum, abre um modal para o usuário completar as informações antes de permitir a movimentação.
+Exibir no card do Kanban a etapa (task group stage) em que a negociação se encontra — ou seja, a primeira etapa que ainda possui tarefas pendentes.
 
 ## Alterações
 
-### 1. Banco de dados — nova tabela `column_entry_requirements`
+### 1. `src/components/KanbanBoard.tsx` — Buscar etapa atual por deal
 
-| Coluna | Tipo | Padrão |
-|---|---|---|
-| id | uuid | gen_random_uuid() |
-| column_id | uuid | (ref funnel_columns) |
-| field_name | text | — |
-| user_id | uuid | — |
-| created_at | timestamptz | now() |
+- Na `fetchOverdueTasks` (ou em novo callback paralelo), além das tarefas pendentes, buscar também o `stage_id` de cada tarefa pendente
+- Para cada deal, identificar a etapa com menor `position` que tenha tarefas incompletas
+- Buscar os dados das stages (`task_group_stages`) para obter nome e cor
+- Criar um novo state `dealCurrentStageMap: Record<string, { name: string; color: string }>` e passá-lo ao `KanbanColumn`
 
-`field_name` pode ser: `phone`, `email`, `value`, `state`, `city`, `acquisition_channel`, `notes`, `task` (valor especial para exigir criação de tarefa).
+### 2. `src/components/KanbanColumn.tsx` — Repassar ao DealCard
 
-RLS: admins gerenciam, autenticados visualizam.
+- Aceitar nova prop `dealCurrentStageMap` e passá-la ao `DealCard` como `currentStage`
 
-### 2. `src/components/FunnelColumnList.tsx`
+### 3. `src/components/DealCard.tsx` — Exibir a etapa
 
-- Adicionar botão de "Requisitos de entrada" (ícone `ShieldCheck`) ao lado do botão de configurações na linha de cada coluna
-- Abrir uma nova Sheet lateral com:
-  - Lista de checkboxes para campos: Telefone, E-mail, Valor, Estado, Cidade, Canal de aquisição, Notas
-  - Checkbox especial "Tarefa obrigatória" — exige que o vendedor crie uma tarefa com data ao mover o card
-  - Salvar/remover registros na tabela `column_entry_requirements`
+- Nova prop opcional `currentStage?: { name: string; color: string }`
+- Renderizar um Badge/indicador compacto (nome da etapa com dot colorido) na Row 3 ou Row 2, ao lado das informações existentes
+- Se não houver etapa (sem tarefas ou sem stage_id), não exibir nada
 
-### 3. `src/components/KanbanBoard.tsx` — Validação no drag-and-drop
+### 4. `src/components/DealsListView.tsx` — Coluna de etapa (opcional)
 
-- Ao concluir o drag (`handleDragEnd`), antes de efetivar a mudança:
-  - Buscar requisitos da coluna destino
-  - Validar se o deal possui os campos obrigatórios preenchidos
-  - Se faltar algo ou se `task` for requisito, abrir um modal (`EntryRequirementsModal`)
-  - Só efetivar a movimentação após o preenchimento
-
-### 4. Novo componente `src/components/EntryRequirementsModal.tsx`
-
-- Modal que exibe os campos faltantes para preenchimento inline
-- Se o requisito `task` estiver ativo, exibe um formulário para criar tarefa (descrição + data)
-- Botão "Confirmar" que salva os dados no deal, cria a tarefa se necessário, e efetiva a movimentação
+- Adicionar coluna "Etapa" na tabela de lista, usando o mesmo map
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar tabela `column_entry_requirements` |
-| `src/components/FunnelColumnList.tsx` | Botão + Sheet de requisitos |
-| `src/components/EntryRequirementsModal.tsx` | Novo — modal de preenchimento |
-| `src/components/KanbanBoard.tsx` | Validação no handleDragEnd |
+| `src/components/KanbanBoard.tsx` | Buscar e calcular etapa atual por deal |
+| `src/components/KanbanColumn.tsx` | Repassar prop `dealCurrentStageMap` |
+| `src/components/DealCard.tsx` | Exibir badge com nome/cor da etapa |
+| `src/components/DealsListView.tsx` | Coluna de etapa na lista |
 
