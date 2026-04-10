@@ -51,9 +51,10 @@ export default function Results() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { role } = useUserRole();
 
-  // Seller filter for history (admin only)
+  // Seller filter
   const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
   const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+  const [selectedDealsSellerId, setSelectedDealsSellerId] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -62,19 +63,27 @@ export default function Results() {
   }, []);
 
   // Reset page on filter changes
-  useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo, selectedDealsSellerId]);
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
     setFunnels(data || []);
   }, []);
 
-  // Fetch sellers for admin filter
+  // Fetch sellers
   const fetchSellers = useCallback(async () => {
-    if (role !== "admin") return;
     const { data } = await supabase.from("profiles").select("id, full_name").order("full_name");
     setSellers((data || []).map(p => ({ id: p.id, name: p.full_name || "Sem nome" })));
-  }, [role]);
+  }, []);
+
+  // Set default seller filter based on role
+  useEffect(() => {
+    if (currentUserId && role) {
+      if (role === "vendedor") {
+        setSelectedDealsSellerId(currentUserId);
+      }
+    }
+  }, [currentUserId, role]);
 
   const fetchDeals = useCallback(async () => {
     setLoading(true);
@@ -83,14 +92,17 @@ export default function Results() {
 
     let soldQuery = supabase.from("deals").select("*").eq("status", "Vendido").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") soldQuery = soldQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) soldQuery = soldQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: sold } = await soldQuery.order("updated_at", { ascending: false });
 
     let lostQuery = supabase.from("deals").select("*").eq("status", "Perdida").eq("archived", false).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") lostQuery = lostQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) lostQuery = lostQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: lost } = await lostQuery.order("updated_at", { ascending: false });
 
     let archivedQuery = supabase.from("deals").select("*").eq("archived", true).gte("updated_at", fromISO).lte("updated_at", toISO);
     if (selectedFunnelId !== "all") archivedQuery = archivedQuery.eq("funnel_id", selectedFunnelId);
+    if (selectedDealsSellerId) archivedQuery = archivedQuery.eq("assigned_to", selectedDealsSellerId);
     const { data: archived } = await archivedQuery.order("updated_at", { ascending: false });
 
     setSoldDeals(sold || []);
@@ -107,7 +119,7 @@ export default function Results() {
     }
 
     setLoading(false);
-  }, [selectedFunnelId, dateFrom, dateTo]);
+  }, [selectedFunnelId, dateFrom, dateTo, selectedDealsSellerId]);
 
   const fetchStageHistory = useCallback(async () => {
     if (!currentUserId) return;
@@ -461,6 +473,21 @@ export default function Results() {
               <SelectItem value="all">Todos os funis</SelectItem>
               {funnels.map(f => (
                 <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedDealsSellerId || "all"}
+            onValueChange={(v) => setSelectedDealsSellerId(v === "all" ? "" : v)}
+            disabled={role === "vendedor"}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Todos os vendedores" />
+            </SelectTrigger>
+            <SelectContent>
+              {role === "admin" && <SelectItem value="all">Todos os vendedores</SelectItem>}
+              {sellers.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
