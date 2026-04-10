@@ -244,6 +244,7 @@ export type Database = {
           description: string | null
           id: string
           next_recurrence_at: string | null
+          stage_id: string | null
           template_id: string | null
           type: string
         }
@@ -257,6 +258,7 @@ export type Database = {
           description?: string | null
           id?: string
           next_recurrence_at?: string | null
+          stage_id?: string | null
           template_id?: string | null
           type?: string
         }
@@ -270,10 +272,18 @@ export type Database = {
           description?: string | null
           id?: string
           next_recurrence_at?: string | null
+          stage_id?: string | null
           template_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deal_tasks_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "task_group_stages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deal_tasks_template_id_fkey"
             columns: ["template_id"]
@@ -602,6 +612,44 @@ export type Database = {
         }
         Relationships: []
       }
+      task_group_stages: {
+        Row: {
+          color: string
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_group_stages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_groups: {
         Row: {
           created_at: string
@@ -636,6 +684,7 @@ export type Database = {
           position: number
           recurrence_type: string | null
           recurrence_value: number | null
+          stage_id: string | null
           type: string
           user_id: string
         }
@@ -648,6 +697,7 @@ export type Database = {
           position?: number
           recurrence_type?: string | null
           recurrence_value?: number | null
+          stage_id?: string | null
           type?: string
           user_id: string
         }
@@ -660,6 +710,7 @@ export type Database = {
           position?: number
           recurrence_type?: string | null
           recurrence_value?: number | null
+          stage_id?: string | null
           type?: string
           user_id?: string
         }
@@ -669,6 +720,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_templates_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "task_group_stages"
             referencedColumns: ["id"]
           },
         ]
