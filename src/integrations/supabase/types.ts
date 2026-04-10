@@ -365,6 +365,7 @@ export type Database = {
       }
       funnel_columns: {
         Row: {
+          allowed_actions: string[]
           color: string
           created_at: string
           funnel_id: string
@@ -376,6 +377,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allowed_actions?: string[]
           color?: string
           created_at?: string
           funnel_id: string
@@ -387,6 +389,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allowed_actions?: string[]
           color?: string
           created_at?: string
           funnel_id?: string

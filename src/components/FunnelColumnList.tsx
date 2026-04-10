@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
 const COLOR_OPTIONS = [
@@ -22,7 +24,14 @@ interface FunnelColumn {
   name: string;
   color: string;
   position: number;
+  allowed_actions?: string[];
 }
+
+const ACTION_OPTIONS = [
+  { value: "sold", label: "Vendido" },
+  { value: "lost", label: "Perdida" },
+  { value: "disqualified", label: "Desqualificar" },
+];
 
 interface Props {
   funnelId: string;
@@ -50,6 +59,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   const handleUpdateSortOrder = async (colId: string, sortOrder: string) => {
     await supabase.from("funnel_columns").update({ sort_order: sortOrder } as any).eq("id", colId);
+    onChanged();
+  };
+
+  const handleUpdateAllowedActions = async (colId: string, actions: string[]) => {
+    await supabase.from("funnel_columns").update({ allowed_actions: actions } as any).eq("id", colId);
     onChanged();
   };
 
@@ -186,6 +200,34 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               </SelectContent>
             </Select>
 
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Ações permitidas">
+                  <Shield className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-3" align="end">
+                <p className="text-xs font-medium mb-2 text-muted-foreground">Ações do vendedor</p>
+                {ACTION_OPTIONS.map((action) => {
+                  const currentActions = (col as any).allowed_actions || ["sold", "lost", "disqualified"];
+                  const checked = currentActions.includes(action.value);
+                  return (
+                    <label key={action.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const next = v
+                            ? [...currentActions, action.value]
+                            : currentActions.filter((a: string) => a !== action.value);
+                          handleUpdateAllowedActions(col.id, next);
+                        }}
+                      />
+                      <span className="text-sm">{action.label}</span>
+                    </label>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>

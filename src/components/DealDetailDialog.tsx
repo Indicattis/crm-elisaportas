@@ -127,6 +127,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const [showDisqualifyDialog, setShowDisqualifyDialog] = useState(false);
   const [disqualifyReason, setDisqualifyReason] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [allowedActions, setAllowedActions] = useState<string[]>(["sold", "lost", "disqualified"]);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<DealAttachment[]>([]);
@@ -422,6 +423,19 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
       fetchDealTasks(deal.id);
       fetchHistory();
       fetchAttachments();
+
+      // Fetch allowed actions for the current column
+      if (deal.funnel_id && deal.status) {
+        supabase
+          .from("funnel_columns")
+          .select("allowed_actions")
+          .eq("funnel_id", deal.funnel_id)
+          .eq("name", deal.status)
+          .maybeSingle()
+          .then(({ data }) => {
+            setAllowedActions((data as any)?.allowed_actions || ["sold", "lost", "disqualified"]);
+          });
+      }
     }
   }, [deal?.id, deal?.updated_at, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1555,20 +1569,24 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     Sair da negociação
                   </Button>
                 )}
-                {(role === "admin" || (deal.assigned_to && deal.assigned_to === currentUserId)) && (
+                {(role === "admin" || allowedActions.includes("disqualified")) && (role === "admin" || (deal.assigned_to && deal.assigned_to === currentUserId)) && (
                   <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={handleDisqualify}>
                     <AlertTriangle className="h-4 w-4 mr-1" />
                     Desqualificar
                   </Button>
                 )}
-                <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Perdida
-                </Button>
-                <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  Vendido
-                </Button>
+                {(role === "admin" || allowedActions.includes("lost")) && (
+                  <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Perdida
+                  </Button>
+                )}
+                {(role === "admin" || allowedActions.includes("sold")) && (
+                  <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    Vendido
+                  </Button>
+                )}
               </>
             )}
           </div>
