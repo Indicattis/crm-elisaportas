@@ -191,7 +191,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
             </label>
 
             {!(col as any).is_notice && (
-200:               <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Bolas coloridas">
+              <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Bolas coloridas">
                 <Checkbox
                   checked={(col as any).has_daily_color !== false}
                   onCheckedChange={(v) => handleUpdateHasDailyColor(col.id, !!v)}
