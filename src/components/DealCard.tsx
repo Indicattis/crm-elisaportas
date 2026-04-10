@@ -32,6 +32,7 @@ interface DealCardProps {
   dailyColor?: string;
   nextTaskDeadline?: string;
   channelIconKey?: string;
+  currentStage?: { name: string; color: string };
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
@@ -48,7 +49,7 @@ function hexToRgb(hex: string) {
 const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "green", green: "red" };
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 
-export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, currentStage, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -192,14 +193,20 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
         </div>
       </div>
 
-      {/* Row 3: Location + Next task */}
+      {/* Row 3: Location + Stage + Next task */}
       <div className="flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+        <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
           {(deal.city || deal.state) && (
             <>
               <MapPin className="h-3 w-3 shrink-0" />
               <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
             </>
+          )}
+          {currentStage && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border" style={{ borderColor: currentStage.color, color: currentStage.color }}>
+              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: currentStage.color }} />
+              {currentStage.name}
+            </Badge>
           )}
         </div>
         {nextTaskDeadline && (

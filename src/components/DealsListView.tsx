@@ -27,11 +27,12 @@ interface DealsListViewProps {
   columns: FunnelColumn[];
   dealTagsMap: Record<string, DealTag[]>;
   profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }>;
+  dealStageMap?: Record<string, { name: string; color: string }>;
   onEditDeal: (deal: Deal) => void;
   onCapture: (dealId: string) => void;
 }
 
-export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEditDeal, onCapture }: DealsListViewProps) {
+export function DealsListView({ deals, columns, dealTagsMap, profilesMap, dealStageMap = {}, onEditDeal, onCapture }: DealsListViewProps) {
   const columnMap = new Map(columns.map((c) => [c.name, c]));
   
   const sortedDeals = [...deals].sort((a, b) => {
@@ -52,7 +53,7 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
             <TableHead>Status</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="text-right">Valor</TableHead>
-            <TableHead className="text-center">Etapa</TableHead>
+            <TableHead className="text-center">Etapa Tarefa</TableHead>
             <TableHead>Tags</TableHead>
             <TableHead>Localização</TableHead>
             <TableHead>Criação</TableHead>
@@ -139,10 +140,14 @@ export function DealsListView({ deals, columns, dealTagsMap, profilesMap, onEdit
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  <span className={`flex items-center justify-center gap-1 text-xs ${daysColor}`}>
-                    <Clock className="h-3 w-3" />
-                    {daysInStage === 0 ? "Hoje" : `${daysInStage}d`}
-                  </span>
+                  {dealStageMap[deal.id] ? (
+                    <Badge variant="outline" className="text-[10px] gap-1" style={{ borderColor: dealStageMap[deal.id].color, color: dealStageMap[deal.id].color }}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: dealStageMap[deal.id].color }} />
+                      {dealStageMap[deal.id].name}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {tags.length > 0 ? (
