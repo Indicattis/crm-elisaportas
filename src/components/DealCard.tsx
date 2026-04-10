@@ -87,19 +87,21 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
       {/* Row 1: Status indicators + Title + Avatar */}
       <div className="flex items-start justify-between gap-1.5">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <button
-            className="shrink-0 h-3 w-3 rounded-full transition-all"
-            style={{
-              backgroundColor: COLOR_HEX[dailyColor || "red"],
-              boxShadow: `0 0 8px ${COLOR_HEX[dailyColor || "red"]}`,
-            }}
-            title="Alterar status diário"
-            onClick={(e) => {
-              e.stopPropagation();
-              const next = COLOR_CYCLE[dailyColor || "red"];
-              onColorChange?.(deal.id, next);
-            }}
-          />
+          {dailyColor !== undefined && (
+            <button
+              className="shrink-0 h-3 w-3 rounded-full transition-all"
+              style={{
+                backgroundColor: COLOR_HEX[dailyColor || "red"],
+                boxShadow: `0 0 8px ${COLOR_HEX[dailyColor || "red"]}`,
+              }}
+              title="Alterar status diário"
+              onClick={(e) => {
+                e.stopPropagation();
+                const next = COLOR_CYCLE[dailyColor || "red"];
+                onColorChange?.(deal.id, next);
+              }}
+            />
+          )}
           {channelIconKey && (() => {
             const ChannelIcon = getChannelIcon(channelIconKey).icon;
             return <ChannelIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;

@@ -369,6 +369,7 @@ export type Database = {
           color: string
           created_at: string
           funnel_id: string
+          has_daily_color: boolean
           id: string
           is_notice: boolean
           name: string
@@ -383,6 +384,7 @@ export type Database = {
           color?: string
           created_at?: string
           funnel_id: string
+          has_daily_color?: boolean
           id?: string
           is_notice?: boolean
           name: string
@@ -397,6 +399,7 @@ export type Database = {
           color?: string
           created_at?: string
           funnel_id?: string
+          has_daily_color?: boolean
           id?: string
           is_notice?: boolean
           name?: string

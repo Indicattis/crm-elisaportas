@@ -33,6 +33,7 @@ interface KanbanColumnProps {
   showDropSpacer?: boolean;
   isNotice?: boolean;
   noticeText?: string;
+  hasDailyColor?: boolean;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
@@ -70,6 +71,7 @@ export function KanbanColumn({
   showDropSpacer = false,
   isNotice = false,
   noticeText = "",
+  hasDailyColor = true,
   collapsed = false,
   onToggleCollapse,
   onTagsChanged,
@@ -200,7 +202,7 @@ export function KanbanColumn({
               allTags={allTags}
               assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
               hasOverdueTasks={overdueDeals.has(deal.id)}
-              dailyColor={dailyColorsMap[deal.id]}
+              dailyColor={hasDailyColor ? dailyColorsMap[deal.id] : undefined}
               nextTaskDeadline={nextTaskMap[deal.id]}
               channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
               onTagsChanged={onTagsChanged}
