@@ -323,7 +323,7 @@ export default function Results() {
       if (archived) return <Badge className="bg-warning/15 text-warning border-0">Arquivada</Badge>;
       if (status === "Vendido") return <Badge className="bg-success/15 text-success border-0">Vendida</Badge>;
       if (status === "Perdida") return <Badge className="bg-destructive/15 text-destructive border-0">Perdida</Badge>;
-      if (status === "Desqualificado") return <Badge className="bg-muted text-muted-foreground border-0">Desqualificado</Badge>;
+      if (status === "Desqualificado" || status === "Desqualificada") return <Badge className="bg-muted text-muted-foreground border-0">Desqualificado</Badge>;
       return <Badge variant="outline">{status}</Badge>;
     };
 
@@ -408,7 +408,7 @@ export default function Results() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {deal.status === "Desqualificado" && !deal.archived && (
+                        {(deal.status === "Desqualificado" || deal.status === "Desqualificada") && !deal.archived && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -436,7 +436,7 @@ export default function Results() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {!deal.archived && deal.status !== "Desqualificado" && (
+                        {!deal.archived && deal.status !== "Desqualificado" && deal.status !== "Desqualificada" && (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </div>
