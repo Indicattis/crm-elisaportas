@@ -1569,20 +1569,24 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     Sair da negociação
                   </Button>
                 )}
-                {(role === "admin" || (deal.assigned_to && deal.assigned_to === currentUserId)) && (
+                {(role === "admin" || allowedActions.includes("disqualified")) && (role === "admin" || (deal.assigned_to && deal.assigned_to === currentUserId)) && (
                   <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={handleDisqualify}>
                     <AlertTriangle className="h-4 w-4 mr-1" />
                     Desqualificar
                   </Button>
                 )}
-                <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Perdida
-                </Button>
-                <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  Vendido
-                </Button>
+                {(role === "admin" || allowedActions.includes("lost")) && (
+                  <Button size="sm" variant="destructive" onClick={handleMarkAsLost}>
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Perdida
+                  </Button>
+                )}
+                {(role === "admin" || allowedActions.includes("sold")) && (
+                  <Button size="sm" onClick={handleMarkAsSold} className="bg-green-600 hover:bg-green-700 text-white">
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    Vendido
+                  </Button>
+                )}
               </>
             )}
           </div>
