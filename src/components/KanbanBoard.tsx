@@ -725,7 +725,7 @@ export function KanbanBoard() {
                   const isOverride = userSortOverrides[column.name];
                   const order = isOverride ? "created_at" : ((column as any).sort_order || "channel");
                   if (order === "alphabetical") return a.title.localeCompare(b.title);
-                  if (order === "created_at") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                  if (order === "created_at") return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
                   if (order === "next_task") {
                     const tA = nextTaskMap[a.id] ? new Date(nextTaskMap[a.id]).getTime() : Infinity;
                     const tB = nextTaskMap[b.id] ? new Date(nextTaskMap[b.id]).getTime() : Infinity;
