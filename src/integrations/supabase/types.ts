@@ -68,6 +68,38 @@ export type Database = {
         }
         Relationships: []
       }
+      column_entry_requirements: {
+        Row: {
+          column_id: string
+          created_at: string
+          field_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          column_id: string
+          created_at?: string
+          field_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          column_id?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "column_entry_requirements_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_attachments: {
         Row: {
           created_at: string
