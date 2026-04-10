@@ -261,7 +261,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                   </PopoverContent>
                 </Popover>
               </>
-            )
+            )}
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleDelete(col.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
