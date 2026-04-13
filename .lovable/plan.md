@@ -1,62 +1,52 @@
 
 
-# Otimização de performance: eliminar chamadas repetidas ao `getUser()`
+# Otimização de performance do Kanban: eliminar cascata de queries
 
 ## Problema
 
-A lentidão é causada por **chamadas excessivas e repetidas a `supabase.auth.getUser()`**. Cada chamada faz uma requisição HTTP ao servidor de autenticação. O código atual chama `getUser()` em praticamente toda ação (toggle de task, envio de comentário, delegação, criação de deal, etc.) -- nos logs de rede, foram registradas **15+ chamadas idênticas em poucos segundos**.
+O KanbanBoard faz **8+ requisições sequenciais** ao banco, criando um waterfall:
+1. fetchFunnels
+2. fetchColumns + fetchDeals + fetchDealTags (paralelo, mas fetchDealTags sem filtro)
+3. fetchProfiles (espera deals)
+4. fetchOverdueTasks (espera deals, faz 2 queries internas)
+5. fetchDailyColors (espera deals)
+6. fetchFunnelMembers (paralelo mas separado)
+7. fetchAllTags
+8. fetchChannels
+
+Cada query passa por RLS policies com subqueries (`can_access_deal`, `has_role`), multiplicando a latência. Com 362 deals ativos, o tempo acumula.
 
 ## Solução
 
-Criar um **AuthContext** que armazena o usuário em cache na memória após o login e o disponibiliza via hook `useAuth()`. Todas as chamadas espalhadas a `supabase.auth.getUser()` serão substituídas por `useAuth()` (em componentes) ou receberão o `userId` como parâmetro (em funções utilitárias).
+### 1. Paralelizar TUDO no carregamento inicial
+Unificar em um único `Promise.all` com todas as queries que não dependem umas das outras:
+- columns, deals, dealTags, funnelMembers, allTags, channels → paralelo
 
-## Alterações
+### 2. Consolidar queries dependentes de deals
+Após receber os deals, fazer `fetchProfiles`, `fetchOverdueTasks` e `fetchDailyColors` em um **segundo `Promise.all`** em vez de 3 useEffects separados que disparam em cascata.
 
-### 1. Criar `src/contexts/AuthContext.tsx`
-- Context que escuta `onAuthStateChange` e expõe `{ user, session, loading }`
-- O `user` vem da session já existente, sem requisição extra
-- Substituir o state de session no `AuthGuard` por este context
+### 3. Filtrar deal_tags por funil
+Atualmente `fetchDealTags` busca TODOS os deal_tags. Filtrar usando os IDs dos deals do funil selecionado.
 
-### 2. Atualizar `src/components/AuthGuard.tsx`
-- Usar o `AuthProvider` wrapping a árvore de componentes (junto com o `RoleProvider` existente)
+### 4. Selecionar apenas colunas necessárias
+`fetchDeals` usa `select("*")`, trazendo campos como `notes` que não são usados no Kanban. Selecionar apenas os campos necessários para os cards.
 
-### 3. Substituir `supabase.auth.getUser()` em todos os componentes
-Arquivos afetados (16 arquivos, ~30+ ocorrências):
-- `DealDetailDialog.tsx` (9 chamadas)
-- `DealDialog.tsx` (2 chamadas)
-- `KanbanBoard.tsx`
-- `FunnelColumnList.tsx`
-- `ClientDialog.tsx`
-- `EntryRequirementsModal.tsx`
-- `AcquisitionChannelManager.tsx`
-- `LeadFlowManager.tsx`
-- `FunnelDialog.tsx`
-- `Dashboard.tsx`
-- `Profile.tsx`
-- `lib/notifications.ts` (receber userId como param)
-- E outros
+## Alterações técnicas
 
-Cada chamada será substituída por:
-- Em componentes React: `const { user } = useAuth()`
-- Em funções utilitárias: receber `userId` como argumento
-
-### 4. Edge functions (sem alteração)
-As edge functions (`submit-lead`, etc.) rodam no servidor e usam `service_role_key`, não são afetadas.
+### `src/components/KanbanBoard.tsx`
+- Refatorar os ~7 useEffects de carregamento em 2 blocos:
+  - **Bloco 1** (quando `selectedFunnelId` muda): `Promise.all([fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels])`
+  - **Bloco 2** (quando `deals` muda): `Promise.all([fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags])`
+- Em `fetchDeals`: trocar `select("*")` por `select("id, title, value, status, assigned_to, funnel_id, created_at, updated_at, heat, archived, phone, email, acquisition_channel, deal_number, state, city, user_id")`
+- Em `fetchDealTags`: adicionar filtro `.in("deal_id", dealIds)` usando os IDs dos deals carregados
 
 ## Impacto esperado
-
-- Redução de ~90% das requisições de rede ao endpoint `/auth/v1/user`
-- Resposta instantânea em cada ação do usuário
-- Sem mudança de comportamento funcional
+- Redução de ~60% no tempo de carregamento (de ~8 queries sequenciais para 2 blocos paralelos)
+- Menos dados trafegados (select específico, tags filtradas)
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/contexts/AuthContext.tsx` | Criar (novo) |
-| `src/components/AuthGuard.tsx` | Integrar AuthProvider |
-| `src/components/DealDetailDialog.tsx` | Substituir ~9 chamadas getUser |
-| `src/components/DealDialog.tsx` | Substituir ~2 chamadas getUser |
-| `src/components/KanbanBoard.tsx` | Substituir chamadas getUser |
-| + ~12 outros arquivos | Mesma substituição |
+| `src/components/KanbanBoard.tsx` | Consolidar useEffects e otimizar queries |
 
