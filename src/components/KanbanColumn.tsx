@@ -93,7 +93,6 @@ export function KanbanColumn({
     const observer = new MutationObserver(() => {
       setIsDark(document.documentElement.classList.contains("dark"));
     });
-
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
@@ -132,19 +131,89 @@ export function KanbanColumn({
       ? "hsl(var(--accent) / 0.5)"
       : "hsl(var(--muted) / 0.3)";
 
-  if (collapsed) {
-    return (
+  return (
+    <div
+      ref={setNodeRef}
+      className="flex flex-shrink-0 flex-col rounded-2xl overflow-hidden h-full transition-all duration-300 ease-in-out"
+      style={{
+        backgroundColor: columnBg,
+        width: collapsed ? 48 : 320,
+        minWidth: collapsed ? 48 : 320,
+      }}
+    >
+      {/* Header */}
       <div
-        ref={setNodeRef}
-        className="flex w-12 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors h-full cursor-pointer"
-        style={{ backgroundColor: columnBg }}
+        className="flex items-center h-[50px] max-h-[50px] cursor-pointer overflow-hidden"
+        style={{ backgroundColor: headerBg }}
         onClick={onToggleCollapse}
       >
+        {/* Collapsed header content */}
         <div
-          className="flex flex-col items-center py-3 px-1 h-full"
-          style={{ backgroundColor: headerBg }}
+          className="flex flex-col items-center justify-center transition-all duration-300 ease-in-out overflow-hidden"
+          style={{
+            width: collapsed ? 48 : 0,
+            minWidth: collapsed ? 48 : 0,
+            opacity: collapsed ? 1 : 0,
+          }}
         >
-          <ChevronRight className="h-4 w-4 text-white/80 mb-2 shrink-0" />
+          <ChevronRight
+            className="h-4 w-4 text-white/80 shrink-0 transition-transform duration-300"
+          />
+        </div>
+
+        {/* Expanded header content */}
+        <div
+          className="flex items-center justify-between flex-1 px-3 transition-all duration-300 ease-in-out"
+          style={{
+            opacity: collapsed ? 0 : 1,
+            pointerEvents: collapsed ? "none" : "auto",
+          }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-sm font-bold text-white truncate">{status}</h3>
+            <span
+              className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
+              style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+            >
+              {deals.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs font-semibold text-white/85">
+              {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-6 w-6 hover:bg-white/15 ${isCreatedAtSort ? "text-white" : "text-white/50 hover:text-white/80"}`}
+              title={isCreatedAtSort ? "Ordenando por tempo na coluna" : "Ordem padrão"}
+              onClick={(e) => { e.stopPropagation(); onToggleSort?.(); }}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15"
+              onClick={(e) => { e.stopPropagation(); onAddDeal(status); }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Collapsed body: vertical text */}
+        <div
+          className="absolute inset-0 flex flex-col items-center pt-3 transition-opacity duration-300 ease-in-out"
+          style={{
+            opacity: collapsed ? 1 : 0,
+            pointerEvents: collapsed ? "auto" : "none",
+          }}
+        >
           <span
             className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0 mb-2"
             style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
@@ -152,85 +221,45 @@ export function KanbanColumn({
             {deals.length}
           </span>
           <span
-            className="text-xs font-bold text-white writing-vertical"
+            className="text-xs font-bold text-white"
             style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
           >
             {status}
           </span>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div
-      ref={setNodeRef}
-      className="flex w-80 flex-shrink-0 flex-col rounded-2xl overflow-hidden transition-colors h-full"
-      style={{ backgroundColor: columnBg }}
-    >
-      <div
-        className="flex items-center justify-between px-3 h-[50px] max-h-[50px] cursor-pointer"
-        style={{ backgroundColor: headerBg }}
-        onClick={onToggleCollapse}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-sm font-bold text-white truncate">{status}</h3>
-          <span
-            className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
-            style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
-          >
-            {deals.length}
-          </span>
+        {/* Expanded body: cards */}
+        <div
+          className="flex flex-1 flex-col gap-2 p-3 min-h-[100px] overflow-y-auto transition-opacity duration-300 ease-in-out"
+          style={{
+            opacity: collapsed ? 0 : 1,
+            pointerEvents: collapsed ? "none" : "auto",
+          }}
+        >
+          <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
+            {deals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                tags={dealTagsMap[deal.id]}
+                allTags={allTags}
+                assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
+                hasOverdueTasks={overdueDeals.has(deal.id)}
+                dailyColor={hasDailyColor ? (dailyColorsMap[deal.id] || "red") : undefined}
+                nextTaskDeadline={nextTaskMap[deal.id]}
+                channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
+                currentStage={dealStageMap[deal.id]}
+                onTagsChanged={onTagsChanged}
+                onCapture={onCapture}
+                onColorChange={onColorChange}
+                onClick={() => onEditDeal(deal)}
+              />
+            ))}
+            {showDropSpacer ? (
+              <div className="min-h-[88px] rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 pointer-events-none" />
+            ) : null}
+          </SortableContext>
         </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs font-semibold text-white/85">
-            {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-6 w-6 hover:bg-white/15 ${isCreatedAtSort ? "text-white" : "text-white/50 hover:text-white/80"}`}
-            title={isCreatedAtSort ? "Ordenando por cadastro" : "Ordem padrão"}
-            onClick={(e) => { e.stopPropagation(); onToggleSort?.(); }}
-          >
-            <ArrowUpDown className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15"
-            onClick={(e) => { e.stopPropagation(); onAddDeal(status); }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-3 min-h-[100px] overflow-y-auto">
-        <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
-          {deals.map((deal) => (
-            <DealCard
-              key={deal.id}
-              deal={deal}
-              tags={dealTagsMap[deal.id]}
-              allTags={allTags}
-              assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
-              hasOverdueTasks={overdueDeals.has(deal.id)}
-              dailyColor={hasDailyColor ? (dailyColorsMap[deal.id] || "red") : undefined}
-              nextTaskDeadline={nextTaskMap[deal.id]}
-              channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
-              currentStage={dealStageMap[deal.id]}
-              onTagsChanged={onTagsChanged}
-              onCapture={onCapture}
-              onColorChange={onColorChange}
-              onClick={() => onEditDeal(deal)}
-            />
-          ))}
-          {showDropSpacer ? (
-            <div className="min-h-[88px] rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 pointer-events-none" />
-          ) : null}
-        </SortableContext>
       </div>
     </div>
   );
