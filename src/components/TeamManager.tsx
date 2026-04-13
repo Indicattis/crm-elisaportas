@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TeamMember {
   id: string;
@@ -32,6 +33,7 @@ export function TeamManager() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
   const isAdmin = role === "admin";
 
   useEffect(() => {
@@ -41,8 +43,7 @@ export function TeamManager() {
 
   const fetchCurrentUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setCurrentUserId(user.id);
+      if (authUser) setCurrentUserId(authUser.id);
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {

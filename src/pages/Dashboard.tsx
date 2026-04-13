@@ -3,6 +3,7 @@ import { startOfWeek, endOfWeek } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
   const [selectedSeller, setSelectedSeller] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -24,12 +26,10 @@ export default function Dashboard() {
 
   // Set current user as default seller for vendedor role
   useEffect(() => {
-    if (role === "vendedor") {
-      supabase.auth.getUser().then(({ data }) => {
-        if (data.user) setSelectedSeller(data.user.id);
-      });
+    if (role === "vendedor" && authUser) {
+      setSelectedSeller(authUser.id);
     }
-  }, [role]);
+  }, [role, authUser]);
 
   const { data: funnels } = useQuery({
     queryKey: ["funnels"],

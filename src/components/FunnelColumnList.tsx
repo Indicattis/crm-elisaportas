@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const COLOR_OPTIONS = [
   "#ef4444", "#dc2626", "#f97316", "#ea580c",
@@ -60,6 +61,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [requirements, setRequirements] = useState<Record<string, string[]>>({});
   const [columnDealCounts, setColumnDealCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
   const requirementsColumn = columns.find((c) => c.id === requirementsColumnId);
@@ -107,8 +109,8 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   useEffect(() => { fetchColumnDealCounts(); }, [fetchColumnDealCounts]);
 
   const handleToggleRequirement = async (colId: string, fieldName: string, checked: boolean) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!authUser) return;
+    const user = authUser;
     if (checked) {
       await supabase.from("column_entry_requirements").insert({ column_id: colId, field_name: fieldName, user_id: user.id } as any);
     } else {
@@ -149,8 +151,8 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!authUser) return;
+    const user = authUser;
 
     const { error } = await supabase.from("funnel_columns").insert({
       funnel_id: funnelId,

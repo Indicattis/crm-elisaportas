@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { ChannelIconPicker } from "@/components/ChannelIconPicker";
 import { getChannelIcon } from "@/lib/channel-icons";
 
@@ -58,6 +59,7 @@ export function AcquisitionChannelManager() {
   const [icon, setIcon] = useState("megaphone");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -112,8 +114,8 @@ export function AcquisitionChannelManager() {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!authUser) throw new Error("Não autenticado");
+      const user = authUser;
 
       if (editing) {
         const { error } = await supabase.from("acquisition_channels").update({ name: name.trim(), icon }).eq("id", editing.id);

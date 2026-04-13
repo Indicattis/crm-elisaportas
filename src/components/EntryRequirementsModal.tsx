@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -52,6 +53,7 @@ export function EntryRequirementsModal({
   onConfirm,
 }: Props) {
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
   const [channels, setChannels] = useState<{ name: string }[]>([]);
 
   // Form state for missing fields
@@ -125,8 +127,7 @@ export function EntryRequirementsModal({
 
       // Create task if required
       if (requirements.some((r) => r.field_name === "task") && taskDate) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        if (authUser) {
           await supabase.from("deal_tasks").insert({
             deal_id: deal.id,
             description: taskDescription.trim(),

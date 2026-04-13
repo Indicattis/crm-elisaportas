@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Camera, Save, Loader2, Shield, ShieldCheck, Lock, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
@@ -24,6 +25,7 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,8 +34,8 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!authUser) return;
+      const user = authUser;
       setEmail(user.email || "");
       const { data, error } = await supabase
         .from("profiles")

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, Copy, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { getChannelIcon } from "@/lib/channel-icons";
 
 interface LeadFlow {
@@ -58,6 +59,7 @@ export function LeadFlowManager() {
   const [loading, setLoading] = useState(false);
 
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
 
   const fetchFlows = useCallback(async () => {
     const { data } = await supabase.from("lead_flows").select("*").order("created_at", { ascending: false });
@@ -118,8 +120,8 @@ export function LeadFlowManager() {
       return;
     }
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    if (!authUser) { setLoading(false); return; }
+    const user = authUser;
 
     const payload = {
       name: name.trim(),

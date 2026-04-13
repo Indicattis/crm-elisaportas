@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, ImagePlus, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -145,11 +146,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const { toast } = useToast();
   const { role } = useUserRole();
 
+  const { user: authUser } = useAuth();
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id ?? null);
-    });
-  }, []);
+    setCurrentUserId(authUser?.id ?? null);
+  }, [authUser]);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<"title" | "value" | "notes" | null>(null);
@@ -219,7 +220,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     setLoadingTasks(false);
 
     // Check for overdue tasks and create notifications (dedup by task id)
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = authUser;
     if (user) {
       const overdueTasks = tasks.filter(t => !t.completed && new Date(t.deadline_at) < new Date());
       for (const task of overdueTasks) {
@@ -278,8 +279,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (!deal || uploadingImage) return;
     setUploadingImage(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!authUser) throw new Error("Não autenticado");
+      const user = authUser;
       const ext = file.name.split(".").pop() || "png";
       const filePath = `${deal.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
@@ -329,7 +330,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   };
 
   const handleToggleTask = async (taskId: string, completed: boolean) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = authUser;
     const updateData: any = { completed };
     if (completed) {
       updateData.completed_at = new Date().toISOString();
@@ -565,8 +566,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (!deal || !newComment.trim()) return;
     setSending(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!authUser) throw new Error("Não autenticado");
+      const user = authUser;
       const { error } = await supabase.from("deal_comments").insert({
         deal_id: deal.id,
         user_id: user.id,
@@ -585,6 +586,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           type: "comment",
           title: "Novo comentário",
           message: `Comentário em "${deal.title}": ${newComment.trim().slice(0, 80)}`,
+          currentUserId: user.id,
         });
       }
       setNewComment("");
@@ -647,7 +649,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const confirmDisqualify = async () => {
     if (!deal || !disqualifyReason.trim()) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       const { error } = await supabase.from("deals").update({
         status: "Desqualificada",
         loss_reason: disqualifyReason.trim(),
@@ -691,8 +693,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
   const handleLeaveDeal = async () => {
     if (!deal) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!authUser) return;
+      const user = authUser;
       const { error } = await supabase.from("deals").update({ assigned_to: null } as any).eq("id", deal.id);
       if (error) throw error;
       await supabase.from("deal_history").insert({
@@ -740,8 +742,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (!deal) return;
     setDelegating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!authUser) return;
+      const user = authUser;
       const { error } = await supabase.from("deals").update({ assigned_to: targetUserId } as any).eq("id", deal.id);
       if (error) throw error;
       await supabase.from("deal_history").insert({
@@ -756,6 +758,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         type: "delegation",
         title: "Negociação delegada",
         message: `Você foi designado para a negociação "${deal.title}"`,
+        currentUserId: user.id,
       });
       toast({ title: `Delegado para ${targetName}` });
       setDelegateOpen(false);
@@ -1612,8 +1615,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                 className="gap-1 animate-pulse hover:animate-none shadow-md"
                 onClick={async () => {
                   if (!deal) return;
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) return;
+                  if (!authUser) return;
+                  const user = authUser;
                   const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", deal.id);
                   if (error) {
                     toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });

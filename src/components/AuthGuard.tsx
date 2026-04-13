@@ -1,47 +1,34 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
-import type { Session } from "@supabase/supabase-js";
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+function AuthGuardInner({ children }: AuthGuardProps) {
   const navigate = useNavigate();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [mustChangePassword, setMustChangePassword] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoading(false);
-      if (!session) navigate("/login");
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-      if (!session) navigate("/login");
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!loading && !user) navigate("/login");
+  }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!user?.id) return;
     supabase
       .from("profiles")
       .select("must_change_password")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single()
       .then(({ data }) => {
         setMustChangePassword((data as any)?.must_change_password === true);
       });
-  }, [session?.user?.id]);
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -51,17 +38,25 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (!session) return null;
+  if (!user) return null;
 
   return (
     <RoleProvider>
       {mustChangePassword && (
         <ChangePasswordModal
-          userId={session.user.id}
+          userId={user.id}
           onChanged={() => setMustChangePassword(false)}
         />
       )}
       {children}
     </RoleProvider>
+  );
+}
+
+export function AuthGuard({ children }: AuthGuardProps) {
+  return (
+    <AuthProvider>
+      <AuthGuardInner>{children}</AuthGuardInner>
+    </AuthProvider>
   );
 }

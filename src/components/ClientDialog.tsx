@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { applyPhoneMask } from "@/lib/phone-mask";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface ClientDialogProps {
@@ -21,6 +22,7 @@ export function ClientDialog({ open, onOpenChange, client, onSaved }: ClientDial
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     if (client) {
@@ -39,8 +41,8 @@ export function ClientDialog({ open, onOpenChange, client, onSaved }: ClientDial
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!authUser) throw new Error("Não autenticado");
+      const user = authUser;
 
       const payload = {
         name,
