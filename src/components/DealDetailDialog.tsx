@@ -1588,25 +1588,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
         <Separator />
 
         {/* Footer */}
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <button
-                key={level}
-                onClick={() => handleHeatChange(level)}
-                className="p-1 rounded transition-colors hover:bg-muted"
-                title={`Calor ${level}`}
-              >
-                <Flame
-                  className={`h-5 w-5 transition-colors ${
-                    level <= heat
-                      ? "text-orange-500 fill-orange-500"
-                      : "text-muted-foreground/30"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
+        <div className="px-6 py-4 flex items-center justify-end">
           <div className="flex items-center gap-2">
             {!deal.assigned_to && (
               <Button
