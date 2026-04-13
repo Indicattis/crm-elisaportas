@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
       }
       funnel_id = flow.funnel_id;
       status = flow.status;
+      flow_name = flow.name || null;
       if (flow.acquisition_channel) acquisition_channel = flow.acquisition_channel;
       if (flow.assignment_mode) assignment_mode = flow.assignment_mode;
     }
