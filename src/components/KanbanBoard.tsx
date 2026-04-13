@@ -394,7 +394,7 @@ export function KanbanBoard() {
     }
   }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
 
-  const handleColorChange = async (dealId: string, newColor: string) => {
+  const handleColorChange = useCallback(async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
     if (!authUser) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -409,7 +409,7 @@ export function KanbanBoard() {
     } else {
       await supabase.from("deal_daily_color").insert({ deal_id: dealId, color: newColor, date: today, updated_by: authUser.id } as any);
     }
-  };
+  }, [authUser]);
 
   const resolveStatusFromTargetId = useCallback(
     (targetId?: string | null) => {
