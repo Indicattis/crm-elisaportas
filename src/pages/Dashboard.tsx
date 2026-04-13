@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
   const [selectedFunnel, setSelectedFunnel] = useState<string>("all");
   const [selectedSeller, setSelectedSeller] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -25,12 +26,11 @@ export default function Dashboard() {
 
   // Set current user as default seller for vendedor role
   useEffect(() => {
-    if (role === "vendedor") {
-      supabase.auth.getUser().then(({ data }) => {
-        if (data.user) setSelectedSeller(data.user.id);
-      });
+    if (role === "vendedor" && authUser) {
+      setSelectedSeller(authUser.id);
     }
-  }, [role]);
+    }
+  }, [role, authUser]);
 
   const { data: funnels } = useQuery({
     queryKey: ["funnels"],

@@ -19,6 +19,7 @@ const COLOR_OPTIONS = [
 ];
 
 export function TagManager() {
+  const { user: authUser } = useAuth();
   const [tags, setTags] = useState<Tag[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,9 +53,8 @@ export function TagManager() {
         if (error) throw error;
         toast({ title: "Tag atualizada!" });
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Não autenticado");
-        const { error } = await supabase.from("tags").insert({ name: name.trim(), color, user_id: user.id });
+        if (!authUser) throw new Error("Não autenticado");
+        const { error } = await supabase.from("tags").insert({ name: name.trim(), color, user_id: authUser.id });
         if (error) throw error;
         toast({ title: "Tag criada!" });
       }

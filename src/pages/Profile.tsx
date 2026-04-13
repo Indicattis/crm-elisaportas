@@ -25,6 +25,7 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,8 +34,8 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!authUser) return;
+      const user = authUser;
       setEmail(user.email || "");
       const { data, error } = await supabase
         .from("profiles")

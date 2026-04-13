@@ -74,6 +74,7 @@ const DEFAULT_STAGES = [
 ];
 
 export function TaskGroupManager() {
+  const { user: authUser } = useAuth();
   const [groups, setGroups] = useState<TaskGroup[]>([]);
   const [stages, setStages] = useState<TaskGroupStage[]>([]);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
@@ -128,8 +129,8 @@ export function TaskGroupManager() {
   const saveGroup = async () => {
     if (!groupName.trim()) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    if (!authUser) { setSaving(false); return; }
+    const user = authUser;
 
     if (editingGroup) {
       const { error } = await supabase.from("task_groups").update({ name: groupName.trim() }).eq("id", editingGroup.id);
@@ -180,8 +181,8 @@ export function TaskGroupManager() {
   const saveStage = async () => {
     if (!stageName.trim()) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    if (!authUser) { setSaving(false); return; }
+    const user = authUser;
 
     if (editingStage) {
       const { error } = await supabase.from("task_group_stages").update({ name: stageName.trim(), color: stageColor } as any).eq("id", editingStage.id);
@@ -288,8 +289,8 @@ export function TaskGroupManager() {
       return;
     }
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    if (!authUser) { setSaving(false); return; }
+    const user = authUser;
 
     const deadlineHours = deadlineUnit === "days" ? deadlineValue * 24 : deadlineValue;
     const desc = taskType === "personalizada" ? taskDescription.trim() : (taskType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");

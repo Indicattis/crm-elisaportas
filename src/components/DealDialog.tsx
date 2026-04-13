@@ -43,6 +43,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
 
   const checkDuplicatePhone = useCallback((phoneValue: string, currentDealId?: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -100,9 +101,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setState("");
       setCity("");
       // Default to current user
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        setAssignedTo(user?.id || "");
-      });
+      setAssignedTo(authUser?.id || "");
     }
     setDuplicateInfo(null);
   }, [deal, defaultStatus, open, statuses]);
@@ -112,8 +111,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!authUser) throw new Error("Não autenticado");
+      const user = authUser;
 
       const payload = {
         title,

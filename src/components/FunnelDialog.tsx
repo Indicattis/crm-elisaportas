@@ -24,6 +24,7 @@ export function FunnelDialog({ open, onOpenChange, funnel, onSaved }: Props) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     setName(funnel?.name || "");
@@ -33,8 +34,8 @@ export function FunnelDialog({ open, onOpenChange, funnel, onSaved }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!authUser) throw new Error("Não autenticado");
+      const user = authUser;
 
       if (funnel) {
         const { error } = await supabase.from("funnels").update({ name }).eq("id", funnel.id);

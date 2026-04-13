@@ -71,6 +71,7 @@ export function KanbanBoard() {
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
   const [loading, setLoading] = useState(true);
+  const { user: authUser } = useAuth();
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
   const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
@@ -375,8 +376,7 @@ export function KanbanBoard() {
 
   const handleColorChange = async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!authUser) return;
     const today = new Date().toISOString().slice(0, 10);
     const { data: existing } = await supabase
       .from("deal_daily_color")
@@ -385,9 +385,9 @@ export function KanbanBoard() {
       .eq("date", today)
       .maybeSingle();
     if (existing) {
-      await supabase.from("deal_daily_color").update({ color: newColor, updated_by: user.id } as any).eq("id", existing.id);
+      await supabase.from("deal_daily_color").update({ color: newColor, updated_by: authUser.id } as any).eq("id", existing.id);
     } else {
-      await supabase.from("deal_daily_color").insert({ deal_id: dealId, color: newColor, date: today, updated_by: user.id } as any);
+      await supabase.from("deal_daily_color").insert({ deal_id: dealId, color: newColor, date: today, updated_by: authUser.id } as any);
     }
   };
 
@@ -436,14 +436,10 @@ export function KanbanBoard() {
     await deletePendingDealTasks(dealId);
     await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
+    if (authUser) {
       await supabase.from("deal_history").insert({
         deal_id: dealId,
-        user_id: user.id,
+        user_id: authUser.id,
         event_type: "column_change",
         description: `Moveu de "${oldStatus}" para "${newStatus}"`,
         metadata: { from: oldStatus, to: newStatus },
@@ -456,6 +452,7 @@ export function KanbanBoard() {
           type: "column_change",
           title: "Negociação movida",
           message: `"${deal.title}" foi movida de "${oldStatus}" para "${newStatus}".`,
+          currentUserId: authUser.id,
         });
       }
     }
@@ -524,12 +521,9 @@ export function KanbanBoard() {
   }, []);
 
   const handleCapture = async (dealId: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!authUser) return;
 
-    const { error } = await supabase.from("deals").update({ assigned_to: user.id } as any).eq("id", dealId);
+    const { error } = await supabase.from("deals").update({ assigned_to: authUser.id } as any).eq("id", dealId);
 
     if (error) {
       toast({ title: "Erro ao capturar", description: error.message, variant: "destructive" });
@@ -538,11 +532,12 @@ export function KanbanBoard() {
 
     const deal = deals.find((item) => item.id === dealId);
     await createNotification({
-      userId: user.id,
+      userId: authUser.id,
       dealId,
       type: "deal_assigned",
       title: "Negociação atribuída",
       message: `A negociação "${deal?.title || ""}" foi atribuída a você.`,
+      currentUserId: authUser.id,
     });
     toast({ title: "Negociação capturada!" });
     fetchDeals();

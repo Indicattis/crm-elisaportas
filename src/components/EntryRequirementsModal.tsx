@@ -53,6 +53,7 @@ export function EntryRequirementsModal({
   onConfirm,
 }: Props) {
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
   const [channels, setChannels] = useState<{ name: string }[]>([]);
 
   // Form state for missing fields
@@ -126,8 +127,7 @@ export function EntryRequirementsModal({
 
       // Create task if required
       if (requirements.some((r) => r.field_name === "task") && taskDate) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        if (authUser) {
           await supabase.from("deal_tasks").insert({
             deal_id: deal.id,
             description: taskDescription.trim(),
