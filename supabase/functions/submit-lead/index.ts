@@ -22,10 +22,11 @@ Deno.serve(async (req) => {
     // If flow_id is provided, load the flow config
     let acquisition_channel = canal_aquisicao || null;
     let assignment_mode = "unassigned";
+    let flow_name: string | null = null;
     if (flow_id) {
       const { data: flow, error: flowError } = await supabase
         .from("lead_flows")
-        .select("funnel_id, status, acquisition_channel, assignment_mode, active")
+        .select("funnel_id, status, acquisition_channel, assignment_mode, active, name")
         .eq("id", flow_id)
         .single();
 
@@ -43,6 +44,7 @@ Deno.serve(async (req) => {
       }
       funnel_id = flow.funnel_id;
       status = flow.status;
+      flow_name = flow.name || null;
       if (flow.acquisition_channel) acquisition_channel = flow.acquisition_channel;
       if (flow.assignment_mode) assignment_mode = flow.assignment_mode;
     }
@@ -165,6 +167,17 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Record creation origin in deal_history
+    const historyDesc = flow_name
+      ? `Negociação criada via fluxo de captação "${flow_name}"`
+      : "Negociação criada via fluxo de captação";
+    await supabase.from("deal_history").insert({
+      deal_id: deal.id,
+      event_type: "creation",
+      description: historyDesc,
+      user_id: funnel.user_id,
+    });
 
     // Create tasks for the column's task group
     const dealStatus = status || "Lead";
