@@ -1,39 +1,62 @@
 
 
-# Registrar origem da criação no histórico de negociações
+# Otimização de performance: eliminar chamadas repetidas ao `getUser()`
 
-## Visão geral
+## Problema
 
-Adicionar um registro automático no `deal_history` sempre que uma negociação for criada, indicando a origem: **criação manual** (pelo Kanban) ou **fluxo de captação** (via edge function `submit-lead`).
+A lentidão é causada por **chamadas excessivas e repetidas a `supabase.auth.getUser()`**. Cada chamada faz uma requisição HTTP ao servidor de autenticação. O código atual chama `getUser()` em praticamente toda ação (toggle de task, envio de comentário, delegação, criação de deal, etc.) -- nos logs de rede, foram registradas **15+ chamadas idênticas em poucos segundos**.
+
+## Solução
+
+Criar um **AuthContext** que armazena o usuário em cache na memória após o login e o disponibiliza via hook `useAuth()`. Todas as chamadas espalhadas a `supabase.auth.getUser()` serão substituídas por `useAuth()` (em componentes) ou receberão o `userId` como parâmetro (em funções utilitárias).
 
 ## Alterações
 
-### 1. `src/components/DealDialog.tsx`
-- Após o `insert` de uma nova negociação (linha ~139-144), adicionar um `insert` em `deal_history` com:
-  - `event_type: "creation"`
-  - `description: "Negociação criada manualmente"`
-  - `user_id: user.id`
-  - `deal_id: newDeal.id`
+### 1. Criar `src/contexts/AuthContext.tsx`
+- Context que escuta `onAuthStateChange` e expõe `{ user, session, loading }`
+- O `user` vem da session já existente, sem requisição extra
+- Substituir o state de session no `AuthGuard` por este context
 
-### 2. `supabase/functions/submit-lead/index.ts`
-- Após a criação bem-sucedida do deal, adicionar um `insert` em `deal_history` com:
-  - `event_type: "creation"`
-  - `description: "Negociação criada via fluxo de captação"` (incluindo o nome do fluxo se disponível)
-  - `user_id: funnel.user_id` (dono do funil, já que não há usuário autenticado)
-  - `deal_id: deal.id`
+### 2. Atualizar `src/components/AuthGuard.tsx`
+- Usar o `AuthProvider` wrapping a árvore de componentes (junto com o `RoleProvider` existente)
 
-## Detalhes técnicos
+### 3. Substituir `supabase.auth.getUser()` em todos os componentes
+Arquivos afetados (16 arquivos, ~30+ ocorrências):
+- `DealDetailDialog.tsx` (9 chamadas)
+- `DealDialog.tsx` (2 chamadas)
+- `KanbanBoard.tsx`
+- `FunnelColumnList.tsx`
+- `ClientDialog.tsx`
+- `EntryRequirementsModal.tsx`
+- `AcquisitionChannelManager.tsx`
+- `LeadFlowManager.tsx`
+- `FunnelDialog.tsx`
+- `Dashboard.tsx`
+- `Profile.tsx`
+- `lib/notifications.ts` (receber userId como param)
+- E outros
 
-| Item | Detalhe |
-|---|---|
-| Tabela | `deal_history` (já existente) |
-| Novo event_type | `"creation"` |
-| Sem migração | Não é necessário alterar schema |
+Cada chamada será substituída por:
+- Em componentes React: `const { user } = useAuth()`
+- Em funções utilitárias: receber `userId` como argumento
+
+### 4. Edge functions (sem alteração)
+As edge functions (`submit-lead`, etc.) rodam no servidor e usam `service_role_key`, não são afetadas.
+
+## Impacto esperado
+
+- Redução de ~90% das requisições de rede ao endpoint `/auth/v1/user`
+- Resposta instantânea em cada ação do usuário
+- Sem mudança de comportamento funcional
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/DealDialog.tsx` | Inserir histórico após criação manual |
-| `supabase/functions/submit-lead/index.ts` | Inserir histórico após criação via fluxo |
+| `src/contexts/AuthContext.tsx` | Criar (novo) |
+| `src/components/AuthGuard.tsx` | Integrar AuthProvider |
+| `src/components/DealDetailDialog.tsx` | Substituir ~9 chamadas getUser |
+| `src/components/DealDialog.tsx` | Substituir ~2 chamadas getUser |
+| `src/components/KanbanBoard.tsx` | Substituir chamadas getUser |
+| + ~12 outros arquivos | Mesma substituição |
 
