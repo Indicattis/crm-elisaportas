@@ -168,7 +168,7 @@ export function KanbanBoard() {
     if (!selectedFunnelId) return [];
     const { data, error } = await supabase
       .from("deals")
-      .select("id, title, value, status, assigned_to, funnel_id, created_at, updated_at, heat, archived, phone, email, acquisition_channel, deal_number, state, city, user_id, client_id, archive_reason, loss_reason, notes")
+      .select("*")
       .eq("funnel_id", selectedFunnelId)
       .eq("archived", false)
       .neq("status", "Perdida")
