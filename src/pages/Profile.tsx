@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Camera, Save, Loader2, Shield, ShieldCheck, Lock, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function Profile() {

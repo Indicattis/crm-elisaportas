@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Trash2, Pencil, Phone, MessageSquare, ClipboardList, Repeat, Layers } from "lucide-react";
 
 interface TaskGroup {

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, Copy, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { getChannelIcon } from "@/lib/channel-icons";
 
 interface LeadFlow {

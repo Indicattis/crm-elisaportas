@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
 import { createNotification } from "@/lib/notifications";
+import { useAuth } from "@/contexts/AuthContext";
 import { LayoutGrid, List, Search, User } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
 import type { Tables } from "@/integrations/supabase/types";

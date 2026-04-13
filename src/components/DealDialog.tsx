@@ -13,6 +13,7 @@ import { StateCitySelect } from "@/components/StateCitySelect";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
