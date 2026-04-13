@@ -1,39 +1,32 @@
 
 
-# Botão de alternância de ordenação pessoal no header da coluna Kanban
+# Animação de expansão e fechamento das colunas do Kanban
 
 ## Visão geral
 
-Adicionar um botão no header de cada coluna do Kanban que permite ao usuário logado alternar entre a **ordem padrão** (configurada pelo admin via `sort_order` da coluna) e a **ordem de cadastro** (`created_at`). Essa preferência é local ao usuário (armazenada em `localStorage`), não afeta os demais.
+Adicionar transição suave de largura ao expandir/recolher colunas, em vez da troca abrupta entre os dois estados.
+
+## Abordagem
+
+Em vez de renderizar condicionalmente dois blocos diferentes (`collapsed` vs expandido), unificar em um único `div` que transiciona a largura via CSS (`transition: width 300ms ease`). O conteúdo interno será controlado com opacidade para aparecer/desaparecer suavemente.
 
 ## Alterações
 
-### 1. `src/components/KanbanBoard.tsx`
+### `src/components/KanbanColumn.tsx`
 
-- Criar state `userSortOverrides: Record<string, boolean>` (coluna → true = usar `created_at`, false = usar padrão). Inicializar a partir de `localStorage`.
-- Passar callback `onToggleSort` e prop `isCreatedAtSort` para cada `KanbanColumn`.
-- Na lógica de `.sort()`, verificar se existe override do usuário para a coluna antes de usar `sort_order` do banco.
-- Persistir no `localStorage` com chave como `kanban_sort_overrides`.
+- Remover o `if (collapsed) return (...)` que renderiza um bloco separado
+- Usar um único container com `transition-all duration-300 ease-in-out` e largura dinâmica (`w-12` quando collapsed, `w-80` quando expandido)
+- Conteúdo expandido (cards, valor, botões): wrappado com `overflow-hidden` e `opacity-0`/`opacity-100` com transição
+- Conteúdo collapsed (texto vertical, chevron): visível quando collapsed com transição de opacidade inversa
+- O `ChevronRight` rotaciona suavemente (180°) ao expandir
 
-### 2. `src/components/KanbanColumn.tsx`
+### `tailwind.config.ts`
 
-- Aceitar novas props: `isCreatedAtSort?: boolean` e `onToggleSort?: () => void`.
-- No header (ao lado do botão `+`), renderizar um botão com ícone `ArrowUpDown` (ou `ArrowDownAZ` / `Clock`) que alterna a ordenação.
-- Tooltip ou visual sutil indicando o modo ativo.
-
-## Detalhes técnicos
-
-| Item | Detalhe |
-|---|---|
-| Persistência | `localStorage` por usuário (sem tabela nova) |
-| Chave localStorage | `kanban_sort_overrides_{userId}` |
-| Ícone | `ArrowUpDown` do lucide-react |
-| Escopo | Apenas para o usuário logado, não altera config global |
+- Nenhuma alteração necessária — `transition-all`, `duration-300`, `opacity-*` já disponíveis
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | State + lógica de override + persistência localStorage |
-| `src/components/KanbanColumn.tsx` | Botão de toggle no header |
+| `src/components/KanbanColumn.tsx` | Unificar render collapsed/expanded com transições CSS |
 
