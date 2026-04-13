@@ -6,10 +6,10 @@ export async function createNotification(params: {
   type: string;
   title: string;
   message: string;
+  currentUserId?: string;
 }) {
   // Don't notify yourself
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user && user.id === params.userId) return;
+  if (params.currentUserId && params.currentUserId === params.userId) return;
 
   await (supabase.from("notifications") as any).insert({
     user_id: params.userId,
