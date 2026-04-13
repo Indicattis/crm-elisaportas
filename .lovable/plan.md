@@ -1,32 +1,39 @@
 
 
-# Animação de expansão e fechamento das colunas do Kanban
+# Registrar origem da criação no histórico de negociações
 
 ## Visão geral
 
-Adicionar transição suave de largura ao expandir/recolher colunas, em vez da troca abrupta entre os dois estados.
-
-## Abordagem
-
-Em vez de renderizar condicionalmente dois blocos diferentes (`collapsed` vs expandido), unificar em um único `div` que transiciona a largura via CSS (`transition: width 300ms ease`). O conteúdo interno será controlado com opacidade para aparecer/desaparecer suavemente.
+Adicionar um registro automático no `deal_history` sempre que uma negociação for criada, indicando a origem: **criação manual** (pelo Kanban) ou **fluxo de captação** (via edge function `submit-lead`).
 
 ## Alterações
 
-### `src/components/KanbanColumn.tsx`
+### 1. `src/components/DealDialog.tsx`
+- Após o `insert` de uma nova negociação (linha ~139-144), adicionar um `insert` em `deal_history` com:
+  - `event_type: "creation"`
+  - `description: "Negociação criada manualmente"`
+  - `user_id: user.id`
+  - `deal_id: newDeal.id`
 
-- Remover o `if (collapsed) return (...)` que renderiza um bloco separado
-- Usar um único container com `transition-all duration-300 ease-in-out` e largura dinâmica (`w-12` quando collapsed, `w-80` quando expandido)
-- Conteúdo expandido (cards, valor, botões): wrappado com `overflow-hidden` e `opacity-0`/`opacity-100` com transição
-- Conteúdo collapsed (texto vertical, chevron): visível quando collapsed com transição de opacidade inversa
-- O `ChevronRight` rotaciona suavemente (180°) ao expandir
+### 2. `supabase/functions/submit-lead/index.ts`
+- Após a criação bem-sucedida do deal, adicionar um `insert` em `deal_history` com:
+  - `event_type: "creation"`
+  - `description: "Negociação criada via fluxo de captação"` (incluindo o nome do fluxo se disponível)
+  - `user_id: funnel.user_id` (dono do funil, já que não há usuário autenticado)
+  - `deal_id: deal.id`
 
-### `tailwind.config.ts`
+## Detalhes técnicos
 
-- Nenhuma alteração necessária — `transition-all`, `duration-300`, `opacity-*` já disponíveis
+| Item | Detalhe |
+|---|---|
+| Tabela | `deal_history` (já existente) |
+| Novo event_type | `"creation"` |
+| Sem migração | Não é necessário alterar schema |
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanColumn.tsx` | Unificar render collapsed/expanded com transições CSS |
+| `src/components/DealDialog.tsx` | Inserir histórico após criação manual |
+| `supabase/functions/submit-lead/index.ts` | Inserir histórico após criação via fluxo |
 
