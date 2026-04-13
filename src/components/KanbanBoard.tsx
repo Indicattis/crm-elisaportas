@@ -394,7 +394,7 @@ export function KanbanBoard() {
     }
   }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
 
-  const handleColorChange = async (dealId: string, newColor: string) => {
+  const handleColorChange = useCallback(async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
     if (!authUser) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -409,7 +409,7 @@ export function KanbanBoard() {
     } else {
       await supabase.from("deal_daily_color").insert({ deal_id: dealId, color: newColor, date: today, updated_by: authUser.id } as any);
     }
-  };
+  }, [authUser]);
 
   const resolveStatusFromTargetId = useCallback(
     (targetId?: string | null) => {
@@ -517,18 +517,18 @@ export function KanbanBoard() {
     await executeDealMove(deal, newStatus);
   };
 
-  const handleAddDeal = (status: string) => {
+  const handleAddDeal = useCallback((status: string) => {
     setEditingDeal(null);
     setDefaultStatus(status);
     setDialogOpen(true);
-  };
+  }, []);
 
-  const handleViewDeal = (deal: Deal) => {
+  const handleViewDeal = useCallback((deal: Deal) => {
     const column = columns.find((item) => item.name === deal.status);
     setViewingColumnColor(column?.color || "");
     setViewingDeal(deal);
     setDetailOpen(true);
-  };
+  }, [columns]);
 
   const toggleColumnCollapse = useCallback((columnName: string) => {
     setCollapsedColumns(prev => {
@@ -540,7 +540,7 @@ export function KanbanBoard() {
     });
   }, []);
 
-  const handleCapture = async (dealId: string) => {
+  const handleCapture = useCallback(async (dealId: string) => {
     if (!authUser) return;
 
     const { error } = await supabase.from("deals").update({ assigned_to: authUser.id } as any).eq("id", dealId);
@@ -561,9 +561,9 @@ export function KanbanBoard() {
     });
     toast({ title: "Negociação capturada!" });
     refreshDeals();
-  };
+  }, [authUser, deals, toast]);
 
-  const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
+  const handleTagToggle = useCallback(async (dealId: string, tagId: string, checked: boolean) => {
     if (checked) {
       const { error } = await supabase.from("deal_tags").insert({ deal_id: dealId, tag_id: tagId });
       if (error) {
@@ -579,7 +579,7 @@ export function KanbanBoard() {
     }
 
     refreshDeals();
-  };
+  }, [toast]);
 
   const filterBySeller = useCallback((deal: Deal) => {
     if (selectedSellerId === "all") return true;
