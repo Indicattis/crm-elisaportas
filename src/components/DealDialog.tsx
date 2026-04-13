@@ -141,6 +141,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         toast({ title: "Negociação criada!" });
         if (newDeal) {
           await createDealTasksForColumn(newDeal.id, status, funnelId);
+          await supabase.from("deal_history").insert({
+            deal_id: newDeal.id,
+            event_type: "creation",
+            description: "Negociação criada manualmente",
+            user_id: user.id,
+          });
         }
       }
 

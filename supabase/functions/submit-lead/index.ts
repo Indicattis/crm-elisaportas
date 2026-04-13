@@ -22,10 +22,11 @@ Deno.serve(async (req) => {
     // If flow_id is provided, load the flow config
     let acquisition_channel = canal_aquisicao || null;
     let assignment_mode = "unassigned";
+    let flow_name: string | null = null;
     if (flow_id) {
       const { data: flow, error: flowError } = await supabase
         .from("lead_flows")
-        .select("funnel_id, status, acquisition_channel, assignment_mode, active")
+        .select("funnel_id, status, acquisition_channel, assignment_mode, active, name")
         .eq("id", flow_id)
         .single();
 
