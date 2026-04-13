@@ -1504,6 +1504,14 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                             {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5" />}
                             {format(new Date(task.deadline_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
+                          {task.completed && task.completed_at && (
+                            <>
+                              <span className="text-muted-foreground/40">•</span>
+                              <span className="text-[10px] text-green-600">
+                                ✓ {format(new Date(task.completed_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                              </span>
+                            </>
+                          )}
                         </div>
                         {!task.completed && (task.type === "mensagem" || task.type === "ligacao") && (
                           <div className="mt-1.5">
