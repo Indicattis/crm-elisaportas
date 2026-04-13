@@ -380,6 +380,20 @@ export function KanbanBoard() {
     loadAll();
   }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
 
+  // Helper to refresh deals + dependent data after mutations
+  const refreshDeals = useCallback(async () => {
+    const freshDeals = await fetchDeals();
+    if (freshDeals.length > 0) {
+      const dealIds = freshDeals.map((d: Deal) => d.id);
+      await Promise.all([
+        fetchProfiles(freshDeals),
+        fetchOverdueTasks(freshDeals),
+        fetchDailyColors(freshDeals),
+        fetchDealTags(dealIds),
+      ]);
+    }
+  }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
+
   const handleColorChange = async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
     if (!authUser) return;
