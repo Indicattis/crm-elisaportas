@@ -1,52 +1,48 @@
 
 
-# Otimização de performance do Kanban: eliminar cascata de queries
+# Nova aba "Relatórios" com geração de PDF
 
-## Problema
+## Visão geral
 
-O KanbanBoard faz **8+ requisições sequenciais** ao banco, criando um waterfall:
-1. fetchFunnels
-2. fetchColumns + fetchDeals + fetchDealTags (paralelo, mas fetchDealTags sem filtro)
-3. fetchProfiles (espera deals)
-4. fetchOverdueTasks (espera deals, faz 2 queries internas)
-5. fetchDailyColors (espera deals)
-6. fetchFunnelMembers (paralelo mas separado)
-7. fetchAllTags
-8. fetchChannels
+Criar uma página `/relatorios` com filtros (data, funil, vendedor, canal) e 4 tipos de relatório que podem ser gerados como PDF para impressão via `window.print()`.
 
-Cada query passa por RLS policies com subqueries (`can_access_deal`, `has_role`), multiplicando a latência. Com 362 deals ativos, o tempo acumula.
+## Abordagem técnica
 
-## Solução
+Usar `window.print()` com uma div de conteúdo formatada com classes `@media print` do Tailwind. Isso evita dependências externas e gera PDFs nativos do navegador com boa qualidade. O usuário seleciona o tipo de relatório, aplica filtros, visualiza uma prévia na tela e clica "Gerar PDF" para abrir o diálogo de impressão.
 
-### 1. Paralelizar TUDO no carregamento inicial
-Unificar em um único `Promise.all` com todas as queries que não dependem umas das outras:
-- columns, deals, dealTags, funnelMembers, allTags, channels → paralelo
+## Alterações
 
-### 2. Consolidar queries dependentes de deals
-Após receber os deals, fazer `fetchProfiles`, `fetchOverdueTasks` e `fetchDailyColors` em um **segundo `Promise.all`** em vez de 3 useEffects separados que disparam em cascata.
+### 1. Criar `src/pages/Reports.tsx`
+- Filtros: período (data início/fim), funil, vendedor, canal de aquisição
+- 4 tipos de relatório selecionáveis via tabs:
+  - **Negociações por período**: tabela com título, telefone, valor, status, responsável, data
+  - **Resumo de desempenho**: KPIs (total vendido, perdido, conversão, ticket médio) + totalizadores
+  - **Relatório por vendedor**: tabela agrupada por vendedor com métricas individuais
+  - **Relatório por canal**: tabela agrupada por canal com contagem e valor total
+- Botão "Gerar PDF" que abre uma nova janela com o conteúdo formatado para impressão
+- Logo da empresa no cabeçalho do relatório
+- Data de geração e filtros aplicados no cabeçalho
 
-### 3. Filtrar deal_tags por funil
-Atualmente `fetchDealTags` busca TODOS os deal_tags. Filtrar usando os IDs dos deals do funil selecionado.
+### 2. Atualizar `src/components/Header.tsx`
+- Adicionar item de navegação "Relatórios" com ícone `FileText` apontando para `/relatorios`
 
-### 4. Selecionar apenas colunas necessárias
-`fetchDeals` usa `select("*")`, trazendo campos como `notes` que não são usados no Kanban. Selecionar apenas os campos necessários para os cards.
+### 3. Atualizar `src/App.tsx`
+- Adicionar rota `/relatorios` dentro do layout autenticado
 
-## Alterações técnicas
+## Detalhes da geração PDF
 
-### `src/components/KanbanBoard.tsx`
-- Refatorar os ~7 useEffects de carregamento em 2 blocos:
-  - **Bloco 1** (quando `selectedFunnelId` muda): `Promise.all([fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels])`
-  - **Bloco 2** (quando `deals` muda): `Promise.all([fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags])`
-- Em `fetchDeals`: trocar `select("*")` por `select("id, title, value, status, assigned_to, funnel_id, created_at, updated_at, heat, archived, phone, email, acquisition_channel, deal_number, state, city, user_id")`
-- Em `fetchDealTags`: adicionar filtro `.in("deal_id", dealIds)` usando os IDs dos deals carregados
-
-## Impacto esperado
-- Redução de ~60% no tempo de carregamento (de ~8 queries sequenciais para 2 blocos paralelos)
-- Menos dados trafegados (select específico, tags filtradas)
+Ao clicar "Gerar PDF", será criada uma nova janela (`window.open`) com HTML formatado incluindo:
+- Cabeçalho com logo e título do relatório
+- Filtros aplicados (período, funil, vendedor)
+- Tabelas/dados do relatório selecionado
+- Estilos inline otimizados para impressão
+- Chamada automática a `window.print()`
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/KanbanBoard.tsx` | Consolidar useEffects e otimizar queries |
+| `src/pages/Reports.tsx` | Criar (novo) |
+| `src/components/Header.tsx` | Adicionar nav item |
+| `src/App.tsx` | Adicionar rota |
 
