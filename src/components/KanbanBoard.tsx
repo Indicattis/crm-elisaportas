@@ -449,7 +449,7 @@ export function KanbanBoard() {
 
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
-      fetchDeals();
+      refreshDeals();
       return;
     }
 
@@ -560,7 +560,7 @@ export function KanbanBoard() {
       currentUserId: authUser.id,
     });
     toast({ title: "Negociação capturada!" });
-    fetchDeals();
+    refreshDeals();
   };
 
   const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
@@ -578,7 +578,7 @@ export function KanbanBoard() {
       }
     }
 
-    fetchDealTags();
+    refreshDeals();
   };
 
   const filterBySeller = useCallback((deal: Deal) => {
@@ -833,7 +833,7 @@ export function KanbanBoard() {
             const { data: freshDeal } = await supabase.from("deals").select("*").eq("id", deal.id).single();
             if (freshDeal) {
               await executeDealMove(freshDeal, targetStatus);
-              fetchDeals();
+              refreshDeals();
             }
           }}
         />
