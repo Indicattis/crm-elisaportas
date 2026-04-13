@@ -1,0 +1,422 @@
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CalendarIcon, FileText, Printer } from "lucide-react";
+import { format, startOfMonth, endOfDay, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { applyPhoneMask } from "@/lib/phone-mask";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Deal = Tables<"deals">;
+
+export default function Reports() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
+
+  // Filters
+  const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
+  const [dateTo, setDateTo] = useState<Date>(new Date());
+  const [selectedFunnel, setSelectedFunnel] = useState("all");
+  const [selectedUser, setSelectedUser] = useState("all");
+  const [selectedChannel, setSelectedChannel] = useState("all");
+  const [activeTab, setActiveTab] = useState("period");
+
+  useEffect(() => {
+    loadData();
+  }, [dateFrom, dateTo]);
+
+  const loadData = async () => {
+    setLoading(true);
+    const from = startOfDay(dateFrom).toISOString();
+    const to = endOfDay(dateTo).toISOString();
+
+    const [dealsRes, funnelsRes, profilesRes, channelsRes] = await Promise.all([
+      supabase.from("deals").select("*").gte("updated_at", from).lte("updated_at", to),
+      supabase.from("funnels").select("id, name"),
+      supabase.from("profiles").select("id, full_name"),
+      supabase.from("acquisition_channels").select("id, name"),
+    ]);
+
+    setDeals(dealsRes.data || []);
+    setFunnels(funnelsRes.data || []);
+    setChannels(channelsRes.data || []);
+
+    const map: Record<string, string> = {};
+    (profilesRes.data || []).forEach((p) => {
+      map[p.id] = p.full_name || p.id;
+    });
+    setProfiles(map);
+    setLoading(false);
+  };
+
+  const filteredDeals = useMemo(() => {
+    return deals.filter((d) => {
+      if (selectedFunnel !== "all" && d.funnel_id !== selectedFunnel) return false;
+      if (selectedUser !== "all" && d.assigned_to !== selectedUser && d.user_id !== selectedUser) return false;
+      if (selectedChannel !== "all" && d.acquisition_channel !== selectedChannel) return false;
+      return true;
+    });
+  }, [deals, selectedFunnel, selectedUser, selectedChannel]);
+
+  const soldDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Vendido"), [filteredDeals]);
+  const lostDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Perdido"), [filteredDeals]);
+
+  const kpis = useMemo(() => {
+    const totalSold = soldDeals.reduce((s, d) => s + (d.value || 0), 0);
+    const totalLost = lostDeals.reduce((s, d) => s + (d.value || 0), 0);
+    const total = soldDeals.length + lostDeals.length;
+    const conversionRate = total > 0 ? (soldDeals.length / total) * 100 : 0;
+    const avgTicket = soldDeals.length > 0 ? totalSold / soldDeals.length : 0;
+    return { totalSold, totalLost, conversionRate, avgTicket, soldCount: soldDeals.length, lostCount: lostDeals.length, totalDeals: filteredDeals.length };
+  }, [soldDeals, lostDeals, filteredDeals]);
+
+  const byUser = useMemo(() => {
+    const map: Record<string, { name: string; sold: number; lost: number; totalValue: number; count: number }> = {};
+    filteredDeals.forEach((d) => {
+      const uid = d.assigned_to || d.user_id;
+      if (!map[uid]) map[uid] = { name: profiles[uid] || "Sem responsável", sold: 0, lost: 0, totalValue: 0, count: 0 };
+      map[uid].count++;
+      if (d.status === "Vendido") { map[uid].sold++; map[uid].totalValue += d.value || 0; }
+      if (d.status === "Perdido") map[uid].lost++;
+    });
+    return Object.values(map).sort((a, b) => b.totalValue - a.totalValue);
+  }, [filteredDeals, profiles]);
+
+  const byChannel = useMemo(() => {
+    const map: Record<string, { name: string; count: number; sold: number; totalValue: number }> = {};
+    filteredDeals.forEach((d) => {
+      const ch = d.acquisition_channel || "Sem canal";
+      if (!map[ch]) map[ch] = { name: ch, count: 0, sold: 0, totalValue: 0 };
+      map[ch].count++;
+      if (d.status === "Vendido") { map[ch].sold++; map[ch].totalValue += d.value || 0; }
+    });
+    return Object.values(map).sort((a, b) => b.totalValue - a.totalValue);
+  }, [filteredDeals]);
+
+  const filtersLabel = () => {
+    const parts: string[] = [];
+    parts.push(`Período: ${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`);
+    if (selectedFunnel !== "all") parts.push(`Funil: ${funnels.find((f) => f.id === selectedFunnel)?.name}`);
+    if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
+    if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
+    return parts.join(" | ");
+  };
+
+  const tabTitles: Record<string, string> = {
+    period: "Negociações por Período",
+    performance: "Resumo de Desempenho",
+    seller: "Relatório por Vendedor",
+    channel: "Relatório por Canal de Aquisição",
+  };
+
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const handlePrint = () => {
+    const title = tabTitles[activeTab];
+    const filtersSummary = filtersLabel();
+    const now = format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR });
+
+    let tableHtml = "";
+
+    if (activeTab === "period") {
+      tableHtml = `
+        <table>
+          <thead><tr><th>Nº</th><th>Título</th><th>Telefone</th><th>Valor</th><th>Status</th><th>Responsável</th><th>Atualizado em</th></tr></thead>
+          <tbody>
+            ${filteredDeals.map((d) => `
+              <tr>
+                <td>${d.deal_number || "-"}</td>
+                <td>${d.title}</td>
+                <td>${d.phone ? applyPhoneMask(d.phone) : "-"}</td>
+                <td>${fmt(d.value || 0)}</td>
+                <td>${d.status}</td>
+                <td>${profiles[d.assigned_to || d.user_id] || "-"}</td>
+                <td>${format(new Date(d.updated_at), "dd/MM/yyyy")}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <p class="total">Total de negociações: ${filteredDeals.length} | Valor total: ${fmt(filteredDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+      `;
+    } else if (activeTab === "performance") {
+      tableHtml = `
+        <div class="kpis">
+          <div class="kpi"><span class="kpi-label">Total de Negociações</span><span class="kpi-value">${kpis.totalDeals}</span></div>
+          <div class="kpi"><span class="kpi-label">Vendidas</span><span class="kpi-value">${kpis.soldCount}</span></div>
+          <div class="kpi"><span class="kpi-label">Perdidas</span><span class="kpi-value">${kpis.lostCount}</span></div>
+          <div class="kpi"><span class="kpi-label">Total Vendido</span><span class="kpi-value">${fmt(kpis.totalSold)}</span></div>
+          <div class="kpi"><span class="kpi-label">Total Perdido</span><span class="kpi-value">${fmt(kpis.totalLost)}</span></div>
+          <div class="kpi"><span class="kpi-label">Taxa de Conversão</span><span class="kpi-value">${kpis.conversionRate.toFixed(1)}%</span></div>
+          <div class="kpi"><span class="kpi-label">Ticket Médio</span><span class="kpi-value">${fmt(kpis.avgTicket)}</span></div>
+        </div>
+      `;
+    } else if (activeTab === "seller") {
+      tableHtml = `
+        <table>
+          <thead><tr><th>Vendedor</th><th>Negociações</th><th>Vendidas</th><th>Perdidas</th><th>Valor Total</th><th>Conversão</th></tr></thead>
+          <tbody>
+            ${byUser.map((u) => `
+              <tr>
+                <td>${u.name}</td>
+                <td>${u.count}</td>
+                <td>${u.sold}</td>
+                <td>${u.lost}</td>
+                <td>${fmt(u.totalValue)}</td>
+                <td>${u.sold + u.lost > 0 ? ((u.sold / (u.sold + u.lost)) * 100).toFixed(1) : 0}%</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    } else if (activeTab === "channel") {
+      tableHtml = `
+        <table>
+          <thead><tr><th>Canal</th><th>Negociações</th><th>Vendidas</th><th>Valor Total</th></tr></thead>
+          <tbody>
+            ${byChannel.map((c) => `
+              <tr>
+                <td>${c.name}</td>
+                <td>${c.count}</td>
+                <td>${c.sold}</td>
+                <td>${fmt(c.totalValue)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; padding: 30px; color: #1a1a1a; font-size: 12px; }
+      .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px; }
+      .header h1 { font-size: 18px; }
+      .header .meta { text-align: right; font-size: 10px; color: #666; }
+      .filters { background: #f5f5f5; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-size: 11px; color: #555; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+      th { background: #f0f0f0; font-weight: 600; }
+      tr:nth-child(even) { background: #fafafa; }
+      .total { margin-top: 12px; font-weight: 600; font-size: 13px; }
+      .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px; }
+      .kpi { border: 1px solid #ddd; border-radius: 8px; padding: 16px; text-align: center; }
+      .kpi-label { display: block; font-size: 11px; color: #666; margin-bottom: 4px; }
+      .kpi-value { display: block; font-size: 20px; font-weight: 700; }
+      @media print { body { padding: 15px; } }
+    </style></head><body>
+      <div class="header">
+        <h1>${title}</h1>
+        <div class="meta">Gerado em: ${now}</div>
+      </div>
+      <div class="filters">${filtersSummary}</div>
+      ${tableHtml}
+      <script>window.onload = function() { window.print(); }</script>
+    </body></html>`;
+
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+    }
+  };
+
+  const DatePicker = ({ date, onChange, label }: { date: Date; onChange: (d: Date) => void; label: string }) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className={cn("justify-start text-left font-normal", !date && "text-muted-foreground")}>
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {date ? format(date, "dd/MM/yyyy") : label}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar mode="single" selected={date} onSelect={(d) => d && onChange(d)} locale={ptBR} className="p-3 pointer-events-auto" />
+      </PopoverContent>
+    </Popover>
+  );
+
+  const profileEntries = Object.entries(profiles);
+
+  return (
+    <div className="space-y-6 p-4 md:p-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Gere relatórios em PDF para impressão</p>
+        </div>
+        <Button onClick={handlePrint} className="gap-2">
+          <Printer className="h-4 w-4" />
+          Gerar PDF
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 rounded-lg border border-border bg-card p-4">
+        <DatePicker date={dateFrom} onChange={setDateFrom} label="Data início" />
+        <DatePicker date={dateTo} onChange={setDateTo} label="Data fim" />
+        <Select value={selectedFunnel} onValueChange={setSelectedFunnel}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Funil" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os funis</SelectItem>
+            {funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={selectedUser} onValueChange={setSelectedUser}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {profileEntries.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Canal" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os canais</SelectItem>
+            {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full flex-wrap h-auto">
+          <TabsTrigger value="period" className="gap-1"><FileText className="h-4 w-4" />Negociações</TabsTrigger>
+          <TabsTrigger value="performance">Desempenho</TabsTrigger>
+          <TabsTrigger value="seller">Por Vendedor</TabsTrigger>
+          <TabsTrigger value="channel">Por Canal</TabsTrigger>
+        </TabsList>
+
+        {loading ? (
+          <div className="space-y-3 pt-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+        ) : (
+          <>
+            <TabsContent value="period">
+              <div className="rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nº</TableHead>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Responsável</TableHead>
+                      <TableHead>Atualizado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDeals.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma negociação encontrada</TableCell></TableRow>
+                    ) : filteredDeals.map((d) => (
+                      <TableRow key={d.id}>
+                        <TableCell>{d.deal_number || "-"}</TableCell>
+                        <TableCell className="font-medium">{d.title}</TableCell>
+                        <TableCell>{d.phone ? applyPhoneMask(d.phone) : "-"}</TableCell>
+                        <TableCell>{fmt(d.value || 0)}</TableCell>
+                        <TableCell>{d.status}</TableCell>
+                        <TableCell>{profiles[d.assigned_to || d.user_id] || "-"}</TableCell>
+                        <TableCell>{format(new Date(d.updated_at), "dd/MM/yyyy")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Total: {filteredDeals.length} negociações | Valor: {fmt(filteredDeals.reduce((s, d) => s + (d.value || 0), 0))}
+              </p>
+            </TabsContent>
+
+            <TabsContent value="performance">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { label: "Total de Negociações", value: kpis.totalDeals },
+                  { label: "Vendidas", value: kpis.soldCount },
+                  { label: "Perdidas", value: kpis.lostCount },
+                  { label: "Total Vendido", value: fmt(kpis.totalSold) },
+                  { label: "Total Perdido", value: fmt(kpis.totalLost) },
+                  { label: "Taxa de Conversão", value: `${kpis.conversionRate.toFixed(1)}%` },
+                  { label: "Ticket Médio", value: fmt(kpis.avgTicket) },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="rounded-lg border border-border bg-card p-4 text-center">
+                    <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                    <p className="mt-1 text-2xl font-bold text-foreground">{kpi.value}</p>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="seller">
+              <div className="rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vendedor</TableHead>
+                      <TableHead>Negociações</TableHead>
+                      <TableHead>Vendidas</TableHead>
+                      <TableHead>Perdidas</TableHead>
+                      <TableHead>Valor Total</TableHead>
+                      <TableHead>Conversão</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {byUser.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
+                    ) : byUser.map((u) => (
+                      <TableRow key={u.name}>
+                        <TableCell className="font-medium">{u.name}</TableCell>
+                        <TableCell>{u.count}</TableCell>
+                        <TableCell>{u.sold}</TableCell>
+                        <TableCell>{u.lost}</TableCell>
+                        <TableCell>{fmt(u.totalValue)}</TableCell>
+                        <TableCell>{u.sold + u.lost > 0 ? ((u.sold / (u.sold + u.lost)) * 100).toFixed(1) : 0}%</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="channel">
+              <div className="rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Canal</TableHead>
+                      <TableHead>Negociações</TableHead>
+                      <TableHead>Vendidas</TableHead>
+                      <TableHead>Valor Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {byChannel.length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
+                    ) : byChannel.map((c) => (
+                      <TableRow key={c.name}>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>{c.count}</TableCell>
+                        <TableCell>{c.sold}</TableCell>
+                        <TableCell>{fmt(c.totalValue)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
+    </div>
+  );
+}

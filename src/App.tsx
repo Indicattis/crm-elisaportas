@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
 import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
+import Reports from "./pages/Reports";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
         <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route path="/" element={<Index />} />
           <Route path="/results" element={<Results />} />
+          <Route path="/relatorios" element={<Reports />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/crm-config" element={<RoleGuard allowedRoles={["admin"]}><CrmConfig /></RoleGuard>} />
