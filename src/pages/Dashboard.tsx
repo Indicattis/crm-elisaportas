@@ -29,7 +29,6 @@ export default function Dashboard() {
     if (role === "vendedor" && authUser) {
       setSelectedSeller(authUser.id);
     }
-    }
   }, [role, authUser]);
 
   const { data: funnels } = useQuery({
