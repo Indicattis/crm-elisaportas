@@ -165,7 +165,7 @@ export function KanbanBoard() {
   }, [selectedFunnelId]);
 
   const fetchDeals = useCallback(async () => {
-    if (!selectedFunnelId) return;
+    if (!selectedFunnelId) return [];
     const { data, error } = await supabase
       .from("deals")
       .select("*")
@@ -178,16 +178,21 @@ export function KanbanBoard() {
 
     if (error) {
       toast({ title: "Erro ao carregar negociações", description: error.message, variant: "destructive" });
-    } else {
-      setDeals(data || []);
+      return [];
     }
+    setDeals(data || []);
+    return data || [];
   }, [selectedFunnelId, toast]);
 
-  const fetchDealTags = useCallback(async () => {
+  const fetchDealTags = useCallback(async (dealIds?: string[]) => {
     if (!selectedFunnelId) return;
-    const { data } = await supabase
+    let query = supabase
       .from("deal_tags")
       .select("deal_id, tag_id, tags(id, name, color)");
+    if (dealIds && dealIds.length > 0) {
+      query = query.in("deal_id", dealIds);
+    }
+    const { data } = await query;
 
     if (data) {
       const map: Record<string, DealTag[]> = {};
@@ -242,37 +247,18 @@ export function KanbanBoard() {
     fetchFunnels();
   }, [fetchFunnels]);
 
-  const fetchDailyColors = useCallback(async () => {
-    if (!selectedFunnelId || deals.length === 0) return;
-    const dealIds = deals.map((d) => d.id);
-    const today = new Date().toISOString().slice(0, 10);
-    const { data } = await supabase
-      .from("deal_daily_color")
-      .select("deal_id, color")
-      .in("deal_id", dealIds)
-      .eq("date", today);
-    const map: Record<string, string> = {};
-    (data || []).forEach((row: any) => { map[row.deal_id] = row.color; });
-    setDailyColorsMap(map);
-  }, [deals, selectedFunnelId]);
+  const fetchChannels = useCallback(async () => {
+    const { data } = await supabase.from("acquisition_channels").select("name, icon, position").order("position");
+    const iconMap: Record<string, string> = {};
+    const posMap: Record<string, number> = {};
+    (data || []).forEach((ch: any) => { iconMap[ch.name] = ch.icon; posMap[ch.name] = ch.position; });
+    setChannelIconMap(iconMap);
+    setChannelPositionMap(posMap);
+  }, []);
 
-  useEffect(() => {
-    const loadAll = async () => {
-      setLoading(true);
-      await Promise.all([fetchColumns(), fetchDeals(), fetchDealTags()]);
-      setLoading(false);
-    };
-
-    loadAll();
-  }, [fetchColumns, fetchDeals, fetchDealTags]);
-
-  useEffect(() => {
-    fetchFunnelMembers();
-  }, [fetchFunnelMembers]);
-
-  const fetchProfiles = useCallback(async () => {
+  const fetchProfiles = useCallback(async (currentDeals: Deal[]) => {
     const assignedIds = [
-      ...new Set(deals.filter((d) => d.assigned_to).map((d) => d.assigned_to as string)),
+      ...new Set(currentDeals.filter((d) => d.assigned_to).map((d) => d.assigned_to as string)),
     ];
 
     if (assignedIds.length === 0) {
@@ -286,25 +272,17 @@ export function KanbanBoard() {
       map[profile.id] = { full_name: profile.full_name, avatar_url: profile.avatar_url };
     });
     setProfilesMap(map);
-  }, [deals]);
+  }, []);
 
-  useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
-
-  useEffect(() => {
-    fetchAllTags();
-  }, [fetchAllTags]);
-
-  const fetchOverdueTasks = useCallback(async () => {
-    if (deals.length === 0) {
+  const fetchOverdueTasks = useCallback(async (currentDeals: Deal[]) => {
+    if (currentDeals.length === 0) {
       setOverdueDeals(new Set());
       setNextTaskMap({});
       setDealStageMap({});
       return;
     }
 
-    const dealIds = deals.map((deal) => deal.id);
+    const dealIds = currentDeals.map((deal) => deal.id);
     const { data } = await supabase
       .from("deal_tasks")
       .select("deal_id, deadline_at, stage_id")
@@ -329,7 +307,6 @@ export function KanbanBoard() {
     setOverdueDeals(overdue);
     setNextTaskMap(nextMap);
 
-    // Fetch stage info for all referenced stage_ids
     const allStageIds = [...new Set(Object.values(dealStageIds).flatMap(s => [...s]))];
     if (allStageIds.length > 0) {
       const { data: stages } = await supabase
@@ -341,7 +318,6 @@ export function KanbanBoard() {
         const stageById = new Map(stages.map((s: any) => [s.id, s]));
         const stageMap: Record<string, { name: string; color: string }> = {};
         for (const [dealId, stageIdSet] of Object.entries(dealStageIds)) {
-          // Pick the stage with the lowest position
           let best: any = null;
           for (const sid of stageIdSet) {
             const s = stageById.get(sid);
@@ -354,25 +330,69 @@ export function KanbanBoard() {
     } else {
       setDealStageMap({});
     }
-  }, [deals]);
-
-  useEffect(() => {
-    fetchOverdueTasks();
-  }, [fetchOverdueTasks]);
-
-  useEffect(() => {
-    fetchDailyColors();
-  }, [fetchDailyColors]);
-
-  useEffect(() => {
-    supabase.from("acquisition_channels").select("name, icon, position").order("position").then(({ data }) => {
-      const iconMap: Record<string, string> = {};
-      const posMap: Record<string, number> = {};
-      (data || []).forEach((ch: any) => { iconMap[ch.name] = ch.icon; posMap[ch.name] = ch.position; });
-      setChannelIconMap(iconMap);
-      setChannelPositionMap(posMap);
-    });
   }, []);
+
+  const fetchDailyColors = useCallback(async (currentDeals: Deal[]) => {
+    if (currentDeals.length === 0) return;
+    const dealIds = currentDeals.map((d) => d.id);
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from("deal_daily_color")
+      .select("deal_id, color")
+      .in("deal_id", dealIds)
+      .eq("date", today);
+    const map: Record<string, string> = {};
+    (data || []).forEach((row: any) => { map[row.deal_id] = row.color; });
+    setDailyColorsMap(map);
+  }, []);
+
+  // BLOCK 1: Load everything in parallel when funnel changes
+  useEffect(() => {
+    if (!selectedFunnelId) return;
+    const loadAll = async () => {
+      setLoading(true);
+      const [, fetchedDeals] = await Promise.all([
+        fetchColumns(),
+        fetchDeals(),
+        fetchFunnelMembers(),
+        fetchAllTags(),
+        fetchChannels(),
+      ]);
+      // BLOCK 2: Load deal-dependent data in parallel
+      if (fetchedDeals && fetchedDeals.length > 0) {
+        const dealIds = fetchedDeals.map((d: Deal) => d.id);
+        await Promise.all([
+          fetchProfiles(fetchedDeals),
+          fetchOverdueTasks(fetchedDeals),
+          fetchDailyColors(fetchedDeals),
+          fetchDealTags(dealIds),
+        ]);
+      } else {
+        setProfilesMap({});
+        setOverdueDeals(new Set());
+        setNextTaskMap({});
+        setDealStageMap({});
+        setDailyColorsMap({});
+        setDealTagsMap({});
+      }
+      setLoading(false);
+    };
+    loadAll();
+  }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
+
+  // Helper to refresh deals + dependent data after mutations
+  const refreshDeals = useCallback(async () => {
+    const freshDeals = await fetchDeals();
+    if (freshDeals.length > 0) {
+      const dealIds = freshDeals.map((d: Deal) => d.id);
+      await Promise.all([
+        fetchProfiles(freshDeals),
+        fetchOverdueTasks(freshDeals),
+        fetchDailyColors(freshDeals),
+        fetchDealTags(dealIds),
+      ]);
+    }
+  }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
 
   const handleColorChange = async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
@@ -429,7 +449,7 @@ export function KanbanBoard() {
 
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
-      fetchDeals();
+      refreshDeals();
       return;
     }
 
@@ -540,7 +560,7 @@ export function KanbanBoard() {
       currentUserId: authUser.id,
     });
     toast({ title: "Negociação capturada!" });
-    fetchDeals();
+    refreshDeals();
   };
 
   const handleTagToggle = async (dealId: string, tagId: string, checked: boolean) => {
@@ -558,7 +578,7 @@ export function KanbanBoard() {
       }
     }
 
-    fetchDealTags();
+    refreshDeals();
   };
 
   const filterBySeller = useCallback((deal: Deal) => {
@@ -779,10 +799,7 @@ export function KanbanBoard() {
         deal={viewingDeal}
         statuses={columns.map((column) => column.name)}
         columnColor={viewingColumnColor}
-        onUpdated={() => {
-          fetchDeals();
-          fetchDealTags();
-        }}
+        onUpdated={() => { refreshDeals(); }}
       />
 
       <DealDialog
@@ -792,9 +809,10 @@ export function KanbanBoard() {
         defaultStatus={defaultStatus}
         statuses={columns.map((column) => column.name)}
         funnelId={selectedFunnelId}
-        onSaved={() => {
-          fetchDeals();
-        }}
+        onSaved={() => { refreshDeals(); }}
+
+
+
       />
 
       {pendingMove && (
@@ -813,7 +831,7 @@ export function KanbanBoard() {
             const { data: freshDeal } = await supabase.from("deals").select("*").eq("id", deal.id).single();
             if (freshDeal) {
               await executeDealMove(freshDeal, targetStatus);
-              fetchDeals();
+              refreshDeals();
             }
           }}
         />
