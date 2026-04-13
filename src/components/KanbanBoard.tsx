@@ -809,9 +809,10 @@ export function KanbanBoard() {
         defaultStatus={defaultStatus}
         statuses={columns.map((column) => column.name)}
         funnelId={selectedFunnelId}
-        onSaved={() => {
-          fetchDeals();
-        }}
+        onSaved={() => { refreshDeals(); }}
+
+
+
       />
 
       {pendingMove && (
