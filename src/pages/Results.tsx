@@ -17,6 +17,7 @@ import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
@@ -52,6 +53,7 @@ export default function Results() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { role } = useUserRole();
+  const { user: authUser } = useAuth();
 
   // Seller filter
   const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
@@ -59,10 +61,8 @@ export default function Results() {
   const [selectedDealsSellerId, setSelectedDealsSellerId] = useState<string>("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id || null);
-    });
-  }, []);
+    setCurrentUserId(authUser?.id || null);
+  }, [authUser]);
 
   // Reset page on filter changes
   useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo, selectedDealsSellerId]);
