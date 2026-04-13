@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, MapPin } from "lucide-react";
@@ -49,7 +49,7 @@ function hexToRgb(hex: string) {
 const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "green", green: "red" };
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 
-export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, currentStage, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, currentStage, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -232,4 +232,4 @@ export function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOv
       </div>
     </div>
   );
-}
+});

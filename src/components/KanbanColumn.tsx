@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus, ChevronRight, ArrowUpDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
 import type { Tables } from "@/integrations/supabase/types";
@@ -60,7 +60,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function KanbanColumn({
+export const KanbanColumn = memo(function KanbanColumn({
   status,
   color,
   deals,
@@ -263,4 +263,4 @@ export function KanbanColumn({
       </div>
     </div>
   );
-}
+});
