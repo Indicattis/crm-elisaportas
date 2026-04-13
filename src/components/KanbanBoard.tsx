@@ -165,10 +165,10 @@ export function KanbanBoard() {
   }, [selectedFunnelId]);
 
   const fetchDeals = useCallback(async () => {
-    if (!selectedFunnelId) return;
+    if (!selectedFunnelId) return [];
     const { data, error } = await supabase
       .from("deals")
-      .select("*")
+      .select("id, title, value, status, assigned_to, funnel_id, created_at, updated_at, heat, archived, phone, email, acquisition_channel, deal_number, state, city, user_id, client_id")
       .eq("funnel_id", selectedFunnelId)
       .eq("archived", false)
       .neq("status", "Perdida")
@@ -178,9 +178,10 @@ export function KanbanBoard() {
 
     if (error) {
       toast({ title: "Erro ao carregar negociações", description: error.message, variant: "destructive" });
-    } else {
-      setDeals(data || []);
+      return [];
     }
+    setDeals(data || []);
+    return data || [];
   }, [selectedFunnelId, toast]);
 
   const fetchDealTags = useCallback(async () => {
