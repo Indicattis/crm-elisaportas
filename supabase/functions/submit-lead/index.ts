@@ -168,6 +168,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Record creation origin in deal_history
+    const historyDesc = flow_name
+      ? `Negociação criada via fluxo de captação "${flow_name}"`
+      : "Negociação criada via fluxo de captação";
+    await supabase.from("deal_history").insert({
+      deal_id: deal.id,
+      event_type: "creation",
+      description: historyDesc,
+      user_id: funnel.user_id,
+    });
+
     // Create tasks for the column's task group
     const dealStatus = status || "Lead";
     const { data: col } = await supabase
