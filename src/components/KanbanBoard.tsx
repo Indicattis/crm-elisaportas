@@ -799,10 +799,7 @@ export function KanbanBoard() {
         deal={viewingDeal}
         statuses={columns.map((column) => column.name)}
         columnColor={viewingColumnColor}
-        onUpdated={() => {
-          fetchDeals();
-          fetchDealTags();
-        }}
+        onUpdated={() => { refreshDeals(); }}
       />
 
       <DealDialog
