@@ -31,6 +31,8 @@ export function TeamManager() {
   const [inviting, setInviting] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [uploadingMemberId, setUploadingMemberId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
