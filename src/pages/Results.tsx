@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2, Ban, Undo2 } from "lucide-react";
+import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2, Ban, Undo2, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
@@ -52,6 +52,13 @@ export default function Results() {
   const [stageHistory, setStageHistory] = useState<{ date: string; stage: string; count: number; totalValue: number }[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Leads history state
+  const [leadsHistory, setLeadsHistory] = useState<{ id: string; title: string; created_at: string; description: string; phone: string | null; assigned_to: string | null; acquisition_channel: string | null; funnel_name: string | null }[]>([]);
+  const [leadsHistoryLoading, setLeadsHistoryLoading] = useState(false);
+  const [leadsDateFrom, setLeadsDateFrom] = useState<Date>(startOfMonth(new Date()));
+  const [leadsDateTo, setLeadsDateTo] = useState<Date>(new Date());
+  const [leadsPage, setLeadsPage] = useState(1);
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
 
@@ -66,6 +73,7 @@ export default function Results() {
 
   // Reset page on filter changes
   useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo, selectedDealsSellerId]);
+  useEffect(() => { setLeadsPage(1); }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId]);
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
@@ -202,10 +210,83 @@ export default function Results() {
     }
   }, [currentUserId, role, selectedFunnelId, historyDate, selectedSellerId]);
 
+  const fetchLeadsHistory = useCallback(async () => {
+    setLeadsHistoryLoading(true);
+    try {
+      const fromISO = startOfDay(leadsDateFrom).toISOString();
+      const toISO = endOfDay(leadsDateTo).toISOString();
+
+      let query = supabase
+        .from("deals")
+        .select("id, title, created_at, phone, assigned_to, acquisition_channel, funnel_id")
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO)
+        .order("created_at", { ascending: false });
+
+      if (selectedFunnelId !== "all") query = query.eq("funnel_id", selectedFunnelId);
+      if (selectedDealsSellerId) query = query.eq("assigned_to", selectedDealsSellerId);
+
+      const { data: deals } = await query;
+
+      if (!deals || deals.length === 0) {
+        setLeadsHistory([]);
+        setLeadsHistoryLoading(false);
+        return;
+      }
+
+      // Get funnel names
+      const funnelIds = [...new Set(deals.filter(d => d.funnel_id).map(d => d.funnel_id as string))];
+      const funnelMap: Record<string, string> = {};
+      if (funnelIds.length > 0) {
+        const { data: funnelData } = await supabase.from("funnels").select("id, name").in("id", funnelIds);
+        (funnelData || []).forEach(f => { funnelMap[f.id] = f.name; });
+      }
+
+      // Get creation history descriptions
+      const dealIds = deals.map(d => d.id);
+      const historyMap: Record<string, string> = {};
+      const batchSize = 50;
+      for (let i = 0; i < dealIds.length; i += batchSize) {
+        const batch = dealIds.slice(i, i + batchSize);
+        const { data: historyData } = await supabase
+          .from("deal_history")
+          .select("deal_id, description")
+          .eq("event_type", "creation")
+          .in("deal_id", batch);
+        (historyData || []).forEach(h => { historyMap[h.deal_id] = h.description; });
+      }
+
+      // Ensure profiles are loaded for assigned_to
+      const assignedIds = [...new Set(deals.filter(d => d.assigned_to).map(d => d.assigned_to as string))];
+      if (assignedIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", assignedIds);
+        const newMap: Record<string, string> = { ...profilesMap };
+        (profiles || []).forEach(p => { newMap[p.id] = p.full_name || "Sem nome"; });
+        setProfilesMap(newMap);
+      }
+
+      setLeadsHistory(deals.map(d => ({
+        id: d.id,
+        title: d.title,
+        created_at: d.created_at,
+        description: historyMap[d.id] || "Criação manual",
+        phone: d.phone,
+        assigned_to: d.assigned_to,
+        acquisition_channel: d.acquisition_channel,
+        funnel_name: d.funnel_id ? funnelMap[d.funnel_id] || null : null,
+      })));
+    } catch (err) {
+      console.error("Error fetching leads history:", err);
+    } finally {
+      setLeadsHistoryLoading(false);
+    }
+  }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId, profilesMap]);
+
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
   useEffect(() => { fetchStageHistory(); }, [fetchStageHistory]);
+  useEffect(() => { fetchLeadsHistory(); }, [fetchLeadsHistory]);
 
   const filterBySearch = (deals: Deal[]) => {
     if (!search.trim()) return deals;
@@ -533,6 +614,105 @@ export default function Results() {
     );
   };
 
+  const renderLeadsHistory = () => {
+    if (leadsHistoryLoading) {
+      return (
+        <div className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      );
+    }
+
+    if (leadsHistory.length === 0) {
+      return <p className="text-muted-foreground text-center py-8">Nenhum lead criado neste período.</p>;
+    }
+
+    const totalLeadsPages = Math.ceil(leadsHistory.length / PAGE_SIZE);
+    const paginatedLeads = leadsHistory.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Canal</TableHead>
+                <TableHead>Funil</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Data</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedLeads.map((lead) => (
+                <TableRow key={lead.id} className="hover:bg-accent/30 transition-colors">
+                  <TableCell className="font-medium">{lead.title}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{lead.phone ? applyPhoneMask(lead.phone) : "—"}</TableCell>
+                  <TableCell>
+                    {lead.acquisition_channel ? (
+                      <Badge className="bg-accent text-accent-foreground border-0">{lead.acquisition_channel}</Badge>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">{lead.funnel_name || "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{lead.assigned_to ? profilesMap[lead.assigned_to] || "—" : "Sem responsável"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate">{lead.description}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{format(new Date(lead.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {totalLeadsPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setLeadsPage(p => Math.max(1, p - 1))}
+                  className={cn(leadsPage === 1 && "pointer-events-none opacity-50")}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalLeadsPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalLeadsPages || Math.abs(p - leadsPage) <= 1)
+                .map((p, idx, arr) => {
+                  const elements = [];
+                  if (idx > 0 && p - arr[idx - 1] > 1) {
+                    elements.push(<PaginationItem key={`ellipsis-leads-${p}`}><span className="px-2">…</span></PaginationItem>);
+                  }
+                  elements.push(
+                    <PaginationItem key={p}>
+                      <PaginationLink isActive={p === leadsPage} onClick={() => setLeadsPage(p)} className="cursor-pointer">
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                  return elements;
+                })}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setLeadsPage(p => Math.min(totalLeadsPages, p + 1))}
+                  className={cn(leadsPage === totalLeadsPages && "pointer-events-none opacity-50")}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+
+        <p className="text-xs text-muted-foreground text-right">
+          {leadsHistory.length} lead{leadsHistory.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+    );
+  };
+
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Header + Filters */}
@@ -701,6 +881,22 @@ export default function Results() {
           </div>
         </div>
         {renderStageHistory()}
+      </div>
+
+      {/* Leads History Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold text-foreground">Histórico de Leads Criados</h2>
+          </div>
+          <div className="flex items-center gap-3 sm:ml-auto">
+            {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
+            <span className="text-muted-foreground text-sm">até</span>
+            {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
+          </div>
+        </div>
+        {renderLeadsHistory()}
       </div>
     </div>
   );
