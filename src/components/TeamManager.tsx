@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound } from "lucide-react";
+import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +31,8 @@ export function TeamManager() {
   const [inviting, setInviting] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [uploadingMemberId, setUploadingMemberId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
@@ -140,6 +142,31 @@ export function TeamManager() {
     }
   };
 
+  const handleAvatarChange = async (memberId: string, file: File) => {
+    setUploadingMemberId(memberId);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${memberId}/avatar.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+        .eq("id", memberId);
+      if (updateError) throw updateError;
+      toast({ title: "Foto atualizada!" });
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingMemberId(null);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!" });
@@ -178,10 +205,34 @@ export function TeamManager() {
               const isMe = member.id === currentUserId;
               return (
                 <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                  <Avatar className="h-10 w-10">
-                    {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative group">
+                    <Avatar className="h-10 w-10">
+                      {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
+                    </Avatar>
+                    <button
+                      onClick={() => fileInputRefs.current[member.id]?.click()}
+                      disabled={uploadingMemberId === member.id}
+                      className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      {uploadingMemberId === member.id ? (
+                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4 text-white" />
+                      )}
+                    </button>
+                    <input
+                      ref={(el) => { fileInputRefs.current[member.id] = el; }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleAvatarChange(member.id, file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
                       {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
