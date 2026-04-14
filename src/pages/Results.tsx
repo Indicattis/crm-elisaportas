@@ -882,6 +882,22 @@ export default function Results() {
         </div>
         {renderStageHistory()}
       </div>
+
+      {/* Leads History Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold text-foreground">Histórico de Leads Criados</h2>
+          </div>
+          <div className="flex items-center gap-3 sm:ml-auto">
+            {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
+            <span className="text-muted-foreground text-sm">até</span>
+            {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
+          </div>
+        </div>
+        {renderLeadsHistory()}
+      </div>
     </div>
   );
 }
