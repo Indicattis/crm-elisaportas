@@ -258,11 +258,11 @@ export default function Results() {
 
       // Ensure profiles are loaded for assigned_to
       const assignedIds = [...new Set(deals.filter(d => d.assigned_to).map(d => d.assigned_to as string))];
+      let localProfilesMap: Record<string, string> = {};
       if (assignedIds.length > 0) {
         const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", assignedIds);
-        const newMap: Record<string, string> = { ...profilesMap };
-        (profiles || []).forEach(p => { newMap[p.id] = p.full_name || "Sem nome"; });
-        setProfilesMap(newMap);
+        (profiles || []).forEach(p => { localProfilesMap[p.id] = p.full_name || "Sem nome"; });
+        setProfilesMap(prev => ({ ...prev, ...localProfilesMap }));
       }
 
       setLeadsHistory(deals.map(d => ({
@@ -280,7 +280,7 @@ export default function Results() {
     } finally {
       setLeadsHistoryLoading(false);
     }
-  }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId, profilesMap]);
+  }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId]);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
