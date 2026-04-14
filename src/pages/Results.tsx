@@ -59,6 +59,7 @@ export default function Results() {
   const [leadsDateFrom, setLeadsDateFrom] = useState<Date>(startOfMonth(new Date()));
   const [leadsDateTo, setLeadsDateTo] = useState<Date>(new Date());
   const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsOriginFilter, setLeadsOriginFilter] = useState<string>("all");
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
 
