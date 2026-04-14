@@ -280,7 +280,7 @@ export default function Results() {
     } finally {
       setLeadsHistoryLoading(false);
     }
-  }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId, profilesMap]);
+  }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId]);
 
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
