@@ -205,10 +205,34 @@ export function TeamManager() {
               const isMe = member.id === currentUserId;
               return (
                 <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                  <Avatar className="h-10 w-10">
-                    {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative group">
+                    <Avatar className="h-10 w-10">
+                      {member.avatar_url ? <AvatarImage src={member.avatar_url} /> : null}
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{memberInitials}</AvatarFallback>
+                    </Avatar>
+                    <button
+                      onClick={() => fileInputRefs.current[member.id]?.click()}
+                      disabled={uploadingMemberId === member.id}
+                      className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      {uploadingMemberId === member.id ? (
+                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4 text-white" />
+                      )}
+                    </button>
+                    <input
+                      ref={(el) => { fileInputRefs.current[member.id] = el; }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleAvatarChange(member.id, file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
                       {member.full_name || "Sem nome"} {isMe && <span className="text-muted-foreground">(você)</span>}
