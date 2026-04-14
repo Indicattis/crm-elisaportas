@@ -614,6 +614,105 @@ export default function Results() {
     );
   };
 
+  const renderLeadsHistory = () => {
+    if (leadsHistoryLoading) {
+      return (
+        <div className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      );
+    }
+
+    if (leadsHistory.length === 0) {
+      return <p className="text-muted-foreground text-center py-8">Nenhum lead criado neste período.</p>;
+    }
+
+    const totalLeadsPages = Math.ceil(leadsHistory.length / PAGE_SIZE);
+    const paginatedLeads = leadsHistory.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Canal</TableHead>
+                <TableHead>Funil</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Data</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedLeads.map((lead) => (
+                <TableRow key={lead.id} className="hover:bg-accent/30 transition-colors">
+                  <TableCell className="font-medium">{lead.title}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{lead.phone ? applyPhoneMask(lead.phone) : "—"}</TableCell>
+                  <TableCell>
+                    {lead.acquisition_channel ? (
+                      <Badge className="bg-accent text-accent-foreground border-0">{lead.acquisition_channel}</Badge>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">{lead.funnel_name || "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{lead.assigned_to ? profilesMap[lead.assigned_to] || "—" : "Sem responsável"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate">{lead.description}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{format(new Date(lead.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {totalLeadsPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setLeadsPage(p => Math.max(1, p - 1))}
+                  className={cn(leadsPage === 1 && "pointer-events-none opacity-50")}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalLeadsPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalLeadsPages || Math.abs(p - leadsPage) <= 1)
+                .map((p, idx, arr) => {
+                  const elements = [];
+                  if (idx > 0 && p - arr[idx - 1] > 1) {
+                    elements.push(<PaginationItem key={`ellipsis-leads-${p}`}><span className="px-2">…</span></PaginationItem>);
+                  }
+                  elements.push(
+                    <PaginationItem key={p}>
+                      <PaginationLink isActive={p === leadsPage} onClick={() => setLeadsPage(p)} className="cursor-pointer">
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                  return elements;
+                })}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setLeadsPage(p => Math.min(totalLeadsPages, p + 1))}
+                  className={cn(leadsPage === totalLeadsPages && "pointer-events-none opacity-50")}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+
+        <p className="text-xs text-muted-foreground text-right">
+          {leadsHistory.length} lead{leadsHistory.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+    );
+  };
+
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Header + Filters */}
