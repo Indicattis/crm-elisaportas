@@ -716,7 +716,7 @@ export default function Results() {
         )}
 
         <p className="text-xs text-muted-foreground text-right">
-          {leadsHistory.length} lead{leadsHistory.length !== 1 ? "s" : ""}
+          {filteredByOrigin.length} lead{filteredByOrigin.length !== 1 ? "s" : ""}
         </p>
       </div>
     );
