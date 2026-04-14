@@ -625,12 +625,20 @@ export default function Results() {
       );
     }
 
-    if (leadsHistory.length === 0) {
+    // Compute unique origins for filter
+    const origins = [...new Set(leadsHistory.map(l => l.description))].sort();
+
+    // Filter by origin
+    const filteredByOrigin = leadsOriginFilter === "all"
+      ? leadsHistory
+      : leadsHistory.filter(l => l.description === leadsOriginFilter);
+
+    if (filteredByOrigin.length === 0) {
       return <p className="text-muted-foreground text-center py-8">Nenhum lead criado neste período.</p>;
     }
 
-    const totalLeadsPages = Math.ceil(leadsHistory.length / PAGE_SIZE);
-    const paginatedLeads = leadsHistory.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
+    const totalLeadsPages = Math.ceil(filteredByOrigin.length / PAGE_SIZE);
+    const paginatedLeads = filteredByOrigin.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
 
     return (
       <div className="space-y-4">
