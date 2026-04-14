@@ -210,10 +210,83 @@ export default function Results() {
     }
   }, [currentUserId, role, selectedFunnelId, historyDate, selectedSellerId]);
 
+  const fetchLeadsHistory = useCallback(async () => {
+    setLeadsHistoryLoading(true);
+    try {
+      const fromISO = startOfDay(leadsDateFrom).toISOString();
+      const toISO = endOfDay(leadsDateTo).toISOString();
+
+      let query = supabase
+        .from("deals")
+        .select("id, title, created_at, phone, assigned_to, acquisition_channel, funnel_id")
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO)
+        .order("created_at", { ascending: false });
+
+      if (selectedFunnelId !== "all") query = query.eq("funnel_id", selectedFunnelId);
+      if (selectedDealsSellerId) query = query.eq("assigned_to", selectedDealsSellerId);
+
+      const { data: deals } = await query;
+
+      if (!deals || deals.length === 0) {
+        setLeadsHistory([]);
+        setLeadsHistoryLoading(false);
+        return;
+      }
+
+      // Get funnel names
+      const funnelIds = [...new Set(deals.filter(d => d.funnel_id).map(d => d.funnel_id as string))];
+      const funnelMap: Record<string, string> = {};
+      if (funnelIds.length > 0) {
+        const { data: funnelData } = await supabase.from("funnels").select("id, name").in("id", funnelIds);
+        (funnelData || []).forEach(f => { funnelMap[f.id] = f.name; });
+      }
+
+      // Get creation history descriptions
+      const dealIds = deals.map(d => d.id);
+      const historyMap: Record<string, string> = {};
+      const batchSize = 50;
+      for (let i = 0; i < dealIds.length; i += batchSize) {
+        const batch = dealIds.slice(i, i + batchSize);
+        const { data: historyData } = await supabase
+          .from("deal_history")
+          .select("deal_id, description")
+          .eq("event_type", "creation")
+          .in("deal_id", batch);
+        (historyData || []).forEach(h => { historyMap[h.deal_id] = h.description; });
+      }
+
+      // Ensure profiles are loaded for assigned_to
+      const assignedIds = [...new Set(deals.filter(d => d.assigned_to).map(d => d.assigned_to as string))];
+      if (assignedIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", assignedIds);
+        const newMap: Record<string, string> = { ...profilesMap };
+        (profiles || []).forEach(p => { newMap[p.id] = p.full_name || "Sem nome"; });
+        setProfilesMap(newMap);
+      }
+
+      setLeadsHistory(deals.map(d => ({
+        id: d.id,
+        title: d.title,
+        created_at: d.created_at,
+        description: historyMap[d.id] || "Criação manual",
+        phone: d.phone,
+        assigned_to: d.assigned_to,
+        acquisition_channel: d.acquisition_channel,
+        funnel_name: d.funnel_id ? funnelMap[d.funnel_id] || null : null,
+      })));
+    } catch (err) {
+      console.error("Error fetching leads history:", err);
+    } finally {
+      setLeadsHistoryLoading(false);
+    }
+  }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId, profilesMap]);
+
   useEffect(() => { fetchFunnels(); }, [fetchFunnels]);
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
   useEffect(() => { fetchStageHistory(); }, [fetchStageHistory]);
+  useEffect(() => { fetchLeadsHistory(); }, [fetchLeadsHistory]);
 
   const filterBySearch = (deals: Deal[]) => {
     if (!search.trim()) return deals;
