@@ -899,7 +899,18 @@ export default function Results() {
             <UserPlus className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Histórico de Leads Criados</h2>
           </div>
-          <div className="flex items-center gap-3 sm:ml-auto">
+          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+            <Select value={leadsOriginFilter} onValueChange={setLeadsOriginFilter}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Todas as origens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                {[...new Set(leadsHistory.map(l => l.description))].sort().map(origin => (
+                  <SelectItem key={origin} value={origin}>{origin}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
             <span className="text-muted-foreground text-sm">até</span>
             {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
