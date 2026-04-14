@@ -142,6 +142,31 @@ export function TeamManager() {
     }
   };
 
+  const handleAvatarChange = async (memberId: string, file: File) => {
+    setUploadingMemberId(memberId);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${memberId}/avatar.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+        .eq("id", memberId);
+      if (updateError) throw updateError;
+      toast({ title: "Foto atualizada!" });
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingMemberId(null);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!" });
