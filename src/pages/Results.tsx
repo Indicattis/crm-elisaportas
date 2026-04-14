@@ -59,6 +59,7 @@ export default function Results() {
   const [leadsDateFrom, setLeadsDateFrom] = useState<Date>(startOfMonth(new Date()));
   const [leadsDateTo, setLeadsDateTo] = useState<Date>(new Date());
   const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsOriginFilter, setLeadsOriginFilter] = useState<string>("all");
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
 
@@ -73,7 +74,7 @@ export default function Results() {
 
   // Reset page on filter changes
   useEffect(() => { setPage(1); }, [search, selectedFunnelId, activeFilter, dateFrom, dateTo, selectedDealsSellerId]);
-  useEffect(() => { setLeadsPage(1); }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId]);
+  useEffect(() => { setLeadsPage(1); }, [leadsDateFrom, leadsDateTo, selectedFunnelId, selectedDealsSellerId, leadsOriginFilter]);
 
   const fetchFunnels = useCallback(async () => {
     const { data } = await supabase.from("funnels").select("id, name").order("position");
@@ -624,12 +625,20 @@ export default function Results() {
       );
     }
 
-    if (leadsHistory.length === 0) {
+    // Compute unique origins for filter
+    const origins = [...new Set(leadsHistory.map(l => l.description))].sort();
+
+    // Filter by origin
+    const filteredByOrigin = leadsOriginFilter === "all"
+      ? leadsHistory
+      : leadsHistory.filter(l => l.description === leadsOriginFilter);
+
+    if (filteredByOrigin.length === 0) {
       return <p className="text-muted-foreground text-center py-8">Nenhum lead criado neste período.</p>;
     }
 
-    const totalLeadsPages = Math.ceil(leadsHistory.length / PAGE_SIZE);
-    const paginatedLeads = leadsHistory.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
+    const totalLeadsPages = Math.ceil(filteredByOrigin.length / PAGE_SIZE);
+    const paginatedLeads = filteredByOrigin.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
 
     return (
       <div className="space-y-4">
@@ -707,7 +716,7 @@ export default function Results() {
         )}
 
         <p className="text-xs text-muted-foreground text-right">
-          {leadsHistory.length} lead{leadsHistory.length !== 1 ? "s" : ""}
+          {filteredByOrigin.length} lead{filteredByOrigin.length !== 1 ? "s" : ""}
         </p>
       </div>
     );
@@ -890,7 +899,18 @@ export default function Results() {
             <UserPlus className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Histórico de Leads Criados</h2>
           </div>
-          <div className="flex items-center gap-3 sm:ml-auto">
+          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+            <Select value={leadsOriginFilter} onValueChange={setLeadsOriginFilter}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Todas as origens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                {[...new Set(leadsHistory.map(l => l.description))].sort().map(origin => (
+                  <SelectItem key={origin} value={origin}>{origin}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
             <span className="text-muted-foreground text-sm">até</span>
             {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
