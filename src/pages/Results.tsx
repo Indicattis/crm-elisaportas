@@ -52,6 +52,13 @@ export default function Results() {
   const [stageHistory, setStageHistory] = useState<{ date: string; stage: string; count: number; totalValue: number }[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Leads history state
+  const [leadsHistory, setLeadsHistory] = useState<{ id: string; title: string; created_at: string; description: string; phone: string | null; assigned_to: string | null; acquisition_channel: string | null; funnel_name: string | null }[]>([]);
+  const [leadsHistoryLoading, setLeadsHistoryLoading] = useState(false);
+  const [leadsDateFrom, setLeadsDateFrom] = useState<Date>(startOfMonth(new Date()));
+  const [leadsDateTo, setLeadsDateTo] = useState<Date>(new Date());
+  const [leadsPage, setLeadsPage] = useState(1);
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
 
