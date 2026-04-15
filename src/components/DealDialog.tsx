@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createDealTasksForColumn } from "@/lib/deal-tasks";
+
 import { StateCitySelect } from "@/components/StateCitySelect";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import { getChannelIcon } from "@/lib/channel-icons";
@@ -140,7 +140,6 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         if (error) throw error;
         toast({ title: "Negociação criada!" });
         if (newDeal) {
-          await createDealTasksForColumn(newDeal.id, status, funnelId);
           await supabase.from("deal_history").insert({
             deal_id: newDeal.id,
             event_type: "creation",

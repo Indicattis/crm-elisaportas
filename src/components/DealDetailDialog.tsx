@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
-import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
+
 import { StateCitySelect } from "@/components/StateCitySelect";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -432,10 +432,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     if (!deal || reloadingTasks) return;
     setReloadingTasks(true);
     try {
-      await deletePendingDealTasks(deal.id);
-      if (deal.funnel_id) {
-        await createDealTasksForColumn(deal.id, deal.status, deal.funnel_id);
-      }
+      await supabase.rpc("recreate_deal_tasks", { _deal_id: deal.id });
       await fetchDealTasks(deal.id);
       toast({ title: "Tarefas recarregadas" });
     } catch (err: any) {

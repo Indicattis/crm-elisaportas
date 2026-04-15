@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { createDealTasksForColumn, deletePendingDealTasks } from "@/lib/deal-tasks";
+
 import { createNotification } from "@/lib/notifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { LayoutGrid, List, Search, User } from "lucide-react";
@@ -452,9 +452,6 @@ export function KanbanBoard() {
       refreshDeals();
       return;
     }
-
-    await deletePendingDealTasks(dealId);
-    await createDealTasksForColumn(dealId, newStatus, selectedFunnelId);
 
     if (authUser) {
       await supabase.from("deal_history").insert({
