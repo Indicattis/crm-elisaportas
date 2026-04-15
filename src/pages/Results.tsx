@@ -60,6 +60,7 @@ export default function Results() {
   const [leadsDateTo, setLeadsDateTo] = useState<Date>(new Date());
   const [leadsPage, setLeadsPage] = useState(1);
   const [leadsOriginFilter, setLeadsOriginFilter] = useState<string>("all");
+  const [leadsPhoneSearch, setLeadsPhoneSearch] = useState("");
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
 
@@ -633,12 +634,21 @@ export default function Results() {
       ? leadsHistory
       : leadsHistory.filter(l => l.description === leadsOriginFilter);
 
-    if (filteredByOrigin.length === 0) {
+    // Filter by phone (last 4 digits)
+    const phoneDigits = leadsPhoneSearch.replace(/\D/g, "");
+    const filteredLeads = phoneDigits.length > 0
+      ? filteredByOrigin.filter(l => {
+          const leadDigits = (l.phone || "").replace(/\D/g, "");
+          return leadDigits.endsWith(phoneDigits);
+        })
+      : filteredByOrigin;
+
+    if (filteredLeads.length === 0) {
       return <p className="text-muted-foreground text-center py-8">Nenhum lead criado neste período.</p>;
     }
 
-    const totalLeadsPages = Math.ceil(filteredByOrigin.length / PAGE_SIZE);
-    const paginatedLeads = filteredByOrigin.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
+    const totalLeadsPages = Math.ceil(filteredLeads.length / PAGE_SIZE);
+    const paginatedLeads = filteredLeads.slice((leadsPage - 1) * PAGE_SIZE, leadsPage * PAGE_SIZE);
 
     return (
       <div className="space-y-4">
@@ -911,6 +921,12 @@ export default function Results() {
                 ))}
               </SelectContent>
             </Select>
+            <Input
+              placeholder="Buscar últimos 4 dígitos..."
+              value={leadsPhoneSearch}
+              onChange={(e) => { setLeadsPhoneSearch(e.target.value); setLeadsPage(1); }}
+              className="w-48"
+            />
             {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
             <span className="text-muted-foreground text-sm">até</span>
             {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
