@@ -801,6 +801,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      recreate_deal_tasks: { Args: { _deal_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "vendedor"
