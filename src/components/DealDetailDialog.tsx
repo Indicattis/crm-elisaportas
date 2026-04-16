@@ -636,6 +636,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     "Perca por qualidade",
     "Perca por logística",
     "Perca por atendimento",
+    "Perca por falta de retorno",
   ];
 
   const handleDisqualify = () => {

@@ -188,6 +188,7 @@ export default function Dashboard() {
       "Perca por qualidade": "#8b5cf6",
       "Perca por logística": "#06b6d4",
       "Perca por atendimento": "#ec4899",
+      "Perca por falta de retorno": "#14b8a6",
       "Sem motivo": "#94a3b8",
     };
     return Object.entries(countByReason).map(([reason, count]) => ({
