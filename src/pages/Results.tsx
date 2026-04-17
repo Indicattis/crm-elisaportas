@@ -386,16 +386,6 @@ export default function Results() {
       return;
     }
 
-    if (currentUserId) {
-      await supabase.from("deal_history").insert({
-        deal_id: deal.id,
-        user_id: currentUserId,
-        event_type: "restored",
-        description: `Negociação retornada ao Kanban na etapa "${firstCol.name}"`,
-        metadata: { from: "Desqualificado", to: firstCol.name },
-      });
-    }
-
     const wasLost = deal.status === "Perdida";
     if (currentUserId) {
       await supabase.from("deal_history").insert({
