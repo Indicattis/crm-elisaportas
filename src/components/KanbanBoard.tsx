@@ -283,12 +283,24 @@ export function KanbanBoard() {
     }
 
     const dealIds = currentDeals.map((deal) => deal.id);
-    const { data } = await supabase
-      .from("deal_tasks")
-      .select("deal_id, deadline_at, stage_id")
-      .in("deal_id", dealIds)
-      .eq("completed", false)
-      .order("deadline_at", { ascending: true });
+    // Paginate to bypass Supabase's 1000-row default limit
+    const PAGE_SIZE = 1000;
+    let allTasks: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data: page } = await supabase
+        .from("deal_tasks")
+        .select("deal_id, deadline_at, stage_id")
+        .in("deal_id", dealIds)
+        .eq("completed", false)
+        .order("deadline_at", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (!page || page.length === 0) break;
+      allTasks = allTasks.concat(page);
+      if (page.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    const data = allTasks;
 
     const overdue = new Set<string>();
     const nextMap: Record<string, string> = {};
