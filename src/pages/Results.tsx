@@ -529,7 +529,38 @@ export default function Results() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {!deal.archived && deal.status !== "Desqualificado" && deal.status !== "Desqualificada" && (
+                        {isLostRestorable(deal) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                <Undo2 className="h-4 w-4" />
+                                Retornar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Retornar ao Kanban</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Deseja retornar "{deal.title}" para a primeira etapa do funil? A negociação voltará a aparecer no Kanban.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRestoreDeal(deal)}>
+                                  Retornar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {!deal.archived
+                          && deal.status !== "Desqualificado"
+                          && deal.status !== "Desqualificada"
+                          && !isLostRestorable(deal) && (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </div>
