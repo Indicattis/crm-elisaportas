@@ -351,6 +351,12 @@ export default function Results() {
     fetchDeals();
   };
 
+  const isLostRestorable = (deal: Deal) => {
+    if (deal.status !== "Perdida" || deal.archived) return false;
+    const days = (Date.now() - new Date(deal.updated_at).getTime()) / 86400000;
+    return days < 30;
+  };
+
   const handleRestoreDeal = async (deal: Deal) => {
     if (!deal.funnel_id) {
       toast.error("Negociação sem funil associado");
