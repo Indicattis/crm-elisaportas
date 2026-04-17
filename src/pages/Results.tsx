@@ -339,7 +339,7 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
-  const showActionsColumn = activeFilter === "archived" || activeFilter === "disqualified" || activeFilter === null;
+  const showActionsColumn = activeFilter === "archived" || activeFilter === "disqualified" || activeFilter === "lost" || activeFilter === null;
 
   const handleDeleteDeal = async (dealId: string) => {
     const { error } = await supabase.from("deals").delete().eq("id", dealId);
