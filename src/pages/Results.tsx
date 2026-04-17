@@ -396,6 +396,17 @@ export default function Results() {
       });
     }
 
+    const wasLost = deal.status === "Perdida";
+    if (currentUserId) {
+      await supabase.from("deal_history").insert({
+        deal_id: deal.id,
+        user_id: currentUserId,
+        event_type: "restored",
+        description: `Negociação retornada ao Kanban na etapa "${firstCol.name}"`,
+        metadata: { from: wasLost ? "Perdida" : "Desqualificado", to: firstCol.name },
+      });
+    }
+
     toast.success(`Negociação retornada para "${firstCol.name}"`);
     fetchDeals();
   };
