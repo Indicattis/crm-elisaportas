@@ -339,7 +339,7 @@ export default function Results() {
   const showLossReason = activeFilter === "lost" || activeFilter === null;
   const showArchiveReason = activeFilter === "archived" || activeFilter === null;
   const showStatusColumn = activeFilter === null;
-  const showActionsColumn = activeFilter === "archived" || activeFilter === "disqualified" || activeFilter === null;
+  const showActionsColumn = activeFilter === "archived" || activeFilter === "disqualified" || activeFilter === "lost" || activeFilter === null;
 
   const handleDeleteDeal = async (dealId: string) => {
     const { error } = await supabase.from("deals").delete().eq("id", dealId);
@@ -349,6 +349,12 @@ export default function Results() {
     }
     toast.success("Negociação excluída com sucesso");
     fetchDeals();
+  };
+
+  const isLostRestorable = (deal: Deal) => {
+    if (deal.status !== "Perdida" || deal.archived) return false;
+    const days = (Date.now() - new Date(deal.updated_at).getTime()) / 86400000;
+    return days < 30;
   };
 
   const handleRestoreDeal = async (deal: Deal) => {
@@ -380,13 +386,14 @@ export default function Results() {
       return;
     }
 
+    const wasLost = deal.status === "Perdida";
     if (currentUserId) {
       await supabase.from("deal_history").insert({
         deal_id: deal.id,
         user_id: currentUserId,
         event_type: "restored",
         description: `Negociação retornada ao Kanban na etapa "${firstCol.name}"`,
-        metadata: { from: "Desqualificado", to: firstCol.name },
+        metadata: { from: wasLost ? "Perdida" : "Desqualificado", to: firstCol.name },
       });
     }
 
@@ -522,7 +529,38 @@ export default function Results() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {!deal.archived && deal.status !== "Desqualificado" && deal.status !== "Desqualificada" && (
+                        {isLostRestorable(deal) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                <Undo2 className="h-4 w-4" />
+                                Retornar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Retornar ao Kanban</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Deseja retornar "{deal.title}" para a primeira etapa do funil? A negociação voltará a aparecer no Kanban.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRestoreDeal(deal)}>
+                                  Retornar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {!deal.archived
+                          && deal.status !== "Desqualificado"
+                          && deal.status !== "Desqualificada"
+                          && !isLostRestorable(deal) && (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </div>
