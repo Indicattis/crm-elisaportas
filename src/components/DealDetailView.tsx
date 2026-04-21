@@ -809,13 +809,13 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               className="text-xl font-semibold bg-background/80"
             />
           ) : (
-            <DialogTitle
-              className={`text-xl cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors max-w-[50%] truncate ${columnColor ? 'text-white' : ''}`}
+            <h2
+              className={`text-xl font-semibold leading-none tracking-tight cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors max-w-[50%] truncate ${columnColor ? 'text-white' : ''}`}
               onClick={() => startEditing("title")}
             >
               {(deal as any).deal_number && <span className="opacity-60 font-normal mr-1">#{(deal as any).deal_number}</span>}
               {deal.title}
-            </DialogTitle>
+            </h2>
           )}
           <div className="flex items-center justify-between">
             <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
@@ -876,7 +876,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               </PopoverContent>
             </Popover>
           </div>
-        </DialogHeader>
+        </div>
 
         <Separator />
 
@@ -1754,8 +1754,8 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
             )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
 
     {/* Loss Reason Dialog */}
     <Dialog open={showLossReasonDialog} onOpenChange={setShowLossReasonDialog}>
