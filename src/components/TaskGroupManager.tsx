@@ -339,6 +339,75 @@ export function TaskGroupManager() {
     else { toast({ title: "Tarefa excluída!" }); fetchData(); }
   };
 
+  const openSchedule = (g: TaskGroup) => {
+    setScheduleGroup(g);
+    const isRecurring = g.schedule_mode === "recurring_days";
+    setScheduleEnabled(isRecurring);
+    setScheduleType((g.schedule_task_type as any) || "personalizada");
+    setScheduleDescription(g.schedule_task_description || "");
+    const days = g.schedule_days || [];
+    // Detect "until" pattern: contiguous 1..N
+    const sorted = [...days].sort((a, b) => a - b);
+    const isUntil = sorted.length > 0 && sorted.every((d, i) => d === i + 1);
+    setScheduleMode(isUntil && sorted.length > 1 ? "until" : "specific");
+    setScheduleDays(sorted);
+    setScheduleUntil(isUntil ? sorted.length : 7);
+    setScheduleTime((g.schedule_time || "09:00").slice(0, 5));
+    setScheduleDayInput("");
+    setScheduleDialogOpen(true);
+  };
+
+  const addScheduleDay = () => {
+    const n = parseInt(scheduleDayInput);
+    if (!n || n < 0 || n > 365) return;
+    if (scheduleDays.includes(n)) { setScheduleDayInput(""); return; }
+    setScheduleDays([...scheduleDays, n].sort((a, b) => a - b));
+    setScheduleDayInput("");
+  };
+
+  const removeScheduleDay = (d: number) => {
+    setScheduleDays(scheduleDays.filter(x => x !== d));
+  };
+
+  const saveSchedule = async () => {
+    if (!scheduleGroup) return;
+    setSaving(true);
+    let payload: any;
+    if (scheduleEnabled) {
+      const days = scheduleMode === "until"
+        ? Array.from({ length: scheduleUntil }, (_, i) => i + 1)
+        : [...scheduleDays].sort((a, b) => a - b);
+      if (days.length === 0) {
+        toast({ title: "Adicione pelo menos um dia", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      if (scheduleType === "personalizada" && !scheduleDescription.trim()) {
+        toast({ title: "Descrição obrigatória para tarefa personalizada", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      const desc = scheduleType === "personalizada"
+        ? scheduleDescription.trim()
+        : (scheduleType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");
+      payload = {
+        schedule_mode: "recurring_days",
+        schedule_days: days,
+        schedule_time: scheduleTime + ":00",
+        schedule_task_type: scheduleType,
+        schedule_task_description: desc,
+      };
+    } else {
+      payload = { schedule_mode: "manual", schedule_days: [] };
+    }
+    const { error } = await supabase.from("task_groups").update(payload).eq("id", scheduleGroup.id);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else toast({ title: "Agenda atualizada!" });
+    setSaving(false);
+    setScheduleDialogOpen(false);
+    fetchData();
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
