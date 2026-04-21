@@ -332,6 +332,13 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const user = authUser;
+    if (completed) {
+      const t = dealTasks.find(x => x.id === taskId);
+      if (t && !t.completed && Date.now() > new Date(t.deadline_at).getTime() + 24 * 60 * 60 * 1000) {
+        toast({ title: "Tarefa expirada", description: "Esta tarefa venceu há mais de 1 dia e não pode mais ser concluída.", variant: "destructive" });
+        return;
+      }
+    }
     const updateData: any = { completed };
     if (completed) {
       updateData.completed_at = new Date().toISOString();
