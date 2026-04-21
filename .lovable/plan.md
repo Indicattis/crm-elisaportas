@@ -1,71 +1,50 @@
 
 
-# Preservar tarefas ao mover negociações entre colunas
+# Corrigir criação de tarefa obrigatória no modal de requisitos da coluna
 
-## Objetivo
+## Diagnóstico
 
-Hoje, ao mover uma negociação de uma coluna do funil para outra, todas as tarefas pendentes são **deletadas** e novas tarefas são **criadas** com base no grupo de tarefas da nova coluna. O usuário quer que:
+No `EntryRequirementsModal.tsx`, quando uma coluna exige `field_name = 'task'`, o modal mostra o formulário de descrição + data e, ao confirmar, faz `supabase.from("deal_tasks").insert(...)`. Hoje a inserção tem 3 problemas que, combinados, resultam em "tarefa não criada":
 
-1. Tarefas pendentes **não sejam excluídas** ao mover a negociação para outra coluna.
-2. Tarefas **não sejam recriadas** se a negociação voltar a uma coluna onde já tinha sido criada antes (evitar duplicatas).
+1. **Erro silencioso**: o `await` da inserção não checa `error`. Se a RLS bloquear, ou o `prevent_late_task_completion` rejeitar (ver item 3), o usuário vê "sucesso" e nada acontece.
+2. **Data perde fuso horário**: `taskDate.toISOString()` converte um `Date` que representa meia-noite **local** para UTC, gerando deadlines como `03:00 UTC do dia X` ou até `dia X-1` em horário UTC. Em alguns casos a tarefa é gravada com data de ontem.
+3. **Conflito com `prevent_late_task_completion`**: como o deadline pode acabar caindo no passado (item 2), e como o novo trigger lançado recentemente bloqueia conclusões >24h após o deadline, em casos extremos a tarefa nasce já "expirada" — o que é confuso e parece "não criada" do ponto de vista do usuário, que tenta concluí-la e recebe erro.
 
-## Comportamento Novo
-
-Ao mover uma negociação de coluna A → coluna B:
-
-- **Tarefas pendentes existentes**: ficam intactas (não são deletadas).
-- **Tarefas concluídas**: continuam intactas (já era o comportamento atual).
-- **Novas tarefas da coluna B**: criadas apenas para templates/agendas cuja tarefa correspondente **ainda não existe** para essa negociação (nem pendente, nem concluída antes).
-  - Para templates manuais: dedup por `template_id` em `deal_tasks` da mesma negociação.
-  - Para agendas recorrentes (`recurring_days`): dedup por `(deal_id, schedule_id, deadline_at)` — uma tarefa de agenda recorrente para o dia X já criada antes não recria.
-
-Resultado prático: na primeira vez que a negociação entra na coluna B, as tarefas dela são criadas. Se sair e voltar, nada é recriado (porque os templates/agendas dessa coluna já têm tarefa associada à negociação). E as tarefas da coluna A continuam ali até serem concluídas manualmente ou apagadas.
+Além disso, após `onConfirm()` o modal chama `executeDealMove` no parent, que dispara o trigger `handle_deal_tasks_on_status_change`. Como esse trigger não cria tarefas do tipo "personalizada do modal" (só dos templates da coluna), a única origem dessa tarefa é o próprio modal — então qualquer falha silenciosa lá significa "nenhuma tarefa".
 
 ## Mudanças
 
-### Back-end (nova migration SQL)
+### Front-end — `src/components/EntryRequirementsModal.tsx`
 
-Atualizar duas funções existentes:
+1. **Capturar erros do insert** e exibir toast destrutivo, abortando o `onConfirm()`:
+   ```ts
+   const { error: taskErr } = await supabase.from("deal_tasks").insert({...}).select().single();
+   if (taskErr) {
+     toast({ title: "Erro ao criar tarefa", description: taskErr.message, variant: "destructive" });
+     setSaving(false);
+     return; // não chama onConfirm — mantém modal aberto
+   }
+   ```
 
-**1. `handle_deal_tasks_on_status_change` (trigger em `deals`)**
-- Remover o bloco `DELETE FROM public.deal_tasks WHERE deal_id = NEW.id AND completed = false;`.
-- No loop de `task_templates`, antes de inserir, checar:
-  ```sql
-  IF NOT EXISTS (
-    SELECT 1 FROM public.deal_tasks
-    WHERE deal_id = NEW.id AND template_id = v_template.id
-  ) THEN
-    INSERT ...
-  END IF;
-  ```
-- No loop de `task_group_schedules` (modo `recurring_days`), antes do `INSERT` de cada dia, checar duplicata por `(deal_id, deadline_at, description)`:
-  ```sql
-  IF NOT EXISTS (
-    SELECT 1 FROM public.deal_tasks
-    WHERE deal_id = NEW.id
-      AND deadline_at = <calculado>
-      AND description IS NOT DISTINCT FROM v_sched.task_description
-      AND type = v_sched.task_type
-  ) THEN
-    INSERT ...
-  END IF;
-  ```
+2. **Construir o deadline preservando o horário local** (meio-dia local, para evitar drift de timezone):
+   ```ts
+   const localDeadline = new Date(taskDate);
+   localDeadline.setHours(12, 0, 0, 0);
+   // usar localDeadline.toISOString()
+   ```
+   Assim o deadline cai sempre no meio do dia escolhido, sem chance de virar para o dia anterior em UTC nem nascer no passado.
 
-**2. `recreate_deal_tasks(_deal_id uuid)` (RPC chamada pelo front)**
-- Mesma mudança: remover o `DELETE` de pendentes e adicionar as mesmas guardas `IF NOT EXISTS` nos dois loops.
-- A função passa a ter efeito de "criar tarefas faltantes" em vez de "recriar tudo".
+3. **Mesma proteção para o `update` dos campos do deal**: checar `error` e abortar com toast antes de seguir.
 
-### Front-end
+4. **Só chamar `onConfirm()` depois que tudo deu certo** (ordem já está, mas ficará explícito com guards).
 
-Nenhuma mudança necessária. O helper `src/lib/deal-tasks.ts` continua chamando o RPC `recreate_deal_tasks`, que agora simplesmente preenche o que falta.
+### Back-end
 
-## Observação sobre nomenclatura
-
-A função `recreate_deal_tasks` mantém o nome antigo para evitar quebrar chamadas existentes, mas o comportamento muda para "garantir tarefas". Se preferir renomear depois, é trivial.
+Nenhuma migration necessária. As triggers atuais (`prevent_late_task_completion`, `set_green_on_task_completion`, `handle_deal_tasks_on_status_change`) continuam intactas — o problema é puramente do modal.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| Nova migration SQL | Atualizar `handle_deal_tasks_on_status_change` e `recreate_deal_tasks`: remover `DELETE` de pendentes + dedup `IF NOT EXISTS` nos loops de templates e agendas |
+| `src/components/EntryRequirementsModal.tsx` | Checar `error` no insert de `deal_tasks` e no update de `deals`, mostrar toast e abortar se falhar; construir `deadline_at` em horário local (meio-dia) em vez de `toISOString()` direto |
 
