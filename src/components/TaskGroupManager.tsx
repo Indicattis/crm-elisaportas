@@ -19,10 +19,6 @@ interface TaskGroup {
   name: string;
   position: number;
   schedule_mode?: string;
-  schedule_days?: number[];
-  schedule_time?: string;
-  schedule_task_type?: string;
-  schedule_task_description?: string | null;
 }
 
 interface TaskGroupStage {
@@ -43,6 +39,16 @@ interface TaskTemplate {
   recurrence_type: string | null;
   recurrence_value: number | null;
   stage_id: string | null;
+}
+
+interface TaskGroupSchedule {
+  id: string;
+  group_id: string;
+  task_type: string;
+  task_description: string | null;
+  days: number[];
+  time: string;
+  position: number;
 }
 
 const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -83,6 +89,7 @@ export function TaskGroupManager() {
   const [groups, setGroups] = useState<TaskGroup[]>([]);
   const [stages, setStages] = useState<TaskGroupStage[]>([]);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [schedules, setSchedules] = useState<TaskGroupSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<TaskGroup | null>(null);
@@ -109,10 +116,10 @@ export function TaskGroupManager() {
   const [stageColor, setStageColor] = useState("#22c55e");
   const [stageDialogOpen, setStageDialogOpen] = useState(false);
   const [stageGroupId, setStageGroupId] = useState("");
-  // Recurring schedule (per group) state
+  // Recurring schedule (per row in task_group_schedules) state
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [scheduleGroup, setScheduleGroup] = useState<TaskGroup | null>(null);
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<TaskGroupSchedule | null>(null);
+  const [scheduleGroupId, setScheduleGroupId] = useState<string>("");
   const [scheduleType, setScheduleType] = useState<"mensagem" | "ligacao" | "personalizada">("personalizada");
   const [scheduleDescription, setScheduleDescription] = useState("");
   const [scheduleMode, setScheduleMode] = useState<"specific" | "until">("specific");
@@ -124,16 +131,18 @@ export function TaskGroupManager() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [gRes, tRes, sRes] = await Promise.all([
+    const [gRes, tRes, sRes, schRes] = await Promise.all([
       supabase.from("task_groups").select("*").order("position"),
       supabase.from("task_templates").select("*").order("position"),
       supabase.from("task_group_stages").select("*").order("position"),
+      supabase.from("task_group_schedules" as any).select("*").order("position"),
     ]);
     if (gRes.error) toast({ title: "Erro", description: gRes.error.message, variant: "destructive" });
     if (tRes.error) toast({ title: "Erro", description: tRes.error.message, variant: "destructive" });
     setGroups((gRes.data as TaskGroup[]) || []);
     setTemplates((tRes.data as TaskTemplate[]) || []);
     setStages((sRes.data as TaskGroupStage[]) || []);
+    setSchedules(((schRes.data as any) || []) as TaskGroupSchedule[]);
     setLoading(false);
   }, [toast]);
 
@@ -157,7 +166,6 @@ export function TaskGroupManager() {
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else {
         toast({ title: "Grupo criado!" });
-        // Create default stages
         if (newGroup) {
           await supabase.from("task_group_stages").insert(
             DEFAULT_STAGES.map(s => ({ ...s, group_id: newGroup.id, user_id: user.id })) as any
@@ -175,6 +183,16 @@ export function TaskGroupManager() {
     const { error } = await supabase.from("task_groups").delete().eq("id", id);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else { toast({ title: "Grupo excluído!" }); fetchData(); }
+  };
+
+  // Toggle recurring mode at the group level
+  const toggleRecurringMode = async (group: TaskGroup, enabled: boolean) => {
+    const { error } = await supabase
+      .from("task_groups")
+      .update({ schedule_mode: enabled ? "recurring_days" : "manual" } as any)
+      .eq("id", group.id);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else fetchData();
   };
 
   // Stage CRUD
@@ -339,20 +357,31 @@ export function TaskGroupManager() {
     else { toast({ title: "Tarefa excluída!" }); fetchData(); }
   };
 
-  const openSchedule = (g: TaskGroup) => {
-    setScheduleGroup(g);
-    const isRecurring = g.schedule_mode === "recurring_days";
-    setScheduleEnabled(isRecurring);
-    setScheduleType((g.schedule_task_type as any) || "personalizada");
-    setScheduleDescription(g.schedule_task_description || "");
-    const days = g.schedule_days || [];
-    // Detect "until" pattern: contiguous 1..N
-    const sorted = [...days].sort((a, b) => a - b);
+  // Schedule (recurring task) CRUD
+  const openNewSchedule = (groupId: string) => {
+    setEditingSchedule(null);
+    setScheduleGroupId(groupId);
+    setScheduleType("personalizada");
+    setScheduleDescription("");
+    setScheduleMode("specific");
+    setScheduleDays([]);
+    setScheduleDayInput("");
+    setScheduleUntil(7);
+    setScheduleTime("09:00");
+    setScheduleDialogOpen(true);
+  };
+
+  const openEditSchedule = (s: TaskGroupSchedule) => {
+    setEditingSchedule(s);
+    setScheduleGroupId(s.group_id);
+    setScheduleType((s.task_type as any) || "personalizada");
+    setScheduleDescription(s.task_description || "");
+    const sorted = [...(s.days || [])].sort((a, b) => a - b);
     const isUntil = sorted.length > 0 && sorted.every((d, i) => d === i + 1);
     setScheduleMode(isUntil && sorted.length > 1 ? "until" : "specific");
     setScheduleDays(sorted);
     setScheduleUntil(isUntil ? sorted.length : 7);
-    setScheduleTime((g.schedule_time || "09:00").slice(0, 5));
+    setScheduleTime((s.time || "09:00").slice(0, 5));
     setScheduleDayInput("");
     setScheduleDialogOpen(true);
   };
@@ -370,42 +399,55 @@ export function TaskGroupManager() {
   };
 
   const saveSchedule = async () => {
-    if (!scheduleGroup) return;
-    setSaving(true);
-    let payload: any;
-    if (scheduleEnabled) {
-      const days = scheduleMode === "until"
-        ? Array.from({ length: scheduleUntil }, (_, i) => i + 1)
-        : [...scheduleDays].sort((a, b) => a - b);
-      if (days.length === 0) {
-        toast({ title: "Adicione pelo menos um dia", variant: "destructive" });
-        setSaving(false);
-        return;
-      }
-      if (scheduleType === "personalizada" && !scheduleDescription.trim()) {
-        toast({ title: "Descrição obrigatória para tarefa personalizada", variant: "destructive" });
-        setSaving(false);
-        return;
-      }
-      const desc = scheduleType === "personalizada"
-        ? scheduleDescription.trim()
-        : (scheduleType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");
-      payload = {
-        schedule_mode: "recurring_days",
-        schedule_days: days,
-        schedule_time: scheduleTime + ":00",
-        schedule_task_type: scheduleType,
-        schedule_task_description: desc,
-      };
-    } else {
-      payload = { schedule_mode: "manual", schedule_days: [] };
+    if (!scheduleGroupId || !authUser) return;
+    const days = scheduleMode === "until"
+      ? Array.from({ length: scheduleUntil }, (_, i) => i + 1)
+      : [...scheduleDays].sort((a, b) => a - b);
+    if (days.length === 0) {
+      toast({ title: "Adicione pelo menos um dia", variant: "destructive" });
+      return;
     }
-    const { error } = await supabase.from("task_groups").update(payload).eq("id", scheduleGroup.id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else toast({ title: "Agenda atualizada!" });
+    if (scheduleType === "personalizada" && !scheduleDescription.trim()) {
+      toast({ title: "Descrição obrigatória para tarefa personalizada", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const desc = scheduleType === "personalizada"
+      ? scheduleDescription.trim()
+      : (scheduleType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");
+
+    const payload: any = {
+      task_type: scheduleType,
+      task_description: desc,
+      days,
+      time: scheduleTime + ":00",
+    };
+
+    if (editingSchedule) {
+      const { error } = await supabase.from("task_group_schedules" as any).update(payload).eq("id", editingSchedule.id);
+      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+      else toast({ title: "Agenda atualizada!" });
+    } else {
+      const groupSchedules = schedules.filter(s => s.group_id === scheduleGroupId);
+      const { error } = await supabase.from("task_group_schedules" as any).insert({
+        ...payload,
+        group_id: scheduleGroupId,
+        user_id: authUser.id,
+        position: groupSchedules.length,
+      });
+      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+      else toast({ title: "Agenda criada!" });
+    }
     setSaving(false);
     setScheduleDialogOpen(false);
     fetchData();
+  };
+
+  const deleteSchedule = async (id: string) => {
+    if (!confirm("Excluir esta tarefa recorrente?")) return;
+    const { error } = await supabase.from("task_group_schedules" as any).delete().eq("id", id);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else { toast({ title: "Tarefa recorrente excluída!" }); fetchData(); }
   };
 
   if (loading) {
@@ -440,22 +482,21 @@ export function TaskGroupManager() {
       {groups.map(group => {
         const groupStages = stages.filter(s => s.group_id === group.id);
         const groupTasks = templates.filter(t => t.group_id === group.id);
+        const groupSchedules = schedules.filter(s => s.group_id === group.id);
+        const isRecurring = group.schedule_mode === "recurring_days";
         return (
           <Card key={group.id}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   {group.name}
-                  {group.schedule_mode === "recurring_days" && (
+                  {isRecurring && (
                     <Badge variant="secondary" className="gap-1 text-[10px]">
                       <CalendarClock className="h-3 w-3" /> Agenda recorrente
                     </Badge>
                   )}
                 </CardTitle>
                 <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Agenda recorrente" onClick={() => openSchedule(group)}>
-                    <CalendarClock className="h-4 w-4" />
-                  </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditGroup(group)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -464,22 +505,54 @@ export function TaskGroupManager() {
                   </Button>
                 </div>
               </div>
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Label className="text-xs cursor-pointer" htmlFor={`rec-${group.id}`}>
+                    Agenda recorrente
+                  </Label>
+                </div>
+                <Switch
+                  id={`rec-${group.id}`}
+                  checked={isRecurring}
+                  onCheckedChange={(v) => toggleRecurringMode(group, v)}
+                />
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {group.schedule_mode === "recurring_days" ? (
-                <div className="rounded-md border p-3 bg-muted/30 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <TypeIcon type={group.schedule_task_type || "personalizada"} />
-                    <span className="text-sm font-medium">
-                      {group.schedule_task_description || typeLabel(group.schedule_task_type || "personalizada")}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Dias: {(group.schedule_days || []).join(", ") || "—"} • Hora: {(group.schedule_time || "09:00:00").slice(0, 5)}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Tarefas serão criadas automaticamente nos dias indicados após a entrada da negociação na coluna.
-                  </p>
+              {isRecurring ? (
+                <div className="space-y-2">
+                  {groupSchedules.length === 0 && (
+                    <p className="text-muted-foreground text-xs">
+                      Nenhuma tarefa recorrente. Adicione a primeira abaixo.
+                    </p>
+                  )}
+                  {groupSchedules.map(sch => (
+                    <div key={sch.id} className="flex items-center justify-between rounded-md border p-2.5 bg-muted/30">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <TypeIcon type={sch.task_type} />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            {sch.task_description || typeLabel(sch.task_type)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Dias: {sch.days.join(", ") || "—"} • {(sch.time || "09:00:00").slice(0, 5)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditSchedule(sch)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteSchedule(sch.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => openNewSchedule(group.id)}>
+                    <Plus className="h-4 w-4 mr-1" /> Nova tarefa recorrente
+                  </Button>
                 </div>
               ) : (
                 <>
@@ -769,123 +842,109 @@ export function TaskGroupManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Schedule (recurring days) Dialog */}
+      {/* Schedule (recurring task) Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agenda recorrente {scheduleGroup ? `— ${scheduleGroup.name}` : ""}</DialogTitle>
+            <DialogTitle>{editingSchedule ? "Editar tarefa recorrente" : "Nova tarefa recorrente"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Ativar agenda recorrente</Label>
-                <p className="text-xs text-muted-foreground">
-                  Cria automaticamente uma tarefa por dia configurado após a entrada na coluna.
-                </p>
-              </div>
-              <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+            <div className="space-y-2">
+              <Label>Tipo da tarefa</Label>
+              <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mensagem">Mensagem</SelectItem>
+                  <SelectItem value="ligacao">Ligação</SelectItem>
+                  <SelectItem value="personalizada">Personalizada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {scheduleEnabled && (
-              <>
-                <div className="space-y-2">
-                  <Label>Tipo da tarefa</Label>
-                  <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mensagem">Mensagem</SelectItem>
-                      <SelectItem value="ligacao">Ligação</SelectItem>
-                      <SelectItem value="personalizada">Personalizada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {scheduleType === "personalizada" && (
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input
+                  value={scheduleDescription}
+                  onChange={e => setScheduleDescription(e.target.value)}
+                  placeholder="O que deve ser feito?"
+                />
+              </div>
+            )}
 
-                {scheduleType === "personalizada" && (
-                  <div className="space-y-2">
-                    <Label>Descrição</Label>
-                    <Input
-                      value={scheduleDescription}
-                      onChange={e => setScheduleDescription(e.target.value)}
-                      placeholder="O que deve ser feito?"
-                    />
-                  </div>
-                )}
+            <div className="space-y-2">
+              <Label>Modo</Label>
+              <Select value={scheduleMode} onValueChange={(v) => setScheduleMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="specific">Dias específicos</SelectItem>
+                  <SelectItem value="until">Todos os dias até o dia X</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div className="space-y-2">
-                  <Label>Modo</Label>
-                  <Select value={scheduleMode} onValueChange={(v) => setScheduleMode(v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="specific">Dias específicos</SelectItem>
-                      <SelectItem value="until">Todos os dias até o dia X</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {scheduleMode === "specific" ? (
-                  <div className="space-y-2">
-                    <Label>Dias após a entrada</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={365}
-                        value={scheduleDayInput}
-                        onChange={e => setScheduleDayInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addScheduleDay(); } }}
-                        placeholder="Ex: 1"
-                        className="w-32"
-                      />
-                      <Button type="button" size="sm" variant="outline" onClick={addScheduleDay}>
-                        <Plus className="h-4 w-4 mr-1" /> Adicionar
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {scheduleDays.length === 0 && (
-                        <span className="text-xs text-muted-foreground">Nenhum dia adicionado.</span>
-                      )}
-                      {scheduleDays.map(d => (
-                        <Badge key={d} variant="secondary" className="gap-1 pr-1">
-                          Dia {d}
-                          <button onClick={() => removeScheduleDay(d)} className="hover:opacity-70">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Criar tarefa todos os dias até o dia</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={scheduleUntil}
-                      onChange={e => setScheduleUntil(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
-                      className="w-32"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Serão geradas {scheduleUntil} tarefas (dia 1 ao {scheduleUntil}).
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label>Horário</Label>
+            {scheduleMode === "specific" ? (
+              <div className="space-y-2">
+                <Label>Dias após a entrada</Label>
+                <div className="flex gap-2">
                   <Input
-                    type="time"
-                    value={scheduleTime}
-                    onChange={e => setScheduleTime(e.target.value)}
+                    type="number"
+                    min={0}
+                    max={365}
+                    value={scheduleDayInput}
+                    onChange={e => setScheduleDayInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addScheduleDay(); } }}
+                    placeholder="Ex: 1"
                     className="w-32"
                   />
+                  <Button type="button" size="sm" variant="outline" onClick={addScheduleDay}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
                 </div>
-              </>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {scheduleDays.length === 0 && (
+                    <span className="text-xs text-muted-foreground">Nenhum dia adicionado.</span>
+                  )}
+                  {scheduleDays.map(d => (
+                    <Badge key={d} variant="secondary" className="gap-1 pr-1">
+                      Dia {d}
+                      <button onClick={() => removeScheduleDay(d)} className="hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Criar tarefa todos os dias até o dia</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={scheduleUntil}
+                  onChange={e => setScheduleUntil(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                  className="w-32"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Serão geradas {scheduleUntil} tarefas (dia 1 ao {scheduleUntil}).
+                </p>
+              </div>
             )}
+
+            <div className="space-y-2">
+              <Label>Horário</Label>
+              <Input
+                type="time"
+                value={scheduleTime}
+                onChange={e => setScheduleTime(e.target.value)}
+                className="w-32"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={saveSchedule} disabled={saving}>
-              {saving ? "Salvando..." : "Salvar agenda"}
+              {saving ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
