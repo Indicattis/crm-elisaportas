@@ -114,6 +114,15 @@ export function KanbanBoard() {
   }, []);
   const { toast } = useToast();
 
+  // Persist filters to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity,
+      }));
+    } catch { /* ignore */ }
+  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity]);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
   const grabStartX = useRef(0);
