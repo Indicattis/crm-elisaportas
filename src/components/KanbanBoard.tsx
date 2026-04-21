@@ -230,15 +230,7 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId]);
 
-  // Sync viewingDeal when deals array is refreshed
-  useEffect(() => {
-    if (viewingDeal && detailOpen) {
-      const updated = deals.find((d) => d.id === viewingDeal.id);
-      if (updated && updated.updated_at !== viewingDeal.updated_at) {
-        setViewingDeal(updated);
-      }
-    }
-  }, [deals, viewingDeal, detailOpen]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchFunnels();
@@ -530,11 +522,8 @@ export function KanbanBoard() {
   }, []);
 
   const handleViewDeal = useCallback((deal: Deal) => {
-    const column = columns.find((item) => item.name === deal.status);
-    setViewingColumnColor(column?.color || "");
-    setViewingDeal(deal);
-    setDetailOpen(true);
-  }, [columns]);
+    navigate(`/deal/${deal.id}`);
+  }, [navigate]);
 
   const toggleColumnCollapse = useCallback((columnName: string) => {
     setCollapsedColumns(prev => {
@@ -799,14 +788,6 @@ export function KanbanBoard() {
         </DndContext>
       )}
 
-      <DealDetailDialog
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        deal={viewingDeal}
-        statuses={columns.map((column) => column.name)}
-        columnColor={viewingColumnColor}
-        onUpdated={() => { refreshDeals(); }}
-      />
 
       <DealDialog
         open={dialogOpen}
