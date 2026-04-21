@@ -644,6 +644,42 @@ export type Database = {
         }
         Relationships: []
       }
+      task_group_schedules: {
+        Row: {
+          created_at: string
+          days: number[]
+          group_id: string
+          id: string
+          position: number
+          task_description: string | null
+          task_type: string
+          time: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          days?: number[]
+          group_id: string
+          id?: string
+          position?: number
+          task_description?: string | null
+          task_type?: string
+          time?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          days?: number[]
+          group_id?: string
+          id?: string
+          position?: number
+          task_description?: string | null
+          task_type?: string
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       task_group_stages: {
         Row: {
           color: string
