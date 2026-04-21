@@ -688,6 +688,11 @@ export type Database = {
           id: string
           name: string
           position: number
+          schedule_days: number[]
+          schedule_mode: string
+          schedule_task_description: string | null
+          schedule_task_type: string
+          schedule_time: string
           user_id: string
         }
         Insert: {
@@ -695,6 +700,11 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          schedule_days?: number[]
+          schedule_mode?: string
+          schedule_task_description?: string | null
+          schedule_task_type?: string
+          schedule_time?: string
           user_id: string
         }
         Update: {
@@ -702,6 +712,11 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          schedule_days?: number[]
+          schedule_mode?: string
+          schedule_task_description?: string | null
+          schedule_task_type?: string
+          schedule_time?: string
           user_id?: string
         }
         Relationships: []

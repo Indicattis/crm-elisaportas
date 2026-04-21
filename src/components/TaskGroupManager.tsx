@@ -12,12 +12,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Pencil, Phone, MessageSquare, ClipboardList, Repeat, Layers } from "lucide-react";
+import { Plus, Trash2, Pencil, Phone, MessageSquare, ClipboardList, Repeat, Layers, CalendarClock, X } from "lucide-react";
 
 interface TaskGroup {
   id: string;
   name: string;
   position: number;
+  schedule_mode?: string;
+  schedule_days?: number[];
+  schedule_time?: string;
+  schedule_task_type?: string;
+  schedule_task_description?: string | null;
 }
 
 interface TaskGroupStage {
@@ -104,6 +109,17 @@ export function TaskGroupManager() {
   const [stageColor, setStageColor] = useState("#22c55e");
   const [stageDialogOpen, setStageDialogOpen] = useState(false);
   const [stageGroupId, setStageGroupId] = useState("");
+  // Recurring schedule (per group) state
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduleGroup, setScheduleGroup] = useState<TaskGroup | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleType, setScheduleType] = useState<"mensagem" | "ligacao" | "personalizada">("personalizada");
+  const [scheduleDescription, setScheduleDescription] = useState("");
+  const [scheduleMode, setScheduleMode] = useState<"specific" | "until">("specific");
+  const [scheduleDays, setScheduleDays] = useState<number[]>([]);
+  const [scheduleDayInput, setScheduleDayInput] = useState("");
+  const [scheduleUntil, setScheduleUntil] = useState(7);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
@@ -323,6 +339,75 @@ export function TaskGroupManager() {
     else { toast({ title: "Tarefa excluída!" }); fetchData(); }
   };
 
+  const openSchedule = (g: TaskGroup) => {
+    setScheduleGroup(g);
+    const isRecurring = g.schedule_mode === "recurring_days";
+    setScheduleEnabled(isRecurring);
+    setScheduleType((g.schedule_task_type as any) || "personalizada");
+    setScheduleDescription(g.schedule_task_description || "");
+    const days = g.schedule_days || [];
+    // Detect "until" pattern: contiguous 1..N
+    const sorted = [...days].sort((a, b) => a - b);
+    const isUntil = sorted.length > 0 && sorted.every((d, i) => d === i + 1);
+    setScheduleMode(isUntil && sorted.length > 1 ? "until" : "specific");
+    setScheduleDays(sorted);
+    setScheduleUntil(isUntil ? sorted.length : 7);
+    setScheduleTime((g.schedule_time || "09:00").slice(0, 5));
+    setScheduleDayInput("");
+    setScheduleDialogOpen(true);
+  };
+
+  const addScheduleDay = () => {
+    const n = parseInt(scheduleDayInput);
+    if (!n || n < 0 || n > 365) return;
+    if (scheduleDays.includes(n)) { setScheduleDayInput(""); return; }
+    setScheduleDays([...scheduleDays, n].sort((a, b) => a - b));
+    setScheduleDayInput("");
+  };
+
+  const removeScheduleDay = (d: number) => {
+    setScheduleDays(scheduleDays.filter(x => x !== d));
+  };
+
+  const saveSchedule = async () => {
+    if (!scheduleGroup) return;
+    setSaving(true);
+    let payload: any;
+    if (scheduleEnabled) {
+      const days = scheduleMode === "until"
+        ? Array.from({ length: scheduleUntil }, (_, i) => i + 1)
+        : [...scheduleDays].sort((a, b) => a - b);
+      if (days.length === 0) {
+        toast({ title: "Adicione pelo menos um dia", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      if (scheduleType === "personalizada" && !scheduleDescription.trim()) {
+        toast({ title: "Descrição obrigatória para tarefa personalizada", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      const desc = scheduleType === "personalizada"
+        ? scheduleDescription.trim()
+        : (scheduleType === "mensagem" ? "Enviar mensagem" : "Realizar ligação");
+      payload = {
+        schedule_mode: "recurring_days",
+        schedule_days: days,
+        schedule_time: scheduleTime + ":00",
+        schedule_task_type: scheduleType,
+        schedule_task_description: desc,
+      };
+    } else {
+      payload = { schedule_mode: "manual", schedule_days: [] };
+    }
+    const { error } = await supabase.from("task_groups").update(payload).eq("id", scheduleGroup.id);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else toast({ title: "Agenda atualizada!" });
+    setSaving(false);
+    setScheduleDialogOpen(false);
+    fetchData();
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -359,8 +444,18 @@ export function TaskGroupManager() {
           <Card key={group.id}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{group.name}</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  {group.name}
+                  {group.schedule_mode === "recurring_days" && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <CalendarClock className="h-3 w-3" /> Agenda recorrente
+                    </Badge>
+                  )}
+                </CardTitle>
                 <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Agenda recorrente" onClick={() => openSchedule(group)}>
+                    <CalendarClock className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditGroup(group)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -371,101 +466,120 @@ export function TaskGroupManager() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Stages section */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                    <Layers className="h-3.5 w-3.5" /> Etapas
-                  </span>
-                  <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => openNewStage(group.id)}>
-                    <Plus className="h-3 w-3 mr-0.5" /> Etapa
-                  </Button>
+              {group.schedule_mode === "recurring_days" ? (
+                <div className="rounded-md border p-3 bg-muted/30 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <TypeIcon type={group.schedule_task_type || "personalizada"} />
+                    <span className="text-sm font-medium">
+                      {group.schedule_task_description || typeLabel(group.schedule_task_type || "personalizada")}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Dias: {(group.schedule_days || []).join(", ") || "—"} • Hora: {(group.schedule_time || "09:00:00").slice(0, 5)}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Tarefas serão criadas automaticamente nos dias indicados após a entrada da negociação na coluna.
+                  </p>
                 </div>
-                {groupStages.length === 0 && (
-                  <p className="text-muted-foreground text-[10px]">Nenhuma etapa. Crie etapas para categorizar as tarefas.</p>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {groupStages.map(stage => (
-                    <Badge
-                      key={stage.id}
-                      className="gap-1 pr-1 text-[10px] h-5 cursor-pointer hover:opacity-80"
-                      style={{ backgroundColor: stage.color, color: "#fff" }}
-                      onClick={() => openEditStage(stage)}
-                    >
-                      {stage.name}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteStage(stage.id); }}
-                        className="ml-0.5 hover:opacity-70"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tasks section */}
-              {groupTasks.length === 0 && (
-                <p className="text-muted-foreground text-xs">Nenhuma tarefa neste grupo.</p>
-              )}
-              {groupTasks.map(task => {
-                const taskStage = stages.find(s => s.id === task.stage_id);
-                return (
-                  <div key={task.id} className="flex items-center justify-between rounded-md border p-2.5 bg-muted/30">
-                    <div className="flex items-center gap-2">
-                      <TypeIcon type={task.type} />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium">{task.description || typeLabel(task.type)}</span>
-                          {taskStage && (
-                            <span
-                              className="inline-block h-2 w-2 rounded-full"
-                              style={{ backgroundColor: taskStage.color }}
-                              title={taskStage.name}
-                            />
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
-                          <span>{typeLabel(task.type)}</span>
-                          <span>•</span>
-                          <span>Prazo: {formatDeadline(task.deadline_hours)}</span>
-                          {taskStage && (
-                            <>
-                              <span>•</span>
-                              <span style={{ color: taskStage.color }}>{taskStage.name}</span>
-                            </>
-                          )}
-                          {task.recurrence_type && (
-                            <>
-                              <span>•</span>
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
-                                <Repeat className="h-3 w-3" />
-                                Recorrente
-                              </Badge>
-                            </>
-                          )}
-                        </div>
-                      </div>
+              ) : (
+                <>
+                  {/* Stages section */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5" /> Etapas
+                      </span>
+                      <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => openNewStage(group.id)}>
+                        <Plus className="h-3 w-3 mr-0.5" /> Etapa
+                      </Button>
                     </div>
-                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className={`h-7 w-7 ${task.recurrence_type ? "text-primary" : "text-muted-foreground"}`} onClick={() => openRecurrence(task)}>
-                        <Repeat className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteTask(task.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    {groupStages.length === 0 && (
+                      <p className="text-muted-foreground text-[10px]">Nenhuma etapa. Crie etapas para categorizar as tarefas.</p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {groupStages.map(stage => (
+                        <Badge
+                          key={stage.id}
+                          className="gap-1 pr-1 text-[10px] h-5 cursor-pointer hover:opacity-80"
+                          style={{ backgroundColor: stage.color, color: "#fff" }}
+                          onClick={() => openEditStage(stage)}
+                        >
+                          {stage.name}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteStage(stage.id); }}
+                            className="ml-0.5 hover:opacity-70"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-              <Button size="sm" variant="outline" className="w-full" onClick={() => openNewTask(group.id)}>
-                <Plus className="h-4 w-4 mr-1" /> Nova Tarefa
-              </Button>
+
+                  <Separator />
+
+                  {/* Tasks section */}
+                  {groupTasks.length === 0 && (
+                    <p className="text-muted-foreground text-xs">Nenhuma tarefa neste grupo.</p>
+                  )}
+                  {groupTasks.map(task => {
+                    const taskStage = stages.find(s => s.id === task.stage_id);
+                    return (
+                      <div key={task.id} className="flex items-center justify-between rounded-md border p-2.5 bg-muted/30">
+                        <div className="flex items-center gap-2">
+                          <TypeIcon type={task.type} />
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium">{task.description || typeLabel(task.type)}</span>
+                              {taskStage && (
+                                <span
+                                  className="inline-block h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: taskStage.color }}
+                                  title={taskStage.name}
+                                />
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                              <span>{typeLabel(task.type)}</span>
+                              <span>•</span>
+                              <span>Prazo: {formatDeadline(task.deadline_hours)}</span>
+                              {taskStage && (
+                                <>
+                                  <span>•</span>
+                                  <span style={{ color: taskStage.color }}>{taskStage.name}</span>
+                                </>
+                              )}
+                              {task.recurrence_type && (
+                                <>
+                                  <span>•</span>
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                                    <Repeat className="h-3 w-3" />
+                                    Recorrente
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                         <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className={`h-7 w-7 ${task.recurrence_type ? "text-primary" : "text-muted-foreground"}`} onClick={() => openRecurrence(task)}>
+                            <Repeat className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteTask(task.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => openNewTask(group.id)}>
+                    <Plus className="h-4 w-4 mr-1" /> Nova Tarefa
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         );
@@ -650,6 +764,128 @@ export function TaskGroupManager() {
           <DialogFooter>
             <Button onClick={saveRecurrence} disabled={saving}>
               {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule (recurring days) Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agenda recorrente {scheduleGroup ? `— ${scheduleGroup.name}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Ativar agenda recorrente</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cria automaticamente uma tarefa por dia configurado após a entrada na coluna.
+                </p>
+              </div>
+              <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+            </div>
+
+            {scheduleEnabled && (
+              <>
+                <div className="space-y-2">
+                  <Label>Tipo da tarefa</Label>
+                  <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensagem">Mensagem</SelectItem>
+                      <SelectItem value="ligacao">Ligação</SelectItem>
+                      <SelectItem value="personalizada">Personalizada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {scheduleType === "personalizada" && (
+                  <div className="space-y-2">
+                    <Label>Descrição</Label>
+                    <Input
+                      value={scheduleDescription}
+                      onChange={e => setScheduleDescription(e.target.value)}
+                      placeholder="O que deve ser feito?"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Modo</Label>
+                  <Select value={scheduleMode} onValueChange={(v) => setScheduleMode(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="specific">Dias específicos</SelectItem>
+                      <SelectItem value="until">Todos os dias até o dia X</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {scheduleMode === "specific" ? (
+                  <div className="space-y-2">
+                    <Label>Dias após a entrada</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={365}
+                        value={scheduleDayInput}
+                        onChange={e => setScheduleDayInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addScheduleDay(); } }}
+                        placeholder="Ex: 1"
+                        className="w-32"
+                      />
+                      <Button type="button" size="sm" variant="outline" onClick={addScheduleDay}>
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {scheduleDays.length === 0 && (
+                        <span className="text-xs text-muted-foreground">Nenhum dia adicionado.</span>
+                      )}
+                      {scheduleDays.map(d => (
+                        <Badge key={d} variant="secondary" className="gap-1 pr-1">
+                          Dia {d}
+                          <button onClick={() => removeScheduleDay(d)} className="hover:opacity-70">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Criar tarefa todos os dias até o dia</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={scheduleUntil}
+                      onChange={e => setScheduleUntil(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                      className="w-32"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Serão geradas {scheduleUntil} tarefas (dia 1 ao {scheduleUntil}).
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Horário</Label>
+                  <Input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={e => setScheduleTime(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={saveSchedule} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar agenda"}
             </Button>
           </DialogFooter>
         </DialogContent>
