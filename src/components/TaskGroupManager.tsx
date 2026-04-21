@@ -109,6 +109,17 @@ export function TaskGroupManager() {
   const [stageColor, setStageColor] = useState("#22c55e");
   const [stageDialogOpen, setStageDialogOpen] = useState(false);
   const [stageGroupId, setStageGroupId] = useState("");
+  // Recurring schedule (per group) state
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduleGroup, setScheduleGroup] = useState<TaskGroup | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleType, setScheduleType] = useState<"mensagem" | "ligacao" | "personalizada">("personalizada");
+  const [scheduleDescription, setScheduleDescription] = useState("");
+  const [scheduleMode, setScheduleMode] = useState<"specific" | "until">("specific");
+  const [scheduleDays, setScheduleDays] = useState<number[]>([]);
+  const [scheduleDayInput, setScheduleDayInput] = useState("");
+  const [scheduleUntil, setScheduleUntil] = useState(7);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
