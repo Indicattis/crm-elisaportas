@@ -1,53 +1,71 @@
 
 
-# Bloquear desmarcação de tarefas concluídas
+# Transformar modal de detalhes em página dedicada
 
 ## Objetivo
 
-Uma vez marcada como concluída, a tarefa não pode mais ser desmarcada por nenhum usuário. O checkbox fica travado no estado "concluído" permanentemente.
+Substituir o `DealDetailDialog` (modal) por uma **rota dedicada** `/deal/:id` (ou `/negociacao/:id`) que renderiza a mesma experiência em página inteira. Clicar num card no Kanban ou na lista navega para a nova página em vez de abrir o modal.
 
-## Regra
+## Vantagens
 
-- Tarefa com `completed = false` → pode ser marcada como concluída (sujeita às regras já existentes de tarefa expirada >1 dia).
-- Tarefa com `completed = true` → checkbox desabilitado, clique não faz nada. Sem botão de desfazer.
+- URL compartilhável (cada negociação tem link próprio).
+- Botão "voltar" do navegador funciona.
+- Mais espaço de tela, sem limite de modal.
+- Recarregar a página mantém você na negociação.
 
 ## Mudanças
 
-### Front-end — `src/components/DealDetailDialog.tsx`
+### 1. Nova página — `src/pages/DealDetail.tsx`
 
-1. **Helper `isTaskLocked`**: além da regra de "expirada", também retorna `true` quando `task.completed === true`. Assim o checkbox fica `disabled` e o tooltip mostra "Tarefa concluída — não pode ser desmarcada".
-2. **Guarda em `toggleTaskCompletion`**: no início da função, se `task.completed === true`, retorna imediatamente (sem fazer update no banco).
+- Lê `:id` do `useParams`.
+- Carrega o deal por id (`supabase.from("deals").select(...).eq("id", id).single()`).
+- Carrega `statuses` do funil do deal e `columnColor` da coluna atual.
+- Renderiza o conteúdo do `DealDetailDialog` (sem o wrapper `Dialog/DialogContent`).
+- Botão "Voltar" no topo (`navigate(-1)` ou `/`).
+- Estados de loading e "deal não encontrado".
 
-### Back-end (nova migration SQL)
+### 2. Refatorar `DealDetailDialog.tsx` → `DealDetailView.tsx`
 
-Reforçar no banco para impedir bypass via API direta. Atualizar/criar trigger `BEFORE UPDATE` em `deal_tasks`:
+- Extrair todo o conteúdo interno (formulários, tarefas, comentários, histórico, anexos, ações de mover/arquivar/desqualificar) num componente `DealDetailView` reutilizável.
+- Props simplificadas: `deal`, `statuses`, `columnColor`, `onUpdated`, `onClose` (para botão voltar).
+- Remover toda a estrutura `Dialog`, `DialogContent`, `DialogHeader`. Substituir por container de página com classes equivalentes (mesmo estilo glassmorphism, mas sem overlay/portal).
+- Manter sub-dialogs internos (loss reason, archive reason, disqualify) que continuam sendo modais.
+- Apagar `DealDetailDialog` (ou deixar como wrapper fino que só renderiza `DealDetailView` dentro de um `Dialog` — **decidir: removeremos completamente** para simplificar).
 
-```sql
-CREATE OR REPLACE FUNCTION public.prevent_task_uncomplete()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF OLD.completed = true AND NEW.completed = false THEN
-    RAISE EXCEPTION 'Tarefas concluídas não podem ser desmarcadas';
-  END IF;
-  RETURN NEW;
-END;
-$$;
+### 3. Roteamento — `src/App.tsx`
 
-CREATE TRIGGER prevent_task_uncomplete_trigger
-BEFORE UPDATE ON public.deal_tasks
-FOR EACH ROW EXECUTE FUNCTION public.prevent_task_uncomplete();
+Adicionar dentro do bloco autenticado:
+```tsx
+<Route path="/deal/:id" element={<DealDetail />} />
 ```
 
-Tarefas recorrentes continuam funcionando — o trigger só bloqueia a transição `true → false`, não interfere com criação ou conclusão.
+### 4. Navegação ao clicar no card
+
+- `KanbanBoard.tsx`: trocar `handleViewDeal` para `navigate(\`/deal/${deal.id}\`)`. Remover estados `detailOpen`, `viewingDeal`, `viewingColumnColor` e o `<DealDetailDialog />`.
+- `DealsListView.tsx`: prop `onEditDeal` continua igual (recebe o handler do parent que agora navega).
+- `Results.tsx` e qualquer outro lugar que abria o modal: trocar para `navigate(\`/deal/${id}\`)`.
+
+### 5. Voltar para a página anterior
+
+- Botão "← Voltar" no topo da página → `navigate(-1)`. Se não houver histórico, fallback para `/`.
+- Após arquivar/desqualificar/marcar como vendida, navegar de volta automaticamente.
+
+## Pontos de atenção
+
+- **Atualização em tempo real**: hoje o modal usa um `useEffect` para sincronizar `viewingDeal` quando `deals` muda. Na página dedicada, recarregamos o deal por id quando `onUpdated` é chamado (já buscamos do banco diretamente, então simples `refetch`).
+- **Tags e anexos**: a query de carregamento atual continua válida — só muda o gatilho (mount da página em vez de abertura do modal).
+- **Estilo**: aplicar `max-w-5xl mx-auto p-6` no container externo para manter legibilidade em telas grandes; mobile usa largura cheia.
+- **Sub-dialogs internos** (motivo de perda, arquivo, desqualificação) **continuam como Dialog** — só o container principal vira página.
+- **Acesso direto via URL**: se o usuário não tem permissão (RLS), a query retorna vazio → mostrar "Negociação não encontrada ou sem acesso".
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/DealDetailDialog.tsx` | `isTaskLocked` retorna true se concluída; `toggleTaskCompletion` aborta se já concluída; tooltip atualizado |
-| Nova migration SQL | Trigger `prevent_task_uncomplete` em `deal_tasks` bloqueando transição `true → false` |
+| `src/pages/DealDetail.tsx` | **Novo** — página que carrega deal por `:id` e renderiza `DealDetailView` |
+| `src/components/DealDetailView.tsx` | **Novo** — extraído de `DealDetailDialog`, sem wrapper de Dialog |
+| `src/components/DealDetailDialog.tsx` | **Removido** (conteúdo migrou para `DealDetailView`) |
+| `src/App.tsx` | Adicionar rota `/deal/:id` |
+| `src/components/KanbanBoard.tsx` | `handleViewDeal` navega; remover estados/JSX do modal |
+| `src/pages/Results.tsx` | Trocar abertura de modal por `navigate("/deal/:id")` se aplicável |
 
