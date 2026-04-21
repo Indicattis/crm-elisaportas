@@ -768,6 +768,128 @@ export function TaskGroupManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Schedule (recurring days) Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agenda recorrente {scheduleGroup ? `— ${scheduleGroup.name}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Ativar agenda recorrente</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cria automaticamente uma tarefa por dia configurado após a entrada na coluna.
+                </p>
+              </div>
+              <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+            </div>
+
+            {scheduleEnabled && (
+              <>
+                <div className="space-y-2">
+                  <Label>Tipo da tarefa</Label>
+                  <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensagem">Mensagem</SelectItem>
+                      <SelectItem value="ligacao">Ligação</SelectItem>
+                      <SelectItem value="personalizada">Personalizada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {scheduleType === "personalizada" && (
+                  <div className="space-y-2">
+                    <Label>Descrição</Label>
+                    <Input
+                      value={scheduleDescription}
+                      onChange={e => setScheduleDescription(e.target.value)}
+                      placeholder="O que deve ser feito?"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Modo</Label>
+                  <Select value={scheduleMode} onValueChange={(v) => setScheduleMode(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="specific">Dias específicos</SelectItem>
+                      <SelectItem value="until">Todos os dias até o dia X</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {scheduleMode === "specific" ? (
+                  <div className="space-y-2">
+                    <Label>Dias após a entrada</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={365}
+                        value={scheduleDayInput}
+                        onChange={e => setScheduleDayInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addScheduleDay(); } }}
+                        placeholder="Ex: 1"
+                        className="w-32"
+                      />
+                      <Button type="button" size="sm" variant="outline" onClick={addScheduleDay}>
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {scheduleDays.length === 0 && (
+                        <span className="text-xs text-muted-foreground">Nenhum dia adicionado.</span>
+                      )}
+                      {scheduleDays.map(d => (
+                        <Badge key={d} variant="secondary" className="gap-1 pr-1">
+                          Dia {d}
+                          <button onClick={() => removeScheduleDay(d)} className="hover:opacity-70">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Criar tarefa todos os dias até o dia</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={scheduleUntil}
+                      onChange={e => setScheduleUntil(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                      className="w-32"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Serão geradas {scheduleUntil} tarefas (dia 1 ao {scheduleUntil}).
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Horário</Label>
+                  <Input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={e => setScheduleTime(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={saveSchedule} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar agenda"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
