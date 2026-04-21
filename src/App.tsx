@@ -15,6 +15,7 @@ import LeadForm from "./pages/LeadForm";
 import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
+import DealDetail from "./pages/DealDetail";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/deal/:id" element={<DealDetail />} />
           <Route path="/crm-config" element={<RoleGuard allowedRoles={["admin"]}><CrmConfig /></RoleGuard>} />
         </Route>
         <Route path="*" element={<NotFound />} />

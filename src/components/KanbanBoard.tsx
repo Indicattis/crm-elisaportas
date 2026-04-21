@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DndContext,
   DragEndEvent,
@@ -12,7 +13,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
-import { DealDetailDialog } from "./DealDetailDialog";
 import { EntryRequirementsModal } from "./EntryRequirementsModal";
 import { DealCard } from "./DealCard";
 import { DealsListView } from "./DealsListView";
