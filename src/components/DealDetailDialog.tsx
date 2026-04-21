@@ -355,12 +355,12 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
     }
     await supabase.from("deal_tasks").update(updateData).eq("id", taskId);
 
-    // Auto-update daily color to green when completing a task
+    // Auto-update daily color to green when completing a task (overrides red/yellow)
     if (completed && deal && user) {
       const today = new Date().toISOString().split("T")[0];
       const { data: existingColor } = await supabase
         .from("deal_daily_color")
-        .select("id, color")
+        .select("id")
         .eq("deal_id", deal.id)
         .eq("date", today)
         .maybeSingle();
@@ -372,7 +372,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
           color: "green",
           updated_by: user.id,
         });
-      } else if (existingColor.color === "red") {
+      } else {
         await supabase
           .from("deal_daily_color")
           .update({ color: "green", updated_by: user.id })
