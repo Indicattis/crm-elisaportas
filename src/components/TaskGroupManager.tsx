@@ -466,101 +466,120 @@ export function TaskGroupManager() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Stages section */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                    <Layers className="h-3.5 w-3.5" /> Etapas
-                  </span>
-                  <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => openNewStage(group.id)}>
-                    <Plus className="h-3 w-3 mr-0.5" /> Etapa
-                  </Button>
+              {group.schedule_mode === "recurring_days" ? (
+                <div className="rounded-md border p-3 bg-muted/30 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <TypeIcon type={group.schedule_task_type || "personalizada"} />
+                    <span className="text-sm font-medium">
+                      {group.schedule_task_description || typeLabel(group.schedule_task_type || "personalizada")}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Dias: {(group.schedule_days || []).join(", ") || "—"} • Hora: {(group.schedule_time || "09:00:00").slice(0, 5)}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Tarefas serão criadas automaticamente nos dias indicados após a entrada da negociação na coluna.
+                  </p>
                 </div>
-                {groupStages.length === 0 && (
-                  <p className="text-muted-foreground text-[10px]">Nenhuma etapa. Crie etapas para categorizar as tarefas.</p>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {groupStages.map(stage => (
-                    <Badge
-                      key={stage.id}
-                      className="gap-1 pr-1 text-[10px] h-5 cursor-pointer hover:opacity-80"
-                      style={{ backgroundColor: stage.color, color: "#fff" }}
-                      onClick={() => openEditStage(stage)}
-                    >
-                      {stage.name}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteStage(stage.id); }}
-                        className="ml-0.5 hover:opacity-70"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tasks section */}
-              {groupTasks.length === 0 && (
-                <p className="text-muted-foreground text-xs">Nenhuma tarefa neste grupo.</p>
-              )}
-              {groupTasks.map(task => {
-                const taskStage = stages.find(s => s.id === task.stage_id);
-                return (
-                  <div key={task.id} className="flex items-center justify-between rounded-md border p-2.5 bg-muted/30">
-                    <div className="flex items-center gap-2">
-                      <TypeIcon type={task.type} />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium">{task.description || typeLabel(task.type)}</span>
-                          {taskStage && (
-                            <span
-                              className="inline-block h-2 w-2 rounded-full"
-                              style={{ backgroundColor: taskStage.color }}
-                              title={taskStage.name}
-                            />
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
-                          <span>{typeLabel(task.type)}</span>
-                          <span>•</span>
-                          <span>Prazo: {formatDeadline(task.deadline_hours)}</span>
-                          {taskStage && (
-                            <>
-                              <span>•</span>
-                              <span style={{ color: taskStage.color }}>{taskStage.name}</span>
-                            </>
-                          )}
-                          {task.recurrence_type && (
-                            <>
-                              <span>•</span>
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
-                                <Repeat className="h-3 w-3" />
-                                Recorrente
-                              </Badge>
-                            </>
-                          )}
-                        </div>
-                      </div>
+              ) : (
+                <>
+                  {/* Stages section */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5" /> Etapas
+                      </span>
+                      <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => openNewStage(group.id)}>
+                        <Plus className="h-3 w-3 mr-0.5" /> Etapa
+                      </Button>
                     </div>
-                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className={`h-7 w-7 ${task.recurrence_type ? "text-primary" : "text-muted-foreground"}`} onClick={() => openRecurrence(task)}>
-                        <Repeat className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteTask(task.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    {groupStages.length === 0 && (
+                      <p className="text-muted-foreground text-[10px]">Nenhuma etapa. Crie etapas para categorizar as tarefas.</p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {groupStages.map(stage => (
+                        <Badge
+                          key={stage.id}
+                          className="gap-1 pr-1 text-[10px] h-5 cursor-pointer hover:opacity-80"
+                          style={{ backgroundColor: stage.color, color: "#fff" }}
+                          onClick={() => openEditStage(stage)}
+                        >
+                          {stage.name}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteStage(stage.id); }}
+                            className="ml-0.5 hover:opacity-70"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-              <Button size="sm" variant="outline" className="w-full" onClick={() => openNewTask(group.id)}>
-                <Plus className="h-4 w-4 mr-1" /> Nova Tarefa
-              </Button>
+
+                  <Separator />
+
+                  {/* Tasks section */}
+                  {groupTasks.length === 0 && (
+                    <p className="text-muted-foreground text-xs">Nenhuma tarefa neste grupo.</p>
+                  )}
+                  {groupTasks.map(task => {
+                    const taskStage = stages.find(s => s.id === task.stage_id);
+                    return (
+                      <div key={task.id} className="flex items-center justify-between rounded-md border p-2.5 bg-muted/30">
+                        <div className="flex items-center gap-2">
+                          <TypeIcon type={task.type} />
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium">{task.description || typeLabel(task.type)}</span>
+                              {taskStage && (
+                                <span
+                                  className="inline-block h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: taskStage.color }}
+                                  title={taskStage.name}
+                                />
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                              <span>{typeLabel(task.type)}</span>
+                              <span>•</span>
+                              <span>Prazo: {formatDeadline(task.deadline_hours)}</span>
+                              {taskStage && (
+                                <>
+                                  <span>•</span>
+                                  <span style={{ color: taskStage.color }}>{taskStage.name}</span>
+                                </>
+                              )}
+                              {task.recurrence_type && (
+                                <>
+                                  <span>•</span>
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                                    <Repeat className="h-3 w-3" />
+                                    Recorrente
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                         <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className={`h-7 w-7 ${task.recurrence_type ? "text-primary" : "text-muted-foreground"}`} onClick={() => openRecurrence(task)}>
+                            <Repeat className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteTask(task.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => openNewTask(group.id)}>
+                    <Plus className="h-4 w-4 mr-1" /> Nova Tarefa
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         );
