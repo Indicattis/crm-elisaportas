@@ -45,13 +45,30 @@ interface FunnelColumn {
   sort_order?: string;
 }
 
+const SESSION_KEY = "kanban-filters";
+const readSession = () => {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+
 export function KanbanBoard() {
+  const sessionFilters = (typeof window !== "undefined" ? readSession() : {}) as {
+    selectedFunnelId?: string;
+    searchQuery?: string;
+    selectedSellerId?: string;
+    viewMode?: "kanban" | "list";
+    filterState?: string;
+    filterCity?: string;
+  };
+
   const [deals, setDeals] = useState<Deal[]>([]);
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
-  const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string>(sessionFilters.selectedFunnelId || "");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState(sessionFilters.searchQuery || "");
+  const [selectedSellerId, setSelectedSellerId] = useState<string>(sessionFilters.selectedSellerId || "all");
   const [funnelMembers, setFunnelMembers] = useState<{ id: string; full_name: string | null }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
