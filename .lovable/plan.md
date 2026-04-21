@@ -1,50 +1,53 @@
 
 
-# Corrigir criação de tarefa obrigatória no modal de requisitos da coluna
+# Bloquear desmarcação de tarefas concluídas
 
-## Diagnóstico
+## Objetivo
 
-No `EntryRequirementsModal.tsx`, quando uma coluna exige `field_name = 'task'`, o modal mostra o formulário de descrição + data e, ao confirmar, faz `supabase.from("deal_tasks").insert(...)`. Hoje a inserção tem 3 problemas que, combinados, resultam em "tarefa não criada":
+Uma vez marcada como concluída, a tarefa não pode mais ser desmarcada por nenhum usuário. O checkbox fica travado no estado "concluído" permanentemente.
 
-1. **Erro silencioso**: o `await` da inserção não checa `error`. Se a RLS bloquear, ou o `prevent_late_task_completion` rejeitar (ver item 3), o usuário vê "sucesso" e nada acontece.
-2. **Data perde fuso horário**: `taskDate.toISOString()` converte um `Date` que representa meia-noite **local** para UTC, gerando deadlines como `03:00 UTC do dia X` ou até `dia X-1` em horário UTC. Em alguns casos a tarefa é gravada com data de ontem.
-3. **Conflito com `prevent_late_task_completion`**: como o deadline pode acabar caindo no passado (item 2), e como o novo trigger lançado recentemente bloqueia conclusões >24h após o deadline, em casos extremos a tarefa nasce já "expirada" — o que é confuso e parece "não criada" do ponto de vista do usuário, que tenta concluí-la e recebe erro.
+## Regra
 
-Além disso, após `onConfirm()` o modal chama `executeDealMove` no parent, que dispara o trigger `handle_deal_tasks_on_status_change`. Como esse trigger não cria tarefas do tipo "personalizada do modal" (só dos templates da coluna), a única origem dessa tarefa é o próprio modal — então qualquer falha silenciosa lá significa "nenhuma tarefa".
+- Tarefa com `completed = false` → pode ser marcada como concluída (sujeita às regras já existentes de tarefa expirada >1 dia).
+- Tarefa com `completed = true` → checkbox desabilitado, clique não faz nada. Sem botão de desfazer.
 
 ## Mudanças
 
-### Front-end — `src/components/EntryRequirementsModal.tsx`
+### Front-end — `src/components/DealDetailDialog.tsx`
 
-1. **Capturar erros do insert** e exibir toast destrutivo, abortando o `onConfirm()`:
-   ```ts
-   const { error: taskErr } = await supabase.from("deal_tasks").insert({...}).select().single();
-   if (taskErr) {
-     toast({ title: "Erro ao criar tarefa", description: taskErr.message, variant: "destructive" });
-     setSaving(false);
-     return; // não chama onConfirm — mantém modal aberto
-   }
-   ```
+1. **Helper `isTaskLocked`**: além da regra de "expirada", também retorna `true` quando `task.completed === true`. Assim o checkbox fica `disabled` e o tooltip mostra "Tarefa concluída — não pode ser desmarcada".
+2. **Guarda em `toggleTaskCompletion`**: no início da função, se `task.completed === true`, retorna imediatamente (sem fazer update no banco).
 
-2. **Construir o deadline preservando o horário local** (meio-dia local, para evitar drift de timezone):
-   ```ts
-   const localDeadline = new Date(taskDate);
-   localDeadline.setHours(12, 0, 0, 0);
-   // usar localDeadline.toISOString()
-   ```
-   Assim o deadline cai sempre no meio do dia escolhido, sem chance de virar para o dia anterior em UTC nem nascer no passado.
+### Back-end (nova migration SQL)
 
-3. **Mesma proteção para o `update` dos campos do deal**: checar `error` e abortar com toast antes de seguir.
+Reforçar no banco para impedir bypass via API direta. Atualizar/criar trigger `BEFORE UPDATE` em `deal_tasks`:
 
-4. **Só chamar `onConfirm()` depois que tudo deu certo** (ordem já está, mas ficará explícito com guards).
+```sql
+CREATE OR REPLACE FUNCTION public.prevent_task_uncomplete()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.completed = true AND NEW.completed = false THEN
+    RAISE EXCEPTION 'Tarefas concluídas não podem ser desmarcadas';
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
-### Back-end
+CREATE TRIGGER prevent_task_uncomplete_trigger
+BEFORE UPDATE ON public.deal_tasks
+FOR EACH ROW EXECUTE FUNCTION public.prevent_task_uncomplete();
+```
 
-Nenhuma migration necessária. As triggers atuais (`prevent_late_task_completion`, `set_green_on_task_completion`, `handle_deal_tasks_on_status_change`) continuam intactas — o problema é puramente do modal.
+Tarefas recorrentes continuam funcionando — o trigger só bloqueia a transição `true → false`, não interfere com criação ou conclusão.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/EntryRequirementsModal.tsx` | Checar `error` no insert de `deal_tasks` e no update de `deals`, mostrar toast e abortar se falhar; construir `deadline_at` em horário local (meio-dia) em vez de `toISOString()` direto |
+| `src/components/DealDetailDialog.tsx` | `isTaskLocked` retorna true se concluída; `toggleTaskCompletion` aborta se já concluída; tooltip atualizado |
+| Nova migration SQL | Trigger `prevent_task_uncomplete` em `deal_tasks` bloqueando transição `true → false` |
 
