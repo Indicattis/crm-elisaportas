@@ -86,7 +86,7 @@ export function KanbanBoard() {
   const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(sessionFilters.viewMode || "kanban");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
   const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
   const [pendingMoveReqs, setPendingMoveReqs] = useState<{ field_name: string }[]>([]);
@@ -96,8 +96,8 @@ export function KanbanBoard() {
       return saved ? new Set(JSON.parse(saved)) : new Set();
     } catch { return new Set(); }
   });
-  const [filterState, setFilterState] = useState("");
-  const [filterCity, setFilterCity] = useState("");
+  const [filterState, setFilterState] = useState(sessionFilters.filterState || "");
+  const [filterCity, setFilterCity] = useState(sessionFilters.filterCity || "");
   const [userSortOverrides, setUserSortOverrides] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("kanban_sort_overrides");
