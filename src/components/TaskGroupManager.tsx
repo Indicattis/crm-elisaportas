@@ -12,12 +12,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Pencil, Phone, MessageSquare, ClipboardList, Repeat, Layers } from "lucide-react";
+import { Plus, Trash2, Pencil, Phone, MessageSquare, ClipboardList, Repeat, Layers, CalendarClock, X } from "lucide-react";
 
 interface TaskGroup {
   id: string;
   name: string;
   position: number;
+  schedule_mode?: string;
+  schedule_days?: number[];
+  schedule_time?: string;
+  schedule_task_type?: string;
+  schedule_task_description?: string | null;
 }
 
 interface TaskGroupStage {
