@@ -95,16 +95,18 @@ interface CommentProfile {
   avatar_url: string | null;
 }
 
-interface DealDetailDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface DealDetailViewProps {
   deal: DealData | null;
   statuses: string[];
   columnColor?: string;
   onUpdated: () => void;
+  onClose: () => void;
 }
 
-export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnColor, onUpdated }: DealDetailDialogProps) {
+export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose }: DealDetailViewProps) {
+  // Page-mode shim: keep the same internal API as the previous Dialog version.
+  const open = true;
+  const onOpenChange = (next: boolean) => { if (!next) onClose(); };
   const [comments, setComments] = useState<DealComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
@@ -790,11 +792,11 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={dialogContentRef} className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0" onPaste={handlePaste}>
+    <div className="max-w-5xl mx-auto w-full">
+      <div ref={dialogContentRef} className="glass-strong rounded-lg border bg-background shadow-lg flex flex-col gap-0 p-0 overflow-hidden" onPaste={handlePaste}>
         {/* Header */}
-        <DialogHeader
-          className="px-6 pt-6 pb-4 rounded-t-lg"
+        <div
+          className="flex flex-col space-y-1.5 text-center sm:text-left px-6 pt-6 pb-4 rounded-t-lg"
           style={columnColor ? { backgroundColor: columnColor } : undefined}
         >
           {editingField === "title" ? (
@@ -807,13 +809,13 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               className="text-xl font-semibold bg-background/80"
             />
           ) : (
-            <DialogTitle
-              className={`text-xl cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors max-w-[50%] truncate ${columnColor ? 'text-white' : ''}`}
+            <h2
+              className={`text-xl font-semibold leading-none tracking-tight cursor-pointer rounded px-1 -mx-1 hover:bg-white/20 transition-colors max-w-[50%] truncate ${columnColor ? 'text-white' : ''}`}
               onClick={() => startEditing("title")}
             >
               {(deal as any).deal_number && <span className="opacity-60 font-normal mr-1">#{(deal as any).deal_number}</span>}
               {deal.title}
-            </DialogTitle>
+            </h2>
           )}
           <div className="flex items-center justify-between">
             <p className={`text-sm ${columnColor ? 'text-white/80' : 'text-muted-foreground'}`}>
@@ -874,7 +876,7 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               </PopoverContent>
             </Popover>
           </div>
-        </DialogHeader>
+        </div>
 
         <Separator />
 
@@ -1752,8 +1754,8 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
             )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
 
     {/* Loss Reason Dialog */}
     <Dialog open={showLossReasonDialog} onOpenChange={setShowLossReasonDialog}>

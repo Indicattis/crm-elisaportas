@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DndContext,
   DragEndEvent,
@@ -12,7 +13,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
 import { DealDialog } from "./DealDialog";
-import { DealDetailDialog } from "./DealDetailDialog";
 import { EntryRequirementsModal } from "./EntryRequirementsModal";
 import { DealCard } from "./DealCard";
 import { DealsListView } from "./DealsListView";
@@ -54,9 +54,6 @@ export function KanbanBoard() {
   const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
   const [funnelMembers, setFunnelMembers] = useState<{ id: string; full_name: string | null }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [viewingDeal, setViewingDeal] = useState<Deal | null>(null);
-  const [viewingColumnColor, setViewingColumnColor] = useState<string>("");
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStatus, setDefaultStatus] = useState("");
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
@@ -233,15 +230,7 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId]);
 
-  // Sync viewingDeal when deals array is refreshed
-  useEffect(() => {
-    if (viewingDeal && detailOpen) {
-      const updated = deals.find((d) => d.id === viewingDeal.id);
-      if (updated && updated.updated_at !== viewingDeal.updated_at) {
-        setViewingDeal(updated);
-      }
-    }
-  }, [deals, viewingDeal, detailOpen]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchFunnels();
@@ -533,11 +522,8 @@ export function KanbanBoard() {
   }, []);
 
   const handleViewDeal = useCallback((deal: Deal) => {
-    const column = columns.find((item) => item.name === deal.status);
-    setViewingColumnColor(column?.color || "");
-    setViewingDeal(deal);
-    setDetailOpen(true);
-  }, [columns]);
+    navigate(`/deal/${deal.id}`);
+  }, [navigate]);
 
   const toggleColumnCollapse = useCallback((columnName: string) => {
     setCollapsedColumns(prev => {
@@ -802,14 +788,6 @@ export function KanbanBoard() {
         </DndContext>
       )}
 
-      <DealDetailDialog
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        deal={viewingDeal}
-        statuses={columns.map((column) => column.name)}
-        columnColor={viewingColumnColor}
-        onUpdated={() => { refreshDeals(); }}
-      />
 
       <DealDialog
         open={dialogOpen}
