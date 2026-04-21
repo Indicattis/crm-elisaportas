@@ -17,7 +17,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, ImagePlus, Loader2 } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, ImagePlus, Loader2, Lock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -331,6 +332,13 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const user = authUser;
+    if (completed) {
+      const t = dealTasks.find(x => x.id === taskId);
+      if (t && !t.completed && Date.now() > new Date(t.deadline_at).getTime() + 24 * 60 * 60 * 1000) {
+        toast({ title: "Tarefa expirada", description: "Esta tarefa venceu há mais de 1 dia e não pode mais ser concluída.", variant: "destructive" });
+        return;
+      }
+    }
     const updateData: any = { completed };
     if (completed) {
       updateData.completed_at = new Date().toISOString();
@@ -1469,7 +1477,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
               (() => {
                 // Group tasks by stage
                 const renderTask = (task: DealTask) => {
-                  const isOverdue = !task.completed && new Date(task.deadline_at) < new Date();
+                  const deadlineMs = new Date(task.deadline_at).getTime();
+                  const isOverdue = !task.completed && deadlineMs < Date.now();
+                  const isLocked = !task.completed && Date.now() > deadlineMs + 24 * 60 * 60 * 1000;
                   const isCompleting = completingTaskIds.has(task.id);
                   const typeIcon = task.type === "mensagem" ? <MessageSquare className="h-3.5 w-3.5" /> 
                     : task.type === "ligacao" ? <PhoneCall className="h-3.5 w-3.5" />
@@ -1478,14 +1488,27 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                     <div
                       key={task.id}
                       className={`flex items-start gap-2 rounded-lg border p-2.5 transition-all duration-500 ease-out ${
-                        isCompleting ? "opacity-50 scale-95" : task.completed ? "border-border/50 bg-muted/30 opacity-60" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
+                        isCompleting ? "opacity-50 scale-95" : task.completed ? "border-border/50 bg-muted/30 opacity-60" : isLocked ? "border-destructive/40 bg-muted/40 opacity-70" : isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border bg-card"
                       }`}
                     >
-                      <Checkbox
-                        checked={task.completed}
-                        onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
-                        className="mt-0.5"
-                      />
+                      {isLocked ? (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center text-destructive cursor-not-allowed">
+                                <Lock className="h-3.5 w-3.5" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Tarefa expirada há mais de 1 dia — não pode ser concluída</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <Checkbox
+                          checked={task.completed}
+                          onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
+                          className="mt-0.5"
+                        />
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className={`${task.completed ? "text-muted-foreground/50" : "text-muted-foreground"}`}>{typeIcon}</span>
@@ -1502,6 +1525,9 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                             {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5" />}
                             {format(new Date(task.deadline_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
+                          {isLocked && (
+                            <span className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Expirada</span>
+                          )}
                           {task.completed && task.completed_at && (
                             <>
                               <span className="text-muted-foreground/40">•</span>
