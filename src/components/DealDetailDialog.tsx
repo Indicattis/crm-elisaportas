@@ -332,9 +332,14 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
 
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const user = authUser;
+    const existing = dealTasks.find(x => x.id === taskId);
+    // Bloquear desmarcação: tarefas concluídas não podem ser revertidas
+    if (existing?.completed && !completed) {
+      toast({ title: "Tarefa concluída", description: "Tarefas concluídas não podem ser desmarcadas.", variant: "destructive" });
+      return;
+    }
     if (completed) {
-      const t = dealTasks.find(x => x.id === taskId);
-      if (t && !t.completed && Date.now() > new Date(t.deadline_at).getTime() + 24 * 60 * 60 * 1000) {
+      if (existing && !existing.completed && Date.now() > new Date(existing.deadline_at).getTime() + 24 * 60 * 60 * 1000) {
         toast({ title: "Tarefa expirada", description: "Esta tarefa venceu há mais de 1 dia e não pode mais ser concluída.", variant: "destructive" });
         return;
       }
@@ -1500,6 +1505,21 @@ export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnCol
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="top">Tarefa expirada há mais de 1 dia — não pode ser concluída</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : task.completed ? (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Checkbox
+                                  checked
+                                  disabled
+                                  className="mt-0.5 cursor-not-allowed"
+                                />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Tarefa concluída — não pode ser desmarcada</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
