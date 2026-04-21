@@ -1,56 +1,72 @@
 
 
-# Grupos de Tarefas com Agenda Recorrente por Dias
+# Múltiplas Tarefas Recorrentes por Grupo
 
 ## Objetivo
 
-Permitir criar um Grupo de Tarefas onde você define **em quais dias após o cadastro/movimentação** da negociação as tarefas devem ser criadas — incluindo a opção "todos os dias até o dia X".
+Permitir que um grupo com "Agenda recorrente" tenha **várias tarefas recorrentes** (cada uma com seu próprio tipo, descrição, dias e horário), em vez de apenas uma.
 
-## Comportamento
+## Modelo Atual (limite de 1)
 
-Ao marcar um grupo como "Agenda recorrente", em vez de listar tarefas individuais com prazo, você define:
+Hoje as colunas `schedule_mode`, `schedule_days`, `schedule_time`, `schedule_task_type` e `schedule_task_description` ficam direto em `task_groups` — 1 grupo = 1 agenda = 1 tarefa.
 
-1. **Tipo da tarefa** (Mensagem / Ligação / Personalizada com descrição)
-2. **Modo da agenda**:
-   - **Dias específicos**: lista de dias (ex.: 1, 3, 5, 7, 14)
-   - **Todos os dias até o dia X**: gera 1, 2, 3, …, X
-3. **Hora do dia** opcional (default 09:00) para o prazo de cada tarefa
+## Novo Modelo
 
-Quando uma negociação entra em uma coluna vinculada a esse grupo, o sistema cria automaticamente uma tarefa para cada dia configurado, com prazo em `data_entrada + N dias` (na hora escolhida). Ao mover/recadastrar, as tarefas pendentes são removidas e recriadas (mesma lógica do trigger atual).
+Mover a configuração de agenda para uma nova tabela filha **`task_group_schedules`** (N tarefas por grupo). O grupo mantém apenas o flag `schedule_mode` ("manual" vs "recurring_days").
 
-## Mudanças no Banco
+### Mudanças no banco
 
-**Nova coluna em `task_groups`**:
-- `schedule_mode` text — `"manual"` (padrão atual) ou `"recurring_days"`
-- `schedule_days` int[] — lista de offsets em dias (ex.: `{1,3,5,7}`)
-- `schedule_time` time — horário do dia (default `09:00`)
-- `schedule_task_type` text — `"mensagem" | "ligacao" | "personalizada"`
-- `schedule_task_description` text — descrição (quando personalizada)
+**Nova tabela `task_group_schedules`**:
+- `id uuid pk`
+- `group_id uuid` (FK lógica para `task_groups`)
+- `user_id uuid`
+- `task_type text` ("mensagem" | "ligacao" | "personalizada")
+- `task_description text`
+- `days int[]` (ex: `{1,3,5,7}`)
+- `time time` (default `09:00`)
+- `position int`
+- `created_at timestamptz`
+- RLS: admins gerenciam; autenticados visualizam (mesmo padrão de `task_templates`)
 
-**Atualizar `handle_deal_tasks_on_status_change` e `recreate_deal_tasks`**:
-- Se `schedule_mode = 'recurring_days'`, ignorar `task_templates` e gerar uma tarefa por dia em `schedule_days`, com `deadline_at = date_trunc('day', now()) + (dia * interval '1 day') + schedule_time`.
-- Se `manual`, manter o comportamento atual.
+**Manter em `task_groups`**: apenas `schedule_mode`. As colunas antigas (`schedule_days`, `schedule_time`, `schedule_task_type`, `schedule_task_description`) podem ser mantidas e ignoradas, ou removidas. → Vou **migrar os dados existentes** para `task_group_schedules` e depois deixar as colunas antigas em paz (sem dropar, evita risco).
 
-## Mudanças na UI (`src/components/TaskGroupManager.tsx`)
+**Atualizar funções `handle_deal_tasks_on_status_change` e `recreate_deal_tasks`**:
+- Quando `schedule_mode = 'recurring_days'`, em vez de ler colunas do grupo, iterar sobre todas as linhas em `task_group_schedules WHERE group_id = …` e, para cada uma, gerar uma tarefa por dia em `days`.
 
-No card de cada grupo, adicionar um **Switch "Agenda recorrente"**. Quando ativado:
+```sql
+IF v_group.schedule_mode = 'recurring_days' THEN
+  FOR v_sched IN
+    SELECT task_type, task_description, days, time
+    FROM public.task_group_schedules
+    WHERE group_id = v_task_group_id
+    ORDER BY position
+  LOOP
+    FOREACH v_day IN ARRAY v_sched.days LOOP
+      INSERT INTO public.deal_tasks (deal_id, type, description, deadline_at)
+      VALUES (NEW.id, v_sched.task_type, v_sched.task_description,
+              date_trunc('day', v_now) + (v_day || ' days')::interval + v_sched.time);
+    END LOOP;
+  END LOOP;
+  RETURN NEW;
+END IF;
+```
 
-- Esconde a seção de Tarefas/Etapas individuais.
-- Mostra um formulário com:
-  - Select do tipo da tarefa
-  - Campo de descrição (se personalizada)
-  - Toggle entre "Dias específicos" e "Todos os dias até"
-    - Dias específicos: input para adicionar dias (chips removíveis)
-    - Todos os dias até: input numérico (gera array `[1..N]`)
-  - Input de hora (time picker)
-- Botão "Salvar agenda" persiste as colunas em `task_groups`.
+### Mudanças na UI (`src/components/TaskGroupManager.tsx`)
 
-Quando desativado, volta ao fluxo manual atual com templates.
+No card do grupo, quando `schedule_mode = 'recurring_days'`:
+- Em vez de mostrar **um** resumo, listar **todas** as tarefas recorrentes do grupo, cada uma com botões de editar/excluir.
+- Botão **"+ Nova tarefa recorrente"** abre o diálogo de agenda atual (tipo, descrição, dias específicos / até dia X, horário) — mas agora cria/edita uma linha em `task_group_schedules`.
+- Toggle **"Agenda recorrente"** continua existindo no nível do grupo (define `schedule_mode`). Ao desativar, oculta a lista mas não apaga as linhas (preserva config).
+
+Estado novo: `schedules: TaskGroupSchedule[]` (carregado em paralelo no `fetchData`).
+
+Diálogo de agenda passa a operar sobre uma `editingSchedule: TaskGroupSchedule | null` em vez do grupo inteiro.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| Nova migration SQL | Adicionar colunas em `task_groups` + atualizar 2 funções (`handle_deal_tasks_on_status_change`, `recreate_deal_tasks`) |
-| `src/components/TaskGroupManager.tsx` | UI condicional de "Agenda recorrente" no card do grupo |
+| Nova migration SQL | Criar `task_group_schedules` + RLS, migrar dados das colunas antigas, atualizar as 2 funções de trigger |
+| `src/components/TaskGroupManager.tsx` | Listar N agendas por grupo; CRUD por linha em `task_group_schedules` |
+| `src/integrations/supabase/types.ts` | Auto-regenerado |
 
