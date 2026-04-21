@@ -46,7 +46,7 @@ function hexToRgb(hex: string) {
   return `${r}, ${g}, ${b}`;
 }
 
-const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "green", green: "red" };
+const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "red", green: "red" };
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 
 export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, currentStage, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
