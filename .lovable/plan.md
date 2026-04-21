@@ -1,72 +1,71 @@
 
 
-# Bola verde só por conclusão de tarefa
+# Preservar tarefas ao mover negociações entre colunas
 
 ## Objetivo
 
-O usuário não pode mais escolher manualmente a cor verde da bolinha de status diário do card. O ciclo manual passa a ser apenas **vermelho ↔ amarelo**. A cor verde é definida automaticamente pelo sistema quando o usuário **conclui pelo menos uma tarefa daquela negociação no dia atual**.
+Hoje, ao mover uma negociação de uma coluna do funil para outra, todas as tarefas pendentes são **deletadas** e novas tarefas são **criadas** com base no grupo de tarefas da nova coluna. O usuário quer que:
 
-## Regras
+1. Tarefas pendentes **não sejam excluídas** ao mover a negociação para outra coluna.
+2. Tarefas **não sejam recriadas** se a negociação voltar a uma coluna onde já tinha sido criada antes (evitar duplicatas).
 
-Estado da bolinha (`deal_daily_color` do dia corrente, default `red`):
+## Comportamento Novo
 
-- **Vermelho** → clique vira **Amarelo**
-- **Amarelo** → clique vira **Vermelho** (não vai mais para verde)
-- **Verde** → clique vira **Vermelho** (sai do estado automático manualmente, se quiser)
+Ao mover uma negociação de coluna A → coluna B:
 
-Verde é atribuído **automaticamente** sempre que uma tarefa da negociação for concluída (`completed: false → true`), com data = hoje. Ao concluir, faz upsert em `deal_daily_color` com `color = 'green'` para o `deal_id` + `date = CURRENT_DATE`.
+- **Tarefas pendentes existentes**: ficam intactas (não são deletadas).
+- **Tarefas concluídas**: continuam intactas (já era o comportamento atual).
+- **Novas tarefas da coluna B**: criadas apenas para templates/agendas cuja tarefa correspondente **ainda não existe** para essa negociação (nem pendente, nem concluída antes).
+  - Para templates manuais: dedup por `template_id` em `deal_tasks` da mesma negociação.
+  - Para agendas recorrentes (`recurring_days`): dedup por `(deal_id, schedule_id, deadline_at)` — uma tarefa de agenda recorrente para o dia X já criada antes não recria.
 
-Se o usuário depois clicar para sair do verde, vai para vermelho — e se concluir outra tarefa no mesmo dia, volta para verde.
+Resultado prático: na primeira vez que a negociação entra na coluna B, as tarefas dela são criadas. Se sair e voltar, nada é recriado (porque os templates/agendas dessa coluna já têm tarefa associada à negociação). E as tarefas da coluna A continuam ali até serem concluídas manualmente ou apagadas.
 
 ## Mudanças
 
-### Front-end
-
-**`src/components/DealCard.tsx`**
-- Atualizar `COLOR_CYCLE` para: `{ red: "yellow", yellow: "red", green: "red" }` (remove a transição `yellow → green`).
-
-**`src/components/DealDetailDialog.tsx`** (handler `handleToggleTask`)
-- Após concluir uma tarefa com sucesso (transição `false → true`), fazer upsert:
-  ```ts
-  await supabase.from("deal_daily_color").upsert({
-    deal_id: deal.id,
-    date: new Date().toISOString().slice(0, 10),
-    color: "green",
-    updated_by: user.id,
-  }, { onConflict: "deal_id,date" });
-  ```
-- Não faz nada quando desmarca uma tarefa (não reverte a cor).
-
 ### Back-end (nova migration SQL)
 
-Como garantia (caso a tarefa seja concluída por outra via — futuro mobile, automação etc.), adicionar trigger `AFTER UPDATE` em `deal_tasks`:
+Atualizar duas funções existentes:
 
-```sql
-CREATE OR REPLACE FUNCTION public.set_green_on_task_completion()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE v_user uuid;
-BEGIN
-  IF NEW.completed = true AND OLD.completed = false THEN
-    v_user := COALESCE(NEW.completed_by, auth.uid());
-    INSERT INTO public.deal_daily_color (deal_id, date, color, updated_by)
-    VALUES (NEW.deal_id, CURRENT_DATE, 'green', v_user)
-    ON CONFLICT (deal_id, date) DO UPDATE SET color = 'green', updated_by = EXCLUDED.updated_by;
+**1. `handle_deal_tasks_on_status_change` (trigger em `deals`)**
+- Remover o bloco `DELETE FROM public.deal_tasks WHERE deal_id = NEW.id AND completed = false;`.
+- No loop de `task_templates`, antes de inserir, checar:
+  ```sql
+  IF NOT EXISTS (
+    SELECT 1 FROM public.deal_tasks
+    WHERE deal_id = NEW.id AND template_id = v_template.id
+  ) THEN
+    INSERT ...
   END IF;
-  RETURN NEW;
-END $$;
+  ```
+- No loop de `task_group_schedules` (modo `recurring_days`), antes do `INSERT` de cada dia, checar duplicata por `(deal_id, deadline_at, description)`:
+  ```sql
+  IF NOT EXISTS (
+    SELECT 1 FROM public.deal_tasks
+    WHERE deal_id = NEW.id
+      AND deadline_at = <calculado>
+      AND description IS NOT DISTINCT FROM v_sched.task_description
+      AND type = v_sched.task_type
+  ) THEN
+    INSERT ...
+  END IF;
+  ```
 
-CREATE TRIGGER set_green_on_task_completion_trigger
-AFTER UPDATE ON public.deal_tasks
-FOR EACH ROW EXECUTE FUNCTION public.set_green_on_task_completion();
-```
+**2. `recreate_deal_tasks(_deal_id uuid)` (RPC chamada pelo front)**
+- Mesma mudança: remover o `DELETE` de pendentes e adicionar as mesmas guardas `IF NOT EXISTS` nos dois loops.
+- A função passa a ter efeito de "criar tarefas faltantes" em vez de "recriar tudo".
 
-Pré-requisito: garantir índice único em `(deal_id, date)` em `deal_daily_color` para o `ON CONFLICT` funcionar (criar se não existir).
+### Front-end
+
+Nenhuma mudança necessária. O helper `src/lib/deal-tasks.ts` continua chamando o RPC `recreate_deal_tasks`, que agora simplesmente preenche o que falta.
+
+## Observação sobre nomenclatura
+
+A função `recreate_deal_tasks` mantém o nome antigo para evitar quebrar chamadas existentes, mas o comportamento muda para "garantir tarefas". Se preferir renomear depois, é trivial.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/DealCard.tsx` | `COLOR_CYCLE` sem transição para verde (`yellow → red`, `green → red`) |
-| `src/components/DealDetailDialog.tsx` | Upsert `deal_daily_color = green` ao concluir tarefa |
-| Nova migration SQL | Índice único `(deal_id, date)` + função/trigger `set_green_on_task_completion` |
+| Nova migration SQL | Atualizar `handle_deal_tasks_on_status_change` e `recreate_deal_tasks`: remover `DELETE` de pendentes + dedup `IF NOT EXISTS` nos loops de templates e agendas |
 
