@@ -444,8 +444,18 @@ export function TaskGroupManager() {
           <Card key={group.id}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{group.name}</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  {group.name}
+                  {group.schedule_mode === "recurring_days" && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <CalendarClock className="h-3 w-3" /> Agenda recorrente
+                    </Badge>
+                  )}
+                </CardTitle>
                 <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Agenda recorrente" onClick={() => openSchedule(group)}>
+                    <CalendarClock className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditGroup(group)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
