@@ -95,16 +95,18 @@ interface CommentProfile {
   avatar_url: string | null;
 }
 
-interface DealDetailDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface DealDetailViewProps {
   deal: DealData | null;
   statuses: string[];
   columnColor?: string;
   onUpdated: () => void;
+  onClose: () => void;
 }
 
-export function DealDetailDialog({ open, onOpenChange, deal, statuses, columnColor, onUpdated }: DealDetailDialogProps) {
+export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose }: DealDetailViewProps) {
+  // Page-mode shim: keep the same internal API as the previous Dialog version.
+  const open = true;
+  const onOpenChange = (next: boolean) => { if (!next) onClose(); };
   const [comments, setComments] = useState<DealComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
