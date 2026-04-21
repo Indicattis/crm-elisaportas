@@ -45,13 +45,30 @@ interface FunnelColumn {
   sort_order?: string;
 }
 
+const SESSION_KEY = "kanban-filters";
+const readSession = () => {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+
 export function KanbanBoard() {
+  const sessionFilters = (typeof window !== "undefined" ? readSession() : {}) as {
+    selectedFunnelId?: string;
+    searchQuery?: string;
+    selectedSellerId?: string;
+    viewMode?: "kanban" | "list";
+    filterState?: string;
+    filterCity?: string;
+  };
+
   const [deals, setDeals] = useState<Deal[]>([]);
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
-  const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string>(sessionFilters.selectedFunnelId || "");
   const [columns, setColumns] = useState<FunnelColumn[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSellerId, setSelectedSellerId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState(sessionFilters.searchQuery || "");
+  const [selectedSellerId, setSelectedSellerId] = useState<string>(sessionFilters.selectedSellerId || "all");
   const [funnelMembers, setFunnelMembers] = useState<{ id: string; full_name: string | null }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
@@ -69,7 +86,7 @@ export function KanbanBoard() {
   const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(sessionFilters.viewMode || "kanban");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
   const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
   const [pendingMoveReqs, setPendingMoveReqs] = useState<{ field_name: string }[]>([]);
@@ -79,8 +96,8 @@ export function KanbanBoard() {
       return saved ? new Set(JSON.parse(saved)) : new Set();
     } catch { return new Set(); }
   });
-  const [filterState, setFilterState] = useState("");
-  const [filterCity, setFilterCity] = useState("");
+  const [filterState, setFilterState] = useState(sessionFilters.filterState || "");
+  const [filterCity, setFilterCity] = useState(sessionFilters.filterCity || "");
   const [userSortOverrides, setUserSortOverrides] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("kanban_sort_overrides");
@@ -96,6 +113,15 @@ export function KanbanBoard() {
     });
   }, []);
   const { toast } = useToast();
+
+  // Persist filters to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity,
+      }));
+    } catch { /* ignore */ }
+  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
