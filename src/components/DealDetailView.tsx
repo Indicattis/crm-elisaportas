@@ -792,11 +792,11 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={dialogContentRef} className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0" onPaste={handlePaste}>
+    <div className="max-w-5xl mx-auto w-full">
+      <div ref={dialogContentRef} className="glass-strong rounded-lg border bg-background shadow-lg flex flex-col gap-0 p-0 overflow-hidden" onPaste={handlePaste}>
         {/* Header */}
-        <DialogHeader
-          className="px-6 pt-6 pb-4 rounded-t-lg"
+        <div
+          className="flex flex-col space-y-1.5 text-center sm:text-left px-6 pt-6 pb-4 rounded-t-lg"
           style={columnColor ? { backgroundColor: columnColor } : undefined}
         >
           {editingField === "title" ? (
