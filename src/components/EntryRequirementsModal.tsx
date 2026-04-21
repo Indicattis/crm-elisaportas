@@ -122,18 +122,32 @@ export function EntryRequirementsModal({
         for (const req of dealFieldReqs) {
           updates[req.field_name] = vals[req.field_name];
         }
-        await supabase.from("deals").update(updates as any).eq("id", deal.id);
+        const { error: dealErr } = await supabase.from("deals").update(updates as any).eq("id", deal.id);
+        if (dealErr) {
+          toast({ title: "Erro ao atualizar negociação", description: dealErr.message, variant: "destructive" });
+          setSaving(false);
+          return;
+        }
       }
 
       // Create task if required
       if (requirements.some((r) => r.field_name === "task") && taskDate) {
         if (authUser) {
-          await supabase.from("deal_tasks").insert({
+          // Preserve local timezone — set to noon local to avoid UTC drift
+          const localDeadline = new Date(taskDate);
+          localDeadline.setHours(12, 0, 0, 0);
+
+          const { error: taskErr } = await supabase.from("deal_tasks").insert({
             deal_id: deal.id,
             description: taskDescription.trim(),
-            deadline_at: taskDate.toISOString(),
+            deadline_at: localDeadline.toISOString(),
             type: "personalizada",
           });
+          if (taskErr) {
+            toast({ title: "Erro ao criar tarefa", description: taskErr.message, variant: "destructive" });
+            setSaving(false);
+            return;
+          }
         }
       }
 
