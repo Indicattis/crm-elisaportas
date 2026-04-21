@@ -556,7 +556,7 @@ export function TaskGroupManager() {
                 </div>
               ) : (
                 <>
-                  {/* Stages section */}
+                  {/* Stages section - compact editable list */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
@@ -569,59 +569,45 @@ export function TaskGroupManager() {
                     {groupStages.length === 0 && (
                       <p className="text-muted-foreground text-[10px]">Nenhuma etapa. Crie etapas para categorizar as tarefas.</p>
                     )}
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-1">
                       {groupStages.map(stage => (
-                        <Badge
-                          key={stage.id}
-                          className="gap-1 pr-1 text-[10px] h-5 cursor-pointer hover:opacity-80"
-                          style={{ backgroundColor: stage.color, color: "#fff" }}
-                          onClick={() => openEditStage(stage)}
-                        >
-                          {stage.name}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteStage(stage.id); }}
-                            className="ml-0.5 hover:opacity-70"
-                          >
-                            <Trash2 className="h-2.5 w-2.5" />
-                          </button>
-                        </Badge>
+                        <div key={stage.id} className="flex items-center justify-between rounded-md border px-2 py-1 bg-muted/20">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+                            <span className="text-xs font-medium truncate">{stage.name}</span>
+                          </div>
+                          <div className="flex gap-0.5 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEditStage(stage)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => deleteStage(stage.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
 
                   <Separator />
 
-                  {/* Tasks section */}
+                  {/* Tasks section grouped by stage (mirrors DealDetailDialog) */}
                   {groupTasks.length === 0 && (
                     <p className="text-muted-foreground text-xs">Nenhuma tarefa neste grupo.</p>
                   )}
-                  {groupTasks.map(task => {
-                    const taskStage = stages.find(s => s.id === task.stage_id);
-                    return (
+                  {(() => {
+                    const renderTaskCard = (task: TaskTemplate) => (
                       <div key={task.id} className="flex items-center justify-between rounded-md border p-2.5 bg-muted/30">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           <TypeIcon type={task.type} />
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium">{task.description || typeLabel(task.type)}</span>
-                              {taskStage && (
-                                <span
-                                  className="inline-block h-2 w-2 rounded-full"
-                                  style={{ backgroundColor: taskStage.color }}
-                                  title={taskStage.name}
-                                />
-                              )}
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {task.description || typeLabel(task.type)}
                             </div>
                             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
                               <span>{typeLabel(task.type)}</span>
                               <span>•</span>
                               <span>Prazo: {formatDeadline(task.deadline_hours)}</span>
-                              {taskStage && (
-                                <>
-                                  <span>•</span>
-                                  <span style={{ color: taskStage.color }}>{taskStage.name}</span>
-                                </>
-                              )}
                               {task.recurrence_type && (
                                 <>
                                   <span>•</span>
@@ -634,7 +620,7 @@ export function TaskGroupManager() {
                             </div>
                           </div>
                         </div>
-                         <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTask(task)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -647,7 +633,49 @@ export function TaskGroupManager() {
                         </div>
                       </div>
                     );
-                  })}
+
+                    if (groupStages.length > 0) {
+                      const unstaged = groupTasks.filter(t => !t.stage_id);
+                      return (
+                        <div className="space-y-3">
+                          {groupStages.map(stage => {
+                            const stageTasks = groupTasks.filter(t => t.stage_id === stage.id);
+                            if (stageTasks.length === 0) return null;
+                            return (
+                              <div key={stage.id} className="flex gap-0">
+                                <div className="flex flex-col items-center shrink-0 mr-2.5">
+                                  <span className="h-2.5 w-2.5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: stage.color }} />
+                                  <div className="flex-1 w-0.5 rounded-full min-h-[8px]" style={{ backgroundColor: stage.color, opacity: 0.35 }} />
+                                </div>
+                                <div className="flex-1 space-y-1.5 pb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-semibold text-foreground">{stage.name}</span>
+                                    <span className="text-[10px] text-muted-foreground">{stageTasks.length}</span>
+                                  </div>
+                                  {stageTasks.map(renderTaskCard)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {unstaged.length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 px-1">
+                                <span className="text-[11px] font-semibold text-muted-foreground">Sem etapa</span>
+                                <span className="text-[10px] text-muted-foreground">{unstaged.length}</span>
+                              </div>
+                              {unstaged.map(renderTaskCard)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        {groupTasks.map(renderTaskCard)}
+                      </div>
+                    );
+                  })()}
                   <Button size="sm" variant="outline" className="w-full" onClick={() => openNewTask(group.id)}>
                     <Plus className="h-4 w-4 mr-1" /> Nova Tarefa
                   </Button>
