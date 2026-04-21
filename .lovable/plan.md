@@ -1,72 +1,47 @@
 
 
-# Múltiplas Tarefas Recorrentes por Grupo
+# Estilização das Etapas em Grupos de Tarefas igual ao modal da Negociação
 
 ## Objetivo
 
-Permitir que um grupo com "Agenda recorrente" tenha **várias tarefas recorrentes** (cada uma com seu próprio tipo, descrição, dias e horário), em vez de apenas uma.
+No `/crm-config` → Grupos de Tarefas, agrupar as tarefas **por etapa** com a mesma estilização do modal de detalhes da negociação: linha vertical colorida com bolinha, nome da etapa + contagem como cabeçalho, tarefas listadas abaixo de cada etapa e bloco "Sem etapa" no final.
 
-## Modelo Atual (limite de 1)
+## Como ficará (modo manual do grupo)
 
-Hoje as colunas `schedule_mode`, `schedule_days`, `schedule_time`, `schedule_task_type` e `schedule_task_description` ficam direto em `task_groups` — 1 grupo = 1 agenda = 1 tarefa.
+Em vez do layout atual (badges de etapas no topo + lista plana de tarefas com mini-bolinha):
 
-## Novo Modelo
-
-Mover a configuração de agenda para uma nova tabela filha **`task_group_schedules`** (N tarefas por grupo). O grupo mantém apenas o flag `schedule_mode` ("manual" vs "recurring_days").
-
-### Mudanças no banco
-
-**Nova tabela `task_group_schedules`**:
-- `id uuid pk`
-- `group_id uuid` (FK lógica para `task_groups`)
-- `user_id uuid`
-- `task_type text` ("mensagem" | "ligacao" | "personalizada")
-- `task_description text`
-- `days int[]` (ex: `{1,3,5,7}`)
-- `time time` (default `09:00`)
-- `position int`
-- `created_at timestamptz`
-- RLS: admins gerenciam; autenticados visualizam (mesmo padrão de `task_templates`)
-
-**Manter em `task_groups`**: apenas `schedule_mode`. As colunas antigas (`schedule_days`, `schedule_time`, `schedule_task_type`, `schedule_task_description`) podem ser mantidas e ignoradas, ou removidas. → Vou **migrar os dados existentes** para `task_group_schedules` e depois deixar as colunas antigas em paz (sem dropar, evita risco).
-
-**Atualizar funções `handle_deal_tasks_on_status_change` e `recreate_deal_tasks`**:
-- Quando `schedule_mode = 'recurring_days'`, em vez de ler colunas do grupo, iterar sobre todas as linhas em `task_group_schedules WHERE group_id = …` e, para cada uma, gerar uma tarefa por dia em `days`.
-
-```sql
-IF v_group.schedule_mode = 'recurring_days' THEN
-  FOR v_sched IN
-    SELECT task_type, task_description, days, time
-    FROM public.task_group_schedules
-    WHERE group_id = v_task_group_id
-    ORDER BY position
-  LOOP
-    FOREACH v_day IN ARRAY v_sched.days LOOP
-      INSERT INTO public.deal_tasks (deal_id, type, description, deadline_at)
-      VALUES (NEW.id, v_sched.task_type, v_sched.task_description,
-              date_trunc('day', v_now) + (v_day || ' days')::interval + v_sched.time);
-    END LOOP;
-  END LOOP;
-  RETURN NEW;
-END IF;
+```text
+●─ Contato inicial   0/2          ← bolinha + nome da etapa + contagem
+│   ┌──────────────────────────┐
+│   │ 📞 Ligar para o cliente  │
+│   │ Ligação • Prazo: 1 dia   │
+│   └──────────────────────────┘
+│   ┌──────────────────────────┐
+│   │ 💬 Enviar mensagem       │
+│   └──────────────────────────┘
+●─ Proposta          0/1
+│   ...
+│
+Sem etapa
+   ┌──────────────────────────┐
+   │ ...                      │
 ```
 
-### Mudanças na UI (`src/components/TaskGroupManager.tsx`)
+Cada bloco de etapa replica o JSX que existe em `DealDetailDialog` (linhas 1546–1582):
 
-No card do grupo, quando `schedule_mode = 'recurring_days'`:
-- Em vez de mostrar **um** resumo, listar **todas** as tarefas recorrentes do grupo, cada uma com botões de editar/excluir.
-- Botão **"+ Nova tarefa recorrente"** abre o diálogo de agenda atual (tipo, descrição, dias específicos / até dia X, horário) — mas agora cria/edita uma linha em `task_group_schedules`.
-- Toggle **"Agenda recorrente"** continua existindo no nível do grupo (define `schedule_mode`). Ao desativar, oculta a lista mas não apaga as linhas (preserva config).
+- `flex` com coluna esquerda `flex flex-col items-center mr-2.5` contendo `<span class="h-2.5 w-2.5 rounded-full" style={backgroundColor: stage.color}/>` e `<div class="flex-1 w-0.5" style={backgroundColor: stage.color, opacity: 0.35}/>`
+- Conteúdo direito com cabeçalho `text-[11px] font-semibold` + contagem `completedCount/total` em `text-[10px] text-muted-foreground`
+- Tarefas mantêm os mesmos cards atuais (com TypeIcon, descrição, "Prazo: …", botão de recorrência etc.) — só passam a ficar dentro do bloco da etapa
 
-Estado novo: `schedules: TaskGroupSchedule[]` (carregado em paralelo no `fetchData`).
+A seção "Etapas" no topo do card (gestão das etapas em si) continua existindo, mas é convertida em **lista compacta editável**: cada etapa aparece como uma linha pequena com bolinha colorida + nome + lápis/lixeira, em vez de badges grandes. Botão "+ Etapa" e "+ Nova Tarefa" continuam funcionando igual.
 
-Diálogo de agenda passa a operar sobre uma `editingSchedule: TaskGroupSchedule | null` em vez do grupo inteiro.
+Tarefas sem etapa (`stage_id = null`) vão para um grupo "Sem etapa" no final, idêntico ao do modal.
+
+Quando o grupo está em **modo "Agenda recorrente"**, nada muda — continua a lista atual de tarefas recorrentes.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| Nova migration SQL | Criar `task_group_schedules` + RLS, migrar dados das colunas antigas, atualizar as 2 funções de trigger |
-| `src/components/TaskGroupManager.tsx` | Listar N agendas por grupo; CRUD por linha em `task_group_schedules` |
-| `src/integrations/supabase/types.ts` | Auto-regenerado |
+| `src/components/TaskGroupManager.tsx` | Reorganizar a seção `groupTasks.map(...)` em loop `groupStages.map(stage => ...)` com a mesma estrutura (linha vertical + dot + cabeçalho da etapa + contagem) usada em `DealDetailDialog` linhas 1546–1582; adicionar bloco "Sem etapa" para tarefas órfãs; converter os badges de etapas no topo em lista compacta com lápis/lixeira |
 
