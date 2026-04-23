@@ -335,8 +335,8 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     const user = authUser;
     const existing = dealTasks.find(x => x.id === taskId);
-    // Bloquear desmarcação: tarefas concluídas não podem ser revertidas
-    if (existing?.completed && !completed) {
+    // Bloquear desmarcação para não-admins: tarefas concluídas não podem ser revertidas
+    if (existing?.completed && !completed && role !== "admin") {
       toast({ title: "Tarefa concluída", description: "Tarefas concluídas não podem ser desmarcadas.", variant: "destructive" });
       return;
     }
