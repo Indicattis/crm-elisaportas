@@ -1510,20 +1510,35 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                           </Tooltip>
                         </TooltipProvider>
                       ) : task.completed ? (
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
+                        role === "admin" ? (
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <Checkbox
                                   checked
-                                  disabled
-                                  className="mt-0.5 cursor-not-allowed"
+                                  onCheckedChange={(checked) => handleToggleTask(task.id, !!checked)}
+                                  className="mt-0.5"
                                 />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Tarefa concluída — não pode ser desmarcada</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Como admin, você pode desmarcar esta tarefa</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Checkbox
+                                    checked
+                                    disabled
+                                    className="mt-0.5 cursor-not-allowed"
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Tarefa concluída — não pode ser desmarcada</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )
                       ) : (
                         <Checkbox
                           checked={task.completed}
