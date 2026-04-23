@@ -1,71 +1,49 @@
 
 
-# Transformar modal de detalhes em página dedicada
+# Mostrar apenas tarefas da coluna atual da negociação
 
-## Objetivo
+## Comportamento desejado
 
-Substituir o `DealDetailDialog` (modal) por uma **rota dedicada** `/deal/:id` (ou `/negociacao/:id`) que renderiza a mesma experiência em página inteira. Clicar num card no Kanban ou na lista navega para a nova página em vez de abrir o modal.
+Quando uma negociação muda para outra coluna do funil, as tarefas pendentes do grupo de tarefas da coluna anterior devem ser removidas. Apenas tarefas do grupo associado à nova coluna ficam ativas. Tarefas concluídas são preservadas (histórico).
 
-## Vantagens
+## Estado atual
 
-- URL compartilhável (cada negociação tem link próprio).
-- Botão "voltar" do navegador funciona.
-- Mais espaço de tela, sem limite de modal.
-- Recarregar a página mantém você na negociação.
+A função `handle_deal_tasks_on_status_change` (migration mais recente `20260421142234`) **não apaga** tarefas ao mudar de coluna — apenas insere novas se ainda não existirem. Isso faz com que tarefas das colunas anteriores fiquem acumuladas na negociação. (Uma versão anterior, `20260421134115`, chegou a apagar pendentes; foi revertido.)
 
-## Mudanças
+## Mudança
 
-### 1. Nova página — `src/pages/DealDetail.tsx`
+### Nova migration SQL — atualizar `handle_deal_tasks_on_status_change`
 
-- Lê `:id` do `useParams`.
-- Carrega o deal por id (`supabase.from("deals").select(...).eq("id", id).single()`).
-- Carrega `statuses` do funil do deal e `columnColor` da coluna atual.
-- Renderiza o conteúdo do `DealDetailDialog` (sem o wrapper `Dialog/DialogContent`).
-- Botão "Voltar" no topo (`navigate(-1)` ou `/`).
-- Estados de loading e "deal não encontrado".
+Restaurar a remoção de tarefas pendentes ao mudar de status, mantendo as concluídas:
 
-### 2. Refatorar `DealDetailDialog.tsx` → `DealDetailView.tsx`
-
-- Extrair todo o conteúdo interno (formulários, tarefas, comentários, histórico, anexos, ações de mover/arquivar/desqualificar) num componente `DealDetailView` reutilizável.
-- Props simplificadas: `deal`, `statuses`, `columnColor`, `onUpdated`, `onClose` (para botão voltar).
-- Remover toda a estrutura `Dialog`, `DialogContent`, `DialogHeader`. Substituir por container de página com classes equivalentes (mesmo estilo glassmorphism, mas sem overlay/portal).
-- Manter sub-dialogs internos (loss reason, archive reason, disqualify) que continuam sendo modais.
-- Apagar `DealDetailDialog` (ou deixar como wrapper fino que só renderiza `DealDetailView` dentro de um `Dialog` — **decidir: removeremos completamente** para simplificar).
-
-### 3. Roteamento — `src/App.tsx`
-
-Adicionar dentro do bloco autenticado:
-```tsx
-<Route path="/deal/:id" element={<DealDetail />} />
+```sql
+IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
+  DELETE FROM public.deal_tasks
+  WHERE deal_id = NEW.id
+    AND completed = false;
+END IF;
 ```
 
-### 4. Navegação ao clicar no card
+E remover o `IF EXISTS … CONTINUE` que pula inserção de templates já existentes — depois do DELETE, todos devem ser inseridos. Manter a lógica de inserção atual (templates + recurring_days).
 
-- `KanbanBoard.tsx`: trocar `handleViewDeal` para `navigate(\`/deal/${deal.id}\`)`. Remover estados `detailOpen`, `viewingDeal`, `viewingColumnColor` e o `<DealDetailDialog />`.
-- `DealsListView.tsx`: prop `onEditDeal` continua igual (recebe o handler do parent que agora navega).
-- `Results.tsx` e qualquer outro lugar que abria o modal: trocar para `navigate(\`/deal/${id}\`)`.
+### Ajuste em `recreate_deal_tasks` (botão "Recarregar tarefas")
 
-### 5. Voltar para a página anterior
+Já apaga pendentes antes de recriar (na versão `20260421134115`). A versão mais recente removeu esse DELETE — restaurar:
 
-- Botão "← Voltar" no topo da página → `navigate(-1)`. Se não houver histórico, fallback para `/`.
-- Após arquivar/desqualificar/marcar como vendida, navegar de volta automaticamente.
+```sql
+DELETE FROM public.deal_tasks WHERE deal_id = _deal_id AND completed = false;
+```
 
 ## Pontos de atenção
 
-- **Atualização em tempo real**: hoje o modal usa um `useEffect` para sincronizar `viewingDeal` quando `deals` muda. Na página dedicada, recarregamos o deal por id quando `onUpdated` é chamado (já buscamos do banco diretamente, então simples `refetch`).
-- **Tags e anexos**: a query de carregamento atual continua válida — só muda o gatilho (mount da página em vez de abertura do modal).
-- **Estilo**: aplicar `max-w-5xl mx-auto p-6` no container externo para manter legibilidade em telas grandes; mobile usa largura cheia.
-- **Sub-dialogs internos** (motivo de perda, arquivo, desqualificação) **continuam como Dialog** — só o container principal vira página.
-- **Acesso direto via URL**: se o usuário não tem permissão (RLS), a query retorna vazio → mostrar "Negociação não encontrada ou sem acesso".
+- **Tarefas concluídas permanecem** para preservar histórico de execução em colunas anteriores.
+- **Tarefas personalizadas adicionadas manualmente** (sem `template_id`) também serão removidas se estiverem pendentes ao mudar de coluna — alinhado com a regra "só tarefas da coluna atual".
+- O trigger `prevent_task_uncomplete` continua válido — DELETE não dispara `BEFORE UPDATE`.
+- Frontend (`DealDetailView`) não precisa de mudanças — ele já lista tarefas do deal direto do banco; com o DELETE no trigger, só verá as da coluna atual + concluídas históricas.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/DealDetail.tsx` | **Novo** — página que carrega deal por `:id` e renderiza `DealDetailView` |
-| `src/components/DealDetailView.tsx` | **Novo** — extraído de `DealDetailDialog`, sem wrapper de Dialog |
-| `src/components/DealDetailDialog.tsx` | **Removido** (conteúdo migrou para `DealDetailView`) |
-| `src/App.tsx` | Adicionar rota `/deal/:id` |
-| `src/components/KanbanBoard.tsx` | `handleViewDeal` navega; remover estados/JSX do modal |
-| `src/pages/Results.tsx` | Trocar abertura de modal por `navigate("/deal/:id")` se aplicável |
+| Nova migration SQL | `CREATE OR REPLACE FUNCTION handle_deal_tasks_on_status_change` com DELETE de pendentes ao mudar status; remover guard de "template já existente". `recreate_deal_tasks` também apaga pendentes antes de recriar. |
 
