@@ -209,12 +209,27 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
             </Badge>
           )}
         </div>
-        {nextTaskDeadline && (
-          <div className={`flex items-center gap-1 shrink-0 font-medium ${new Date(nextTaskDeadline) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
-            <Clock className="h-3 w-3" />
-            <span>{format(new Date(nextTaskDeadline), "dd/MM HH:mm")}</span>
-          </div>
-        )}
+        {(() => {
+          const returnDate = (deal as any).return_date as string | null | undefined;
+          if (returnDate) {
+            const isPast = new Date(returnDate) < new Date();
+            return (
+              <div className={`flex items-center gap-1 shrink-0 font-medium ${isPast ? "text-destructive" : "text-primary"}`} title="Data para retorno">
+                <CalendarClock className="h-3 w-3" />
+                <span>{format(new Date(returnDate), "dd/MM HH:mm")}</span>
+              </div>
+            );
+          }
+          if (nextTaskDeadline) {
+            return (
+              <div className={`flex items-center gap-1 shrink-0 font-medium ${new Date(nextTaskDeadline) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
+                <Clock className="h-3 w-3" />
+                <span>{format(new Date(nextTaskDeadline), "dd/MM HH:mm")}</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
 
       {/* Row 4: Created date + Value */}
