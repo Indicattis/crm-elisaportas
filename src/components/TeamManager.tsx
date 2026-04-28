@@ -34,6 +34,14 @@ export function TeamManager() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [uploadingMemberId, setUploadingMemberId] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Transfer & deactivate
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferMember, setTransferMember] = useState<TeamMember | null>(null);
+  const [transferTargetId, setTransferTargetId] = useState<string>("");
+  const [includeArchived, setIncludeArchived] = useState(true);
+  const [transferring, setTransferring] = useState(false);
+  const [dealCount, setDealCount] = useState<number | null>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
