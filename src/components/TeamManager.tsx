@@ -552,12 +552,12 @@ export function TeamManager() {
               Cancelar
             </Button>
             <Button
-              variant="destructive"
+              variant={transferIsOrphan ? "default" : "destructive"}
               onClick={handleTransfer}
               disabled={transferring || !transferTargetId}
             >
               {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCog className="h-4 w-4 mr-1" />}
-              Transferir e desativar
+              {transferIsOrphan ? "Transferir" : "Transferir e desativar"}
             </Button>
           </DialogFooter>
         </DialogContent>
