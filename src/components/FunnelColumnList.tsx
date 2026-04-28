@@ -49,6 +49,7 @@ const REQUIREMENT_FIELDS = [
   { value: "city", label: "Cidade" },
   { value: "acquisition_channel", label: "Canal de aquisição" },
   { value: "notes", label: "Notas" },
+  { value: "return_date", label: "Data de retorno" },
   { value: "task", label: "Tarefa obrigatória" },
 ];
 

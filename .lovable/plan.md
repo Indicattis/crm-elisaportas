@@ -1,35 +1,20 @@
-## Adicionar "Data para retorno" às negociações
+# Adicionar "Data de retorno" aos requisitos de entrada
 
-Novo campo opcional `return_date` (timestamp com hora) na tabela `deals`. Quando preenchido, **substitui sempre** a data da próxima tarefa exibida no card do Kanban. Edição apenas pelo modal de detalhes.
+Adicionar a opção `return_date` (Data de retorno) à lista de requisitos de entrada que podem ser exigidos ao mover uma negociação para uma coluna do funil.
 
-### Backend
+## Mudanças
 
-Migração na tabela `deals`:
-- Coluna `return_date timestamptz NULL`.
+### 1. `src/components/FunnelColumnList.tsx`
+- Adicionar `{ value: "return_date", label: "Data de retorno" }` ao array `REQUIREMENT_FIELDS`, para aparecer como checkbox na configuração de requisitos da coluna em /crm-config.
 
-### UI — Modal de detalhes (`DealDetailView.tsx`)
+### 2. `src/components/EntryRequirementsModal.tsx`
+- Adicionar `return_date: "Data de retorno"` ao mapa `FIELD_LABELS`.
+- Adicionar estado `returnDate` (Date | undefined) e `returnTime` (string "HH:mm", default "09:00").
+- Inicializar com `deal.return_date` se já existir.
+- Lógica de "missing": considerar faltante se `deal.return_date` for nulo.
+- Renderizar bloco com Popover + Calendar (Shadcn) para data e Input `type="time"` para hora, seguindo o mesmo padrão visual dos outros campos.
+- No `handleConfirm`: validar que a data foi preenchida; combinar data+hora em ISO e incluir `return_date` no `updates` enviado para `supabase.from("deals").update(...)`.
 
-- Novo bloco "Data para retorno" próximo aos campos principais (perto de telefone/email).
-- Mostra a data formatada `dd/MM/yy 'às' HH:mm` quando definida; senão "Clique para definir...".
-- Ao clicar, abre Popover com Shadcn `Calendar` (modo single) + Input de hora (`type="time"`).
-- Botões: "Salvar" (atualiza `return_date`) e "Limpar" (define `null`).
-- Salvamento via `supabase.from("deals").update({ return_date }).eq("id", deal.id)`.
-
-### Card do Kanban (`DealCard.tsx` + `KanbanBoard.tsx` + `KanbanColumn.tsx`)
-
-- `KanbanBoard` passa um `returnDateMap` (extraído direto de `deals`) para o `KanbanColumn` → `DealCard`.
-- `DealCard` na linha 3 (próxima tarefa):
-  - Se `deal.return_date` existir → exibe ela com ícone diferente (ex.: `CalendarClock`) e cor vermelha quando passada, âmbar/normal quando futura, com tooltip "Data para retorno".
-  - Caso contrário → mantém comportamento atual (`nextTaskDeadline`).
-- Ordenação por "next_task" no Kanban: usar `return_date` quando existir, senão `nextTaskMap[id]`.
-
-### Onde mais aparece
-
-- `DealsListView.tsx`: se houver coluna de próxima tarefa, aplicar mesma substituição (verificar e ajustar).
-- Tipos: `Tables<"deals">` é regenerado automaticamente após a migração.
-
-### Fora de escopo
-
-- Notificações/lembretes baseados na data de retorno.
-- Edição inline no card.
-- Filtros por data de retorno (pode vir depois).
+## Observações
+- Não há migração de banco: a coluna `return_date` (timestamptz) já existe na tabela `deals`.
+- Mantém o padrão atual do modal e respeita as guidelines de Calendar com `pointer-events-auto`.
