@@ -70,6 +70,13 @@ export function EntryRequirementsModal({
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDate, setTaskDate] = useState<Date | undefined>(undefined);
 
+  // Return date fields
+  const initialReturn = deal.return_date ? new Date(deal.return_date) : undefined;
+  const [returnDate, setReturnDate] = useState<Date | undefined>(initialReturn);
+  const [returnTime, setReturnTime] = useState<string>(
+    initialReturn ? format(initialReturn, "HH:mm") : "09:00"
+  );
+
   const [saving, setSaving] = useState(false);
 
   // Determine which fields are actually missing
