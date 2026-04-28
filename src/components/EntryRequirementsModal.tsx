@@ -129,10 +129,18 @@ export function EntryRequirementsModal({
       // Update deal with filled fields
       const dealFieldReqs = missingFields.filter((r) => r.field_name !== "task");
       if (dealFieldReqs.length > 0) {
+        let returnDateIso: string | null = null;
+        if (returnDate) {
+          const [hh, mm] = (returnTime || "09:00").split(":").map((n) => parseInt(n, 10));
+          const combined = new Date(returnDate);
+          combined.setHours(hh || 0, mm || 0, 0, 0);
+          returnDateIso = combined.toISOString();
+        }
         const vals: Record<string, any> = {
           phone, email, notes, state, city,
           acquisition_channel: channel,
           value: value ? parseFloat(value) : null,
+          return_date: returnDateIso,
         };
         const updates: any = {};
         for (const req of dealFieldReqs) {
