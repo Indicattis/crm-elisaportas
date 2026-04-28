@@ -1,68 +1,66 @@
+# Corrigir transferência de leads ao desativar usuário
 
-# Delegar leads e desativar usuário
+## Problema confirmado
 
-## Objetivo
+Na negociação 697 (e em outros 51 casos):
+- `user_id` = joao.staehler (admin que criou via fluxo de captação)
+- `assigned_to` = Juliana (a vendedora "dona" do lead no CRM)
 
-Em `/crm-config` → Equipe, adicionar uma ação "Desativar e transferir leads" para cada membro. Ao usar:
-1. Admin escolhe outro usuário como destino.
-2. Todas as negociações (`deals`) do usuário origem passam para o destino.
-3. O usuário origem é desativado (não consegue mais logar) e removido das listagens ativas.
+A função `transfer-and-deactivate` filtra apenas `WHERE user_id = from_user_id`. Como nenhum deal tinha a Juliana como `user_id`, **zero leads foram transferidos**. Mesmo assim ela foi banida e removida dos `funnel_members`, deixando 52 cards mostrando-a como responsável sem que ela consiga acessar.
 
-## Comportamento
+No domínio do CRM:
+- `user_id` = quem criou (frequentemente o admin/sistema via lead capture)
+- `assigned_to` = vendedor responsável (o que aparece no card e no Kanban)
 
-### Novo botão na linha de cada membro (TeamManager)
-- Ícone `UserCog` ao lado de Resetar senha / Remover.
-- Abre dialog "Transferir leads e desativar":
-  - Mostra quantas negociações ativas o usuário possui (consulta rápida em `deals` filtrando `archived=false`).
-  - Select com demais membros (exclui o próprio).
-  - Checkbox: "Transferir também negociações arquivadas" (default: ligado).
-  - Botões: Cancelar / Confirmar.
+A "transferência de leads" deve operar sobre **`assigned_to`**, que é o que o usuário enxerga como "leads do vendedor".
 
-### Ação ao confirmar
-Chama edge function `transfer-and-deactivate` que:
-1. Valida admin via `get_my_role`.
-2. Atualiza `deals.user_id` (e `assigned_to` quando igual ao origem) → destino. Respeita filtro de arquivado conforme checkbox.
-3. Adiciona o destino como `funnel_members` em todos os funis em que o origem era membro (evita perder acesso). Insere com `ON CONFLICT DO NOTHING`.
-4. Desativa o usuário em `auth.users` via `adminClient.auth.admin.updateUserById(id, { ban_duration: '876600h' })` (≈100 anos = "indefinido").
-5. Remove o `user_roles` do origem (some das listagens de equipe e de vendedores).
-6. Remove `funnel_members` do origem.
+## Correção
 
-Histórico: insere uma linha em `deal_history` por deal transferido (`event_type='transferred'`, descrição "Transferido de X para Y") usando `adminClient`.
+### Edge function `transfer-and-deactivate/index.ts`
 
-## Estado atual relevante
+Mudar a definição de "deals do usuário origem" para englobar **ambos**:
+- `assigned_to = from_user_id` (caso principal — o vendedor responsável)
+- OU `user_id = from_user_id` (caso o usuário também seja dono)
 
-- `TeamManager.tsx` lista membros via `user_roles` + `profiles`. Já tem ações: trocar cargo, resetar senha, remover.
-- `handleRemoveMember` apenas apaga `user_roles` — leads ficariam órfãos. Manter como está (remoção "limpa" apenas da equipe), e adicionar a nova ação de transferência completa.
-- Edge function `invite-user` já é o padrão de operações admin via service role. Criaremos uma nova edge function dedicada.
-- RLS permite `UPDATE` em `deals` apenas pelo owner/admin/membro. Service role bypassa — seguro usar na edge function.
+Lógica de transferência:
+1. Buscar deals com `assigned_to = from_user_id OR user_id = from_user_id` (respeitando filtro de arquivado).
+2. Para cada deal:
+   - Se `assigned_to = from_user_id` → setar `assigned_to = to_user_id`.
+   - Se `user_id = from_user_id` → setar `user_id = to_user_id`.
+3. Continuar com: adicionar destino aos `funnel_members`, registrar `deal_history`, banir usuário, limpar `user_roles` e `funnel_members` do origem.
 
-## Mudanças
+Implementação prática: dois `UPDATE` separados (um por `assigned_to`, outro por `user_id`) para evitar lógica condicional por linha; coletar a lista única de IDs afetados para o `deal_history` e para descobrir os funis envolvidos.
 
-### Nova edge function: `supabase/functions/transfer-and-deactivate/index.ts`
-- Body: `{ from_user_id, to_user_id, include_archived: boolean }`.
-- Valida admin, valida que `from != to`, valida que ambos existem em `profiles`.
-- Executa updates descritos acima usando service role.
-- Retorna `{ success, transferred_count }`.
+### Frontend `TeamManager.tsx`
 
-### `src/components/TeamManager.tsx`
-- Estado novo: `transferOpen`, `transferMember` (origem), `transferTargetId`, `includeArchived`, `transferring`, `dealCount`.
-- Função `openTransfer(member)` → busca `count` de deals do usuário (head request) e abre dialog.
-- Função `handleTransfer()` → invoca a edge function, mostra toast com `transferred_count`, chama `fetchTeamMembers()` e fecha dialog.
-- Novo botão `UserCog` na linha do membro (apenas se `!isMe`), com tooltip "Transferir leads e desativar".
+Atualizar a contagem exibida no dialog "Transferir e desativar" para usar a mesma regra:
+- Hoje: conta `deals` por `user_id`.
+- Novo: conta `deals` onde `assigned_to = membro OR user_id = membro` (com `or()` do supabase-js), respeitando o filtro de arquivado.
 
-### `supabase/config.toml`
-- Sem mudanças (função usa `verify_jwt = true` padrão; precisa do JWT do admin para validar role).
+Isso fará o dialog mostrar corretamente "52 negociações ativas" em vez de "0".
 
-## Pontos de atenção
+### Reparo retroativo (deals já órfãos da Juliana)
 
-- **Banimento via `ban_duration`** é a forma suportada pelo Supabase Auth Admin para "desativar" sem deletar — preserva integridade de FKs históricas (`completed_by`, `updated_by` em `deal_daily_color`, `deal_history.user_id` etc.).
-- Não alteramos `deal_history` antigo (mantém o histórico real).
-- `funnel_members` do destino: insert com try/catch silencioso por funil (pode já ser membro).
-- Confirmação dupla no front antes de chamar a função (ação destrutiva).
+Como a Juliana já foi banida e ainda há 52 deals com `assigned_to = juliana`, vou expor uma forma de corrigir: após o deploy da correção, basta reabrir o dialog em outro vendedor ativo? Não — a Juliana não aparece mais na lista de membros (sem `user_roles`).
+
+Solução: a função aceitará `from_user_id` mesmo sem `user_roles`/perfil ativo (já é o caso — só valida que existe em `profiles`). Vou recriar temporariamente o `user_roles` da Juliana? Não. Em vez disso, adicionar um caminho no `TeamManager`:
+
+- Listar separadamente "Usuários desativados com leads pendentes" — qualquer `assigned_to` distinct em `deals` cujo `user_id` não está em `user_roles`. Para cada um, oferecer o mesmo botão "Transferir leads" (sem desativar, pois já está banido).
+
+Para manter o escopo enxuto desta correção, vou fazer:
+- A função aceita um parâmetro extra `skip_deactivation: boolean`. Quando `true`, pula o `auth.admin.updateUserById` (banimento) e a limpeza de `user_roles` (já não existe).
+- O `TeamManager` ganha uma seção "Vendedores desativados com leads" listando esses casos e permitindo chamar a função com `skip_deactivation: true`.
 
 ## Arquivos Afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `supabase/functions/transfer-and-deactivate/index.ts` | **Novo** — edge function que transfere deals, banja usuário, ajusta funnel_members e user_roles |
-| `src/components/TeamManager.tsx` | Adicionar botão `UserCog`, dialog de transferência, lógica de invocação |
+| `supabase/functions/transfer-and-deactivate/index.ts` | Buscar deals por `assigned_to OR user_id`; atualizar ambos os campos quando aplicável; aceitar `skip_deactivation` |
+| `src/components/TeamManager.tsx` | Contagem usa `assigned_to OR user_id`; nova seção "Vendedores desativados com leads pendentes" com ação de transferência |
+
+## Pontos técnicos
+
+- Query para listar órfãos:  
+  `SELECT DISTINCT d.assigned_to, p.full_name FROM deals d JOIN profiles p ON p.id = d.assigned_to LEFT JOIN user_roles ur ON ur.user_id = d.assigned_to WHERE ur.user_id IS NULL AND d.assigned_to IS NOT NULL`
+- Sem mudança de schema — apenas lógica de aplicação.
+- RLS: como a função usa `service_role`, não há bloqueio.

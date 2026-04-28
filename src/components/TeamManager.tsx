@@ -22,6 +22,13 @@ interface TeamMember {
   role: string;
 }
 
+interface OrphanUser {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  deal_count: number;
+}
+
 export function TeamManager() {
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -42,6 +49,8 @@ export function TeamManager() {
   const [includeArchived, setIncludeArchived] = useState(true);
   const [transferring, setTransferring] = useState(false);
   const [dealCount, setDealCount] = useState<number | null>(null);
+  const [orphans, setOrphans] = useState<OrphanUser[]>([]);
+  const [transferIsOrphan, setTransferIsOrphan] = useState(false);
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
@@ -49,7 +58,10 @@ export function TeamManager() {
 
   useEffect(() => {
     fetchCurrentUser();
-    if (isAdmin) fetchTeamMembers();
+    if (isAdmin) {
+      fetchTeamMembers();
+      fetchOrphans();
+    }
   }, [isAdmin]);
 
   const fetchCurrentUser = async () => {
@@ -86,6 +98,57 @@ export function TeamManager() {
       setTeamMembers(members);
     } catch (err: any) {
       toast({ title: "Erro ao carregar equipe", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const fetchOrphans = async () => {
+    try {
+      // Find distinct assigned_to users that have NO user_role (i.e. deactivated/removed)
+      const { data: deals } = await supabase
+        .from("deals")
+        .select("assigned_to, user_id")
+        .or("assigned_to.not.is.null,user_id.not.is.null");
+
+      const userIds = new Set<string>();
+      (deals || []).forEach((d: any) => {
+        if (d.assigned_to) userIds.add(d.assigned_to);
+        if (d.user_id) userIds.add(d.user_id);
+      });
+      if (userIds.size === 0) { setOrphans([]); return; }
+
+      const idArr = Array.from(userIds);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("user_id", idArr);
+      const activeIds = new Set((roles || []).map((r: any) => r.user_id));
+      const orphanIds = idArr.filter((id) => !activeIds.has(id));
+      if (orphanIds.length === 0) { setOrphans([]); return; }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", orphanIds);
+
+      const counts: Record<string, number> = {};
+      (deals || []).forEach((d: any) => {
+        if (d.assigned_to && orphanIds.includes(d.assigned_to)) {
+          counts[d.assigned_to] = (counts[d.assigned_to] || 0) + 1;
+        } else if (d.user_id && orphanIds.includes(d.user_id) && d.assigned_to !== d.user_id) {
+          counts[d.user_id] = (counts[d.user_id] || 0) + 1;
+        }
+      });
+
+      const list: OrphanUser[] = (profiles || []).map((p: any) => ({
+        id: p.id,
+        full_name: p.full_name,
+        email: p.email,
+        deal_count: counts[p.id] || 0,
+      })).filter((o) => o.deal_count > 0);
+
+      setOrphans(list);
+    } catch (err: any) {
+      console.error("fetchOrphans error", err);
     }
   };
 
@@ -181,22 +244,26 @@ export function TeamManager() {
     toast({ title: "Copiado!" });
   };
 
-  const openTransfer = async (member: TeamMember) => {
+  const openTransfer = async (member: TeamMember, isOrphan = false) => {
     setTransferMember(member);
     setTransferTargetId("");
     setIncludeArchived(true);
     setDealCount(null);
+    setTransferIsOrphan(isOrphan);
     setTransferOpen(true);
     const { count } = await supabase
       .from("deals")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", member.id);
+      .or(`user_id.eq.${member.id},assigned_to.eq.${member.id}`);
     setDealCount(count ?? 0);
   };
 
   const handleTransfer = async () => {
     if (!transferMember || !transferTargetId) return;
-    if (!confirm(`Transferir leads de ${transferMember.full_name || "usuário"} e desativar a conta? Esta ação não pode ser desfeita facilmente.`)) return;
+    const confirmMsg = transferIsOrphan
+      ? `Transferir os leads remanescentes de ${transferMember.full_name || "usuário"}?`
+      : `Transferir leads de ${transferMember.full_name || "usuário"} e desativar a conta? Esta ação não pode ser desfeita facilmente.`;
+    if (!confirm(confirmMsg)) return;
     setTransferring(true);
     try {
       const res = await supabase.functions.invoke("transfer-and-deactivate", {
@@ -204,6 +271,7 @@ export function TeamManager() {
           from_user_id: transferMember.id,
           to_user_id: transferTargetId,
           include_archived: includeArchived,
+          skip_deactivation: transferIsOrphan,
         },
       });
       if (res.error) throw new Error(res.error.message || "Erro");
@@ -211,11 +279,15 @@ export function TeamManager() {
       if (data?.error) throw new Error(data.error);
       toast({
         title: "Transferência concluída!",
-        description: `${data.transferred_count} negociaçõe(s) transferida(s). Usuário desativado.`,
+        description: transferIsOrphan
+          ? `${data.transferred_count} negociação(ões) transferida(s).`
+          : `${data.transferred_count} negociação(ões) transferida(s). Usuário desativado.`,
       });
       setTransferOpen(false);
       setTransferMember(null);
+      setTransferIsOrphan(false);
       fetchTeamMembers();
+      fetchOrphans();
     } catch (err: any) {
       toast({ title: "Erro na transferência", description: err.message, variant: "destructive" });
     } finally {
@@ -327,6 +399,43 @@ export function TeamManager() {
         </CardContent>
       </Card>
 
+      {orphans.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">Vendedores desativados com leads pendentes</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Estes usuários não estão mais ativos, mas ainda possuem negociações atribuídas. Transfira para um vendedor ativo.
+              </p>
+            </div>
+            <div className="space-y-3">
+              {orphans.map((o) => {
+                const initials = (o.full_name || o.email || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                return (
+                  <div key={o.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="text-xs bg-muted text-muted-foreground">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{o.full_name || "Sem nome"}</p>
+                      {o.email && <p className="text-xs text-muted-foreground truncate">{o.email}</p>}
+                    </div>
+                    <Badge variant="outline" className="text-xs">{o.deal_count} lead(s)</Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openTransfer({ id: o.id, full_name: o.full_name, email: o.email, avatar_url: null, role: "vendedor" }, true)}
+                    >
+                      <UserCog className="h-4 w-4 mr-1" /> Transferir
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
@@ -393,11 +502,15 @@ export function TeamManager() {
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transferir leads e desativar</DialogTitle>
+            <DialogTitle>{transferIsOrphan ? "Transferir leads pendentes" : "Transferir leads e desativar"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-foreground">
-              Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.
+              {transferIsOrphan ? (
+                <>Os leads ainda atribuídos a <strong>{transferMember?.full_name || "este usuário"}</strong> serão transferidos para o destinatário escolhido.</>
+              ) : (
+                <>Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.</>
+              )}
             </p>
             <div className="rounded-lg border border-border p-3 bg-muted/40 text-sm">
               {dealCount === null ? (
@@ -439,12 +552,12 @@ export function TeamManager() {
               Cancelar
             </Button>
             <Button
-              variant="destructive"
+              variant={transferIsOrphan ? "default" : "destructive"}
               onClick={handleTransfer}
               disabled={transferring || !transferTargetId}
             >
               {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCog className="h-4 w-4 mr-1" />}
-              Transferir e desativar
+              {transferIsOrphan ? "Transferir" : "Transferir e desativar"}
             </Button>
           </DialogFooter>
         </DialogContent>
