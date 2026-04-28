@@ -101,7 +101,56 @@ export function TeamManager() {
     }
   };
 
-  const handleInvite = async () => {
+  const fetchOrphans = async () => {
+    try {
+      // Find distinct assigned_to users that have NO user_role (i.e. deactivated/removed)
+      const { data: deals } = await supabase
+        .from("deals")
+        .select("assigned_to, user_id")
+        .or("assigned_to.not.is.null,user_id.not.is.null");
+
+      const userIds = new Set<string>();
+      (deals || []).forEach((d: any) => {
+        if (d.assigned_to) userIds.add(d.assigned_to);
+        if (d.user_id) userIds.add(d.user_id);
+      });
+      if (userIds.size === 0) { setOrphans([]); return; }
+
+      const idArr = Array.from(userIds);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("user_id", idArr);
+      const activeIds = new Set((roles || []).map((r: any) => r.user_id));
+      const orphanIds = idArr.filter((id) => !activeIds.has(id));
+      if (orphanIds.length === 0) { setOrphans([]); return; }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", orphanIds);
+
+      const counts: Record<string, number> = {};
+      (deals || []).forEach((d: any) => {
+        if (d.assigned_to && orphanIds.includes(d.assigned_to)) {
+          counts[d.assigned_to] = (counts[d.assigned_to] || 0) + 1;
+        } else if (d.user_id && orphanIds.includes(d.user_id) && d.assigned_to !== d.user_id) {
+          counts[d.user_id] = (counts[d.user_id] || 0) + 1;
+        }
+      });
+
+      const list: OrphanUser[] = (profiles || []).map((p: any) => ({
+        id: p.id,
+        full_name: p.full_name,
+        email: p.email,
+        deal_count: counts[p.id] || 0,
+      })).filter((o) => o.deal_count > 0);
+
+      setOrphans(list);
+    } catch (err: any) {
+      console.error("fetchOrphans error", err);
+    }
+  };
     if (!inviteEmail) return;
     setInviting(true);
     setTempPassword(null);
