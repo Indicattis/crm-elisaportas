@@ -30,6 +30,7 @@ const FIELD_LABELS: Record<string, string> = {
   city: "Cidade",
   acquisition_channel: "Canal de aquisição",
   notes: "Notas",
+  return_date: "Data de retorno",
   task: "Tarefa obrigatória",
 };
 
