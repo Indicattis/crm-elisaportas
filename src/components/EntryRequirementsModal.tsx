@@ -105,6 +105,14 @@ export function EntryRequirementsModal({
         continue;
       }
 
+      if (req.field_name === "return_date") {
+        if (!returnDate) {
+          toast({ title: "Campo obrigatório", description: "Preencha: Data de retorno", variant: "destructive" });
+          return;
+        }
+        continue;
+      }
+
       const fieldValue = {
         phone, email, value, state, city,
         acquisition_channel: channel, notes,
