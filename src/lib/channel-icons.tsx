@@ -59,27 +59,53 @@ const TwitterIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const LetterIcon = ({ className, char }: { className?: string; char: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <text
+      x="12"
+      y="12"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize="16"
+      fontWeight="700"
+      fontFamily="inherit"
+      fill="currentColor"
+    >
+      {char}
+    </text>
+  </svg>
+);
+
 export interface ChannelIconOption {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  group?: "icon" | "letter";
 }
 
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 export const CHANNEL_ICONS: ChannelIconOption[] = [
-  { id: "google", label: "Google", icon: GoogleIcon },
-  { id: "facebook", label: "Facebook", icon: FacebookIcon },
-  { id: "instagram", label: "Instagram", icon: InstagramIcon },
-  { id: "tiktok", label: "TikTok", icon: TikTokIcon },
-  { id: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
-  { id: "linkedin", label: "LinkedIn", icon: LinkedInIcon },
-  { id: "youtube", label: "YouTube", icon: YouTubeIcon },
-  { id: "twitter", label: "X / Twitter", icon: TwitterIcon },
-  { id: "megaphone", label: "Indicação", icon: ({ className }) => <Megaphone className={className} /> },
-  { id: "user-check", label: "Cliente fidelizado", icon: ({ className }) => <UserCheck className={className} /> },
-  { id: "shield", label: "Autorizado", icon: ({ className }) => <Shield className={className} /> },
-  { id: "globe", label: "Site", icon: ({ className }) => <Globe className={className} /> },
-  { id: "mail", label: "E-mail", icon: ({ className }) => <Mail className={className} /> },
-  { id: "phone", label: "Telefone", icon: ({ className }) => <Phone className={className} /> },
+  { id: "google", label: "Google", icon: GoogleIcon, group: "icon" },
+  { id: "facebook", label: "Facebook", icon: FacebookIcon, group: "icon" },
+  { id: "instagram", label: "Instagram", icon: InstagramIcon, group: "icon" },
+  { id: "tiktok", label: "TikTok", icon: TikTokIcon, group: "icon" },
+  { id: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon, group: "icon" },
+  { id: "linkedin", label: "LinkedIn", icon: LinkedInIcon, group: "icon" },
+  { id: "youtube", label: "YouTube", icon: YouTubeIcon, group: "icon" },
+  { id: "twitter", label: "X / Twitter", icon: TwitterIcon, group: "icon" },
+  { id: "megaphone", label: "Indicação", icon: ({ className }) => <Megaphone className={className} />, group: "icon" },
+  { id: "user-check", label: "Cliente fidelizado", icon: ({ className }) => <UserCheck className={className} />, group: "icon" },
+  { id: "shield", label: "Autorizado", icon: ({ className }) => <Shield className={className} />, group: "icon" },
+  { id: "globe", label: "Site", icon: ({ className }) => <Globe className={className} />, group: "icon" },
+  { id: "mail", label: "E-mail", icon: ({ className }) => <Mail className={className} />, group: "icon" },
+  { id: "phone", label: "Telefone", icon: ({ className }) => <Phone className={className} />, group: "icon" },
+  ...LETTERS.map((char) => ({
+    id: `letter-${char.toLowerCase()}`,
+    label: `Letra ${char}`,
+    icon: ({ className }: { className?: string }) => <LetterIcon className={className} char={char} />,
+    group: "letter" as const,
+  })),
 ];
 
 export function getChannelIcon(iconId: string) {
