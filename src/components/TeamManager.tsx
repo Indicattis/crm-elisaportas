@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound, Camera } from "lucide-react";
+import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound, Camera, UserCog } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +34,14 @@ export function TeamManager() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [uploadingMemberId, setUploadingMemberId] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Transfer & deactivate
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferMember, setTransferMember] = useState<TeamMember | null>(null);
+  const [transferTargetId, setTransferTargetId] = useState<string>("");
+  const [includeArchived, setIncludeArchived] = useState(true);
+  const [transferring, setTransferring] = useState(false);
+  const [dealCount, setDealCount] = useState<number | null>(null);
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
@@ -172,6 +181,48 @@ export function TeamManager() {
     toast({ title: "Copiado!" });
   };
 
+  const openTransfer = async (member: TeamMember) => {
+    setTransferMember(member);
+    setTransferTargetId("");
+    setIncludeArchived(true);
+    setDealCount(null);
+    setTransferOpen(true);
+    const { count } = await supabase
+      .from("deals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", member.id);
+    setDealCount(count ?? 0);
+  };
+
+  const handleTransfer = async () => {
+    if (!transferMember || !transferTargetId) return;
+    if (!confirm(`Transferir leads de ${transferMember.full_name || "usuário"} e desativar a conta? Esta ação não pode ser desfeita facilmente.`)) return;
+    setTransferring(true);
+    try {
+      const res = await supabase.functions.invoke("transfer-and-deactivate", {
+        body: {
+          from_user_id: transferMember.id,
+          to_user_id: transferTargetId,
+          include_archived: includeArchived,
+        },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro");
+      const data = res.data;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Transferência concluída!",
+        description: `${data.transferred_count} negociaçõe(s) transferida(s). Usuário desativado.`,
+      });
+      setTransferOpen(false);
+      setTransferMember(null);
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro na transferência", description: err.message, variant: "destructive" });
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -258,7 +309,10 @@ export function TeamManager() {
                       <Button variant="ghost" size="sm" onClick={() => handleResetPassword(member)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" title="Resetar senha">
                         <KeyRound className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="sm" onClick={() => openTransfer(member)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" title="Transferir leads e desativar">
+                        <UserCog className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Remover da equipe">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -332,6 +386,67 @@ export function TeamManager() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer & Deactivate Dialog */}
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transferir leads e desativar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-foreground">
+              Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.
+            </p>
+            <div className="rounded-lg border border-border p-3 bg-muted/40 text-sm">
+              {dealCount === null ? (
+                <span className="text-muted-foreground">Carregando contagem de negociações…</span>
+              ) : (
+                <span><strong>{dealCount}</strong> negociação(ões) no total (incluindo arquivadas).</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Transferir para</Label>
+              <Select value={transferTargetId} onValueChange={setTransferTargetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar destinatário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers
+                    .filter((m) => m.id !== transferMember?.id)
+                    .map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.full_name || m.email || "Sem nome"}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-archived"
+                checked={includeArchived}
+                onCheckedChange={(v) => setIncludeArchived(!!v)}
+              />
+              <Label htmlFor="include-archived" className="cursor-pointer text-sm font-normal">
+                Transferir também negociações arquivadas
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOpen(false)} disabled={transferring}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleTransfer}
+              disabled={transferring || !transferTargetId}
+            >
+              {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCog className="h-4 w-4 mr-1" />}
+              Transferir e desativar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
