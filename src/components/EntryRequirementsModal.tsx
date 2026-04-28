@@ -253,6 +253,38 @@ export function EntryRequirementsModal({
                 </div>
               );
             }
+            if (req.field_name === "return_date") {
+              return (
+                <div key="return_date" className="space-y-1.5">
+                  <Label>Data de retorno</Label>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal", !returnDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {returnDate ? format(returnDate, "dd/MM/yyyy") : "Selecione a data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={returnDate}
+                          onSelect={setReturnDate}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Input
+                      type="time"
+                      value={returnTime}
+                      onChange={(e) => setReturnTime(e.target.value)}
+                      className="w-32"
+                    />
+                  </div>
+                </div>
+              );
+            }
             if (req.field_name === "task") {
               return (
                 <div key="task" className="space-y-3 rounded-lg border border-border p-3 bg-muted/30">
