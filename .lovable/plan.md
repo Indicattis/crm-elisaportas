@@ -1,66 +1,50 @@
-# Corrigir transferência de leads ao desativar usuário
+# Fix: 0 leads transferidos na função "Transferir e desativar"
 
-## Problema confirmado
+## Diagnóstico
 
-Na negociação 697 (e em outros 51 casos):
-- `user_id` = joao.staehler (admin que criou via fluxo de captação)
-- `assigned_to` = Juliana (a vendedora "dona" do lead no CRM)
+Reproduzi o bug chamando a edge function diretamente com a id da Juliana (`92013f16…`), que tem **52 negociações com `assigned_to`**. A função respondeu `transferred_count: 0`.
 
-A função `transfer-and-deactivate` filtra apenas `WHERE user_id = from_user_id`. Como nenhum deal tinha a Juliana como `user_id`, **zero leads foram transferidos**. Mesmo assim ela foi banida e removida dos `funnel_members`, deixando 52 cards mostrando-a como responsável sem que ela consiga acessar.
+A consulta usada na função é:
 
-No domínio do CRM:
-- `user_id` = quem criou (frequentemente o admin/sistema via lead capture)
-- `assigned_to` = vendedor responsável (o que aparece no card e no Kanban)
+```ts
+adminClient.from("deals")
+  .select("id, funnel_id, user_id, assigned_to")
+  .or(`user_id.eq.${from_user_id},assigned_to.eq.${from_user_id}`)
+```
 
-A "transferência de leads" deve operar sobre **`assigned_to`**, que é o que o usuário enxerga como "leads do vendedor".
+Mesmo com service role (sem RLS), esta chamada está retornando 0 linhas para esta combinação. O filtro `.or()` do PostgREST com dois `eq.<uuid>` está falhando silenciosamente neste caso. SQL direto retorna 52, então o problema é no encoding do filtro `or` no client.
+
+Como consequência, depois de "transferir 0", a função ainda apaga `funnel_members` e `user_roles` da origem. Por isso a Juliana já está sem role, mas as 52 deals continuam apontando pra ela.
 
 ## Correção
 
-### Edge function `transfer-and-deactivate/index.ts`
+Trocar o `.or()` por **duas consultas explícitas** e fazer merge no código (mais robusto e legível):
 
-Mudar a definição de "deals do usuário origem" para englobar **ambos**:
-- `assigned_to = from_user_id` (caso principal — o vendedor responsável)
-- OU `user_id = from_user_id` (caso o usuário também seja dono)
+```ts
+const { data: ownedDeals } = await adminClient
+  .from("deals")
+  .select("id, funnel_id")
+  .eq("user_id", from_user_id)
+  .eq(...) // archived se aplicável
+  
+const { data: assignedDeals } = await adminClient
+  .from("deals")
+  .select("id, funnel_id")
+  .eq("assigned_to", from_user_id)
+  .eq(...) // archived se aplicável
 
-Lógica de transferência:
-1. Buscar deals com `assigned_to = from_user_id OR user_id = from_user_id` (respeitando filtro de arquivado).
-2. Para cada deal:
-   - Se `assigned_to = from_user_id` → setar `assigned_to = to_user_id`.
-   - Se `user_id = from_user_id` → setar `user_id = to_user_id`.
-3. Continuar com: adicionar destino aos `funnel_members`, registrar `deal_history`, banir usuário, limpar `user_roles` e `funnel_members` do origem.
+// Merge sem duplicar ids para a lista de history e funnel_members
+// Update separados:
+//   - UPDATE user_id = to_user_id WHERE id IN (ownedDeals)
+//   - UPDATE assigned_to = to_user_id WHERE id IN (assignedDeals)
+```
 
-Implementação prática: dois `UPDATE` separados (um por `assigned_to`, outro por `user_id`) para evitar lógica condicional por linha; coletar a lista única de IDs afetados para o `deal_history` e para descobrir os funis envolvidos.
+## Recuperação dos dados da Juliana
 
-### Frontend `TeamManager.tsx`
+Depois do fix, basta abrir o card de "Vendedores desativados com leads pendentes", clicar em transferir e a transferência funcionará normalmente (a função respeita `skip_deactivation` para usuários já banidos).
 
-Atualizar a contagem exibida no dialog "Transferir e desativar" para usar a mesma regra:
-- Hoje: conta `deals` por `user_id`.
-- Novo: conta `deals` onde `assigned_to = membro OR user_id = membro` (com `or()` do supabase-js), respeitando o filtro de arquivado.
-
-Isso fará o dialog mostrar corretamente "52 negociações ativas" em vez de "0".
-
-### Reparo retroativo (deals já órfãos da Juliana)
-
-Como a Juliana já foi banida e ainda há 52 deals com `assigned_to = juliana`, vou expor uma forma de corrigir: após o deploy da correção, basta reabrir o dialog em outro vendedor ativo? Não — a Juliana não aparece mais na lista de membros (sem `user_roles`).
-
-Solução: a função aceitará `from_user_id` mesmo sem `user_roles`/perfil ativo (já é o caso — só valida que existe em `profiles`). Vou recriar temporariamente o `user_roles` da Juliana? Não. Em vez disso, adicionar um caminho no `TeamManager`:
-
-- Listar separadamente "Usuários desativados com leads pendentes" — qualquer `assigned_to` distinct em `deals` cujo `user_id` não está em `user_roles`. Para cada um, oferecer o mesmo botão "Transferir leads" (sem desativar, pois já está banido).
-
-Para manter o escopo enxuto desta correção, vou fazer:
-- A função aceita um parâmetro extra `skip_deactivation: boolean`. Quando `true`, pula o `auth.admin.updateUserById` (banimento) e a limpeza de `user_roles` (já não existe).
-- O `TeamManager` ganha uma seção "Vendedores desativados com leads" listando esses casos e permitindo chamar a função com `skip_deactivation: true`.
-
-## Arquivos Afetados
+## Arquivo afetado
 
 | Arquivo | Mudança |
 |---|---|
-| `supabase/functions/transfer-and-deactivate/index.ts` | Buscar deals por `assigned_to OR user_id`; atualizar ambos os campos quando aplicável; aceitar `skip_deactivation` |
-| `src/components/TeamManager.tsx` | Contagem usa `assigned_to OR user_id`; nova seção "Vendedores desativados com leads pendentes" com ação de transferência |
-
-## Pontos técnicos
-
-- Query para listar órfãos:  
-  `SELECT DISTINCT d.assigned_to, p.full_name FROM deals d JOIN profiles p ON p.id = d.assigned_to LEFT JOIN user_roles ur ON ur.user_id = d.assigned_to WHERE ur.user_id IS NULL AND d.assigned_to IS NOT NULL`
-- Sem mudança de schema — apenas lógica de aplicação.
-- RLS: como a função usa `service_role`, não há bloqueio.
+| `supabase/functions/transfer-and-deactivate/index.ts` | Substituir o bloco do `.or()` por duas queries `.eq()` separadas e ajustar a montagem de `ownerIds`, `assigneeIds`, `allIds` e `fromFunnelIds`. |

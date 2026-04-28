@@ -73,21 +73,33 @@ Deno.serve(async (req) => {
     const fromName = profiles.find((p) => p.id === from_user_id)?.full_name || "usuário";
     const toName = profiles.find((p) => p.id === to_user_id)?.full_name || "usuário";
 
-    // Fetch deals where source is owner OR assignee (the real "leads of the user")
-    let dealsQuery = adminClient
+    // Fetch deals where source is owner and where source is assignee (two queries — more reliable than .or())
+    let ownedQuery = adminClient
       .from("deals")
-      .select("id, funnel_id, user_id, assigned_to")
-      .or(`user_id.eq.${from_user_id},assigned_to.eq.${from_user_id}`);
+      .select("id, funnel_id")
+      .eq("user_id", from_user_id);
+    let assignedQuery = adminClient
+      .from("deals")
+      .select("id, funnel_id")
+      .eq("assigned_to", from_user_id);
     if (!include_archived) {
-      dealsQuery = dealsQuery.eq("archived", false);
+      ownedQuery = ownedQuery.eq("archived", false);
+      assignedQuery = assignedQuery.eq("archived", false);
     }
-    const { data: deals, error: dealsErr } = await dealsQuery;
-    if (dealsErr) throw dealsErr;
+    const [{ data: ownedDeals, error: ownedErr }, { data: assignedDeals, error: assignedErr }] = await Promise.all([
+      ownedQuery,
+      assignedQuery,
+    ]);
+    if (ownedErr) throw ownedErr;
+    if (assignedErr) throw assignedErr;
 
-    const allIds = (deals || []).map((d) => d.id);
-    const ownerIds = (deals || []).filter((d) => d.user_id === from_user_id).map((d) => d.id);
-    const assigneeIds = (deals || []).filter((d) => d.assigned_to === from_user_id).map((d) => d.id);
-    const fromFunnelIds = Array.from(new Set((deals || []).map((d) => d.funnel_id).filter(Boolean)));
+    const ownerIds = (ownedDeals || []).map((d) => d.id);
+    const assigneeIds = (assignedDeals || []).map((d) => d.id);
+    const allIds = Array.from(new Set([...ownerIds, ...assigneeIds]));
+    const fromFunnelIds = Array.from(new Set([
+      ...(ownedDeals || []).map((d) => d.funnel_id).filter(Boolean),
+      ...(assignedDeals || []).map((d) => d.funnel_id).filter(Boolean),
+    ]));
 
     // Add destination to funnel_members for each funnel containing transferred deals
     for (const fid of fromFunnelIds) {
