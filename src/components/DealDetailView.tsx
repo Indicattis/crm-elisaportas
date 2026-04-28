@@ -1015,6 +1015,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                       <span className="italic text-muted-foreground">Adicionar localização</span>
                     )}
                   </span>
+                )}
               </div>
 
               {/* Data para retorno */}
