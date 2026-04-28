@@ -767,8 +767,10 @@ export function KanbanBoard() {
                   if (order === "alphabetical") return a.title.localeCompare(b.title);
                   if (order === "created_at") return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
                   if (order === "next_task") {
-                    const tA = nextTaskMap[a.id] ? new Date(nextTaskMap[a.id]).getTime() : Infinity;
-                    const tB = nextTaskMap[b.id] ? new Date(nextTaskMap[b.id]).getTime() : Infinity;
+                    const rA = (a as any).return_date as string | null | undefined;
+                    const rB = (b as any).return_date as string | null | undefined;
+                    const tA = rA ? new Date(rA).getTime() : (nextTaskMap[a.id] ? new Date(nextTaskMap[a.id]).getTime() : Infinity);
+                    const tB = rB ? new Date(rB).getTime() : (nextTaskMap[b.id] ? new Date(nextTaskMap[b.id]).getTime() : Infinity);
                     return tA - tB;
                   }
                   if (order === "value_desc") return (b.value || 0) - (a.value || 0);
