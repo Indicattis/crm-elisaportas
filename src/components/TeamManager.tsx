@@ -399,6 +399,43 @@ export function TeamManager() {
         </CardContent>
       </Card>
 
+      {orphans.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">Vendedores desativados com leads pendentes</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Estes usuários não estão mais ativos, mas ainda possuem negociações atribuídas. Transfira para um vendedor ativo.
+              </p>
+            </div>
+            <div className="space-y-3">
+              {orphans.map((o) => {
+                const initials = (o.full_name || o.email || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                return (
+                  <div key={o.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="text-xs bg-muted text-muted-foreground">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{o.full_name || "Sem nome"}</p>
+                      {o.email && <p className="text-xs text-muted-foreground truncate">{o.email}</p>}
+                    </div>
+                    <Badge variant="outline" className="text-xs">{o.deal_count} lead(s)</Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openTransfer({ id: o.id, full_name: o.full_name, email: o.email, avatar_url: null, role: "vendedor" }, true)}
+                    >
+                      <UserCog className="h-4 w-4 mr-1" /> Transferir
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
