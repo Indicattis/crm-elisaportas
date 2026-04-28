@@ -502,11 +502,15 @@ export function TeamManager() {
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transferir leads e desativar</DialogTitle>
+            <DialogTitle>{transferIsOrphan ? "Transferir leads pendentes" : "Transferir leads e desativar"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-foreground">
-              Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.
+              {transferIsOrphan ? (
+                <>Os leads ainda atribuídos a <strong>{transferMember?.full_name || "este usuário"}</strong> serão transferidos para o destinatário escolhido.</>
+              ) : (
+                <>Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.</>
+              )}
             </p>
             <div className="rounded-lg border border-border p-3 bg-muted/40 text-sm">
               {dealCount === null ? (
