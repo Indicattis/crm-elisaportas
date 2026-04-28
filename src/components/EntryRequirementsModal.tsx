@@ -30,6 +30,7 @@ const FIELD_LABELS: Record<string, string> = {
   city: "Cidade",
   acquisition_channel: "Canal de aquisição",
   notes: "Notas",
+  return_date: "Data de retorno",
   task: "Tarefa obrigatória",
 };
 
@@ -69,6 +70,13 @@ export function EntryRequirementsModal({
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDate, setTaskDate] = useState<Date | undefined>(undefined);
 
+  // Return date fields
+  const initialReturn = deal.return_date ? new Date(deal.return_date) : undefined;
+  const [returnDate, setReturnDate] = useState<Date | undefined>(initialReturn);
+  const [returnTime, setReturnTime] = useState<string>(
+    initialReturn ? format(initialReturn, "HH:mm") : "09:00"
+  );
+
   const [saving, setSaving] = useState(false);
 
   // Determine which fields are actually missing
@@ -97,6 +105,14 @@ export function EntryRequirementsModal({
         continue;
       }
 
+      if (req.field_name === "return_date") {
+        if (!returnDate) {
+          toast({ title: "Campo obrigatório", description: "Preencha: Data de retorno", variant: "destructive" });
+          return;
+        }
+        continue;
+      }
+
       const fieldValue = {
         phone, email, value, state, city,
         acquisition_channel: channel, notes,
@@ -113,10 +129,18 @@ export function EntryRequirementsModal({
       // Update deal with filled fields
       const dealFieldReqs = missingFields.filter((r) => r.field_name !== "task");
       if (dealFieldReqs.length > 0) {
+        let returnDateIso: string | null = null;
+        if (returnDate) {
+          const [hh, mm] = (returnTime || "09:00").split(":").map((n) => parseInt(n, 10));
+          const combined = new Date(returnDate);
+          combined.setHours(hh || 0, mm || 0, 0, 0);
+          returnDateIso = combined.toISOString();
+        }
         const vals: Record<string, any> = {
           phone, email, notes, state, city,
           acquisition_channel: channel,
           value: value ? parseFloat(value) : null,
+          return_date: returnDateIso,
         };
         const updates: any = {};
         for (const req of dealFieldReqs) {
@@ -226,6 +250,38 @@ export function EntryRequirementsModal({
                 <div key="notes" className="space-y-1.5">
                   <Label>Notas</Label>
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações..." rows={3} />
+                </div>
+              );
+            }
+            if (req.field_name === "return_date") {
+              return (
+                <div key="return_date" className="space-y-1.5">
+                  <Label>Data de retorno</Label>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal", !returnDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {returnDate ? format(returnDate, "dd/MM/yyyy") : "Selecione a data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={returnDate}
+                          onSelect={setReturnDate}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Input
+                      type="time"
+                      value={returnTime}
+                      onChange={(e) => setReturnTime(e.target.value)}
+                      className="w-32"
+                    />
+                  </div>
                 </div>
               );
             }
