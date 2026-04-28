@@ -232,19 +232,15 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
         })()}
       </div>
 
-      {/* Row 4: Created date + Value */}
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Calendar className="h-3 w-3" />
-          {format(new Date(deal.created_at), "dd/MM/yy")}
-        </span>
-        {deal.value && deal.value > 0 && (
+      {/* Row 4: Value */}
+      {deal.value && deal.value > 0 && (
+        <div className="flex items-center justify-end text-[11px]">
           <span className="bg-primary/10 text-primary font-bold text-xs rounded px-2 py-0.5 flex items-center gap-0.5">
             <DollarSign className="h-3 w-3" />
             R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 });
