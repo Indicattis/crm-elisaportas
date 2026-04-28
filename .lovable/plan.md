@@ -1,22 +1,35 @@
-## Adicionar ícones de letras ao seletor de canais
+## Adicionar "Data para retorno" às negociações
 
-Em `/crm-config` → Canais de Aquisição, o seletor atual oferece apenas ícones gráficos (Google, Facebook, Megafone, etc.). Vou adicionar 26 opções extras de "ícone com letra" (A a Z), permitindo identificar canais por inicial.
+Novo campo opcional `return_date` (timestamp com hora) na tabela `deals`. Quando preenchido, **substitui sempre** a data da próxima tarefa exibida no card do Kanban. Edição apenas pelo modal de detalhes.
 
-### Como vai funcionar
+### Backend
 
-- O `ChannelIconPicker` ganha uma seção extra "Letras" com um grid das 26 letras.
-- Cada letra é renderizada como um SVG inline (mesmo tamanho/estilo dos outros ícones), usando `currentColor` para herdar o tema (light/dark).
-- Os IDs ficam no padrão `letter-a`, `letter-b`, …, `letter-z` — assim já são salvos como qualquer outro `icon` na tabela `acquisition_channels` sem migração.
-- O `getChannelIcon` continua resolvendo qualquer ID, então cards do Kanban (`DealCard`) e o gerenciador (`AcquisitionChannelManager`) renderizam automaticamente.
+Migração na tabela `deals`:
+- Coluna `return_date timestamptz NULL`.
 
-### Mudanças técnicas
+### UI — Modal de detalhes (`DealDetailView.tsx`)
 
-- `src/lib/channel-icons.tsx`
-  - Novo componente `LetterIcon({ char })` que devolve um SVG quadrado com a letra centralizada em negrito (font-weight 700, fonte herdada do tema "Indivisible").
-  - Gerar dinamicamente 26 entradas `{ id: "letter-x", label: "Letra X", icon: LetterIcon }` e adicioná-las ao final de `CHANNEL_ICONS`.
+- Novo bloco "Data para retorno" próximo aos campos principais (perto de telefone/email).
+- Mostra a data formatada `dd/MM/yy 'às' HH:mm` quando definida; senão "Clique para definir...".
+- Ao clicar, abre Popover com Shadcn `Calendar` (modo single) + Input de hora (`type="time"`).
+- Botões: "Salvar" (atualiza `return_date`) e "Limpar" (define `null`).
+- Salvamento via `supabase.from("deals").update({ return_date }).eq("id", deal.id)`.
 
-- `src/components/ChannelIconPicker.tsx`
-  - Separar visualmente em dois grupos com um pequeno título: "Ícones" (atuais) e "Letras" (A–Z).
-  - Manter o mesmo grid de 7 colunas e o estado de seleção.
+### Card do Kanban (`DealCard.tsx` + `KanbanBoard.tsx` + `KanbanColumn.tsx`)
 
-Sem mudanças de banco e sem impacto em dados existentes.
+- `KanbanBoard` passa um `returnDateMap` (extraído direto de `deals`) para o `KanbanColumn` → `DealCard`.
+- `DealCard` na linha 3 (próxima tarefa):
+  - Se `deal.return_date` existir → exibe ela com ícone diferente (ex.: `CalendarClock`) e cor vermelha quando passada, âmbar/normal quando futura, com tooltip "Data para retorno".
+  - Caso contrário → mantém comportamento atual (`nextTaskDeadline`).
+- Ordenação por "next_task" no Kanban: usar `return_date` quando existir, senão `nextTaskMap[id]`.
+
+### Onde mais aparece
+
+- `DealsListView.tsx`: se houver coluna de próxima tarefa, aplicar mesma substituição (verificar e ajustar).
+- Tipos: `Tables<"deals">` é regenerado automaticamente após a migração.
+
+### Fora de escopo
+
+- Notificações/lembretes baseados na data de retorno.
+- Edição inline no card.
+- Filtros por data de retorno (pode vir depois).

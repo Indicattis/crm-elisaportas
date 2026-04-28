@@ -342,6 +342,7 @@ export type Database = {
           loss_reason: string | null
           notes: string | null
           phone: string | null
+          return_date: string | null
           state: string | null
           status: string
           title: string
@@ -365,6 +366,7 @@ export type Database = {
           loss_reason?: string | null
           notes?: string | null
           phone?: string | null
+          return_date?: string | null
           state?: string | null
           status?: string
           title: string
@@ -388,6 +390,7 @@ export type Database = {
           loss_reason?: string | null
           notes?: string | null
           phone?: string | null
+          return_date?: string | null
           state?: string | null
           status?: string
           title?: string

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 
 import { StateCitySelect } from "@/components/StateCitySelect";
+import { ReturnDateField } from "@/components/ReturnDateField";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -1017,6 +1018,12 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                   </span>
                 )}
               </div>
+
+              {/* Data para retorno */}
+              <ReturnDateField
+                deal={deal}
+                onUpdated={onUpdated}
+              />
             </div>
           </div>
 
