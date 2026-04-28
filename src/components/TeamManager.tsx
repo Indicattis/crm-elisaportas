@@ -151,6 +151,8 @@ export function TeamManager() {
       console.error("fetchOrphans error", err);
     }
   };
+
+  const handleInvite = async () => {
     if (!inviteEmail) return;
     setInviting(true);
     setTempPassword(null);
