@@ -58,7 +58,10 @@ export function TeamManager() {
 
   useEffect(() => {
     fetchCurrentUser();
-    if (isAdmin) fetchTeamMembers();
+    if (isAdmin) {
+      fetchTeamMembers();
+      fetchOrphans();
+    }
   }, [isAdmin]);
 
   const fetchCurrentUser = async () => {
