@@ -49,6 +49,8 @@ export function TeamManager() {
   const [includeArchived, setIncludeArchived] = useState(true);
   const [transferring, setTransferring] = useState(false);
   const [dealCount, setDealCount] = useState<number | null>(null);
+  const [orphans, setOrphans] = useState<OrphanUser[]>([]);
+  const [transferIsOrphan, setTransferIsOrphan] = useState(false);
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
