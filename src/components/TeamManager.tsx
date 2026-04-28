@@ -181,6 +181,48 @@ export function TeamManager() {
     toast({ title: "Copiado!" });
   };
 
+  const openTransfer = async (member: TeamMember) => {
+    setTransferMember(member);
+    setTransferTargetId("");
+    setIncludeArchived(true);
+    setDealCount(null);
+    setTransferOpen(true);
+    const { count } = await supabase
+      .from("deals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", member.id);
+    setDealCount(count ?? 0);
+  };
+
+  const handleTransfer = async () => {
+    if (!transferMember || !transferTargetId) return;
+    if (!confirm(`Transferir leads de ${transferMember.full_name || "usuário"} e desativar a conta? Esta ação não pode ser desfeita facilmente.`)) return;
+    setTransferring(true);
+    try {
+      const res = await supabase.functions.invoke("transfer-and-deactivate", {
+        body: {
+          from_user_id: transferMember.id,
+          to_user_id: transferTargetId,
+          include_archived: includeArchived,
+        },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro");
+      const data = res.data;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Transferência concluída!",
+        description: `${data.transferred_count} negociaçõe(s) transferida(s). Usuário desativado.`,
+      });
+      setTransferOpen(false);
+      setTransferMember(null);
+      fetchTeamMembers();
+    } catch (err: any) {
+      toast({ title: "Erro na transferência", description: err.message, variant: "destructive" });
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
