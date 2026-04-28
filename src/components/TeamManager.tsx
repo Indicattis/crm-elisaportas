@@ -388,6 +388,67 @@ export function TeamManager() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Transfer & Deactivate Dialog */}
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transferir leads e desativar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-foreground">
+              Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.
+            </p>
+            <div className="rounded-lg border border-border p-3 bg-muted/40 text-sm">
+              {dealCount === null ? (
+                <span className="text-muted-foreground">Carregando contagem de negociações…</span>
+              ) : (
+                <span><strong>{dealCount}</strong> negociação(ões) no total (incluindo arquivadas).</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Transferir para</Label>
+              <Select value={transferTargetId} onValueChange={setTransferTargetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar destinatário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers
+                    .filter((m) => m.id !== transferMember?.id)
+                    .map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.full_name || m.email || "Sem nome"}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-archived"
+                checked={includeArchived}
+                onCheckedChange={(v) => setIncludeArchived(!!v)}
+              />
+              <Label htmlFor="include-archived" className="cursor-pointer text-sm font-normal">
+                Transferir também negociações arquivadas
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOpen(false)} disabled={transferring}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleTransfer}
+              disabled={transferring || !transferTargetId}
+            >
+              {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCog className="h-4 w-4 mr-1" />}
+              Transferir e desativar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
