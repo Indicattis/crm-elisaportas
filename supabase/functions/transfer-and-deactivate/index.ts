@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
     ]);
     if (ownedErr) throw ownedErr;
     if (assignedErr) throw assignedErr;
+    console.log(`[transfer] from=${from_user_id} to=${to_user_id} owned=${(ownedDeals||[]).length} assigned=${(assignedDeals||[]).length}`);
 
     const ownerIds = (ownedDeals || []).map((d) => d.id);
     const assigneeIds = (assignedDeals || []).map((d) => d.id);
