@@ -22,6 +22,13 @@ interface TeamMember {
   role: string;
 }
 
+interface OrphanUser {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  deal_count: number;
+}
+
 export function TeamManager() {
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
