@@ -506,12 +506,20 @@ export function TeamManager() {
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{transferIsOrphan ? "Transferir leads pendentes" : "Transferir leads e desativar"}</DialogTitle>
+            <DialogTitle>
+              {transferIsOrphan
+                ? "Transferir leads pendentes"
+                : transferOnly
+                ? "Transferir leads"
+                : "Transferir leads e desativar"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-foreground">
               {transferIsOrphan ? (
                 <>Os leads ainda atribuídos a <strong>{transferMember?.full_name || "este usuário"}</strong> serão transferidos para o destinatário escolhido.</>
+              ) : transferOnly ? (
+                <>Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. O usuário continuará ativo.</>
               ) : (
                 <>Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.</>
               )}
@@ -550,18 +558,30 @@ export function TeamManager() {
                 Transferir também negociações arquivadas
               </Label>
             </div>
+            {!transferIsOrphan && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="transfer-only"
+                  checked={transferOnly}
+                  onCheckedChange={(v) => setTransferOnly(!!v)}
+                />
+                <Label htmlFor="transfer-only" className="cursor-pointer text-sm font-normal">
+                  Apenas transferir (manter usuário ativo)
+                </Label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTransferOpen(false)} disabled={transferring}>
               Cancelar
             </Button>
             <Button
-              variant={transferIsOrphan ? "default" : "destructive"}
+              variant={transferIsOrphan || transferOnly ? "default" : "destructive"}
               onClick={handleTransfer}
               disabled={transferring || !transferTargetId}
             >
               {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCog className="h-4 w-4 mr-1" />}
-              {transferIsOrphan ? "Transferir" : "Transferir e desativar"}
+              {transferIsOrphan || transferOnly ? "Transferir" : "Transferir e desativar"}
             </Button>
           </DialogFooter>
         </DialogContent>
