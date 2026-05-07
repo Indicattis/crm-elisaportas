@@ -165,11 +165,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Remove source's funnel memberships and role
-    await adminClient.from("funnel_members").delete().eq("user_id", from_user_id);
-    await adminClient.from("user_roles").delete().eq("user_id", from_user_id);
+    // Remove source's funnel memberships and role only when deactivating
+    if (!skip_deactivation) {
+      await adminClient.from("funnel_members").delete().eq("user_id", from_user_id);
+      await adminClient.from("user_roles").delete().eq("user_id", from_user_id);
+    }
 
-    // Ban (deactivate) the user — skip if already deactivated
+    // Ban (deactivate) the user — skip if requested
     if (!skip_deactivation) {
       const { error: banErr } = await adminClient.auth.admin.updateUserById(from_user_id, {
         ban_duration: "876000h",
