@@ -262,8 +262,9 @@ export function TeamManager() {
 
   const handleTransfer = async () => {
     if (!transferMember || !transferTargetId) return;
-    const confirmMsg = transferIsOrphan
-      ? `Transferir os leads remanescentes de ${transferMember.full_name || "usuário"}?`
+    const skipDeactivation = transferIsOrphan || transferOnly;
+    const confirmMsg = skipDeactivation
+      ? `Transferir os leads de ${transferMember.full_name || "usuário"}?`
       : `Transferir leads de ${transferMember.full_name || "usuário"} e desativar a conta? Esta ação não pode ser desfeita facilmente.`;
     if (!confirm(confirmMsg)) return;
     setTransferring(true);
@@ -273,7 +274,7 @@ export function TeamManager() {
           from_user_id: transferMember.id,
           to_user_id: transferTargetId,
           include_archived: includeArchived,
-          skip_deactivation: transferIsOrphan,
+          skip_deactivation: skipDeactivation,
         },
       });
       if (res.error) throw new Error(res.error.message || "Erro");
@@ -281,13 +282,14 @@ export function TeamManager() {
       if (data?.error) throw new Error(data.error);
       toast({
         title: "Transferência concluída!",
-        description: transferIsOrphan
+        description: skipDeactivation
           ? `${data.transferred_count} negociação(ões) transferida(s).`
           : `${data.transferred_count} negociação(ões) transferida(s). Usuário desativado.`,
       });
       setTransferOpen(false);
       setTransferMember(null);
       setTransferIsOrphan(false);
+      setTransferOnly(false);
       fetchTeamMembers();
       fetchOrphans();
     } catch (err: any) {
