@@ -47,6 +47,7 @@ export function TeamManager() {
   const [transferMember, setTransferMember] = useState<TeamMember | null>(null);
   const [transferTargetId, setTransferTargetId] = useState<string>("");
   const [includeArchived, setIncludeArchived] = useState(true);
+  const [transferOnly, setTransferOnly] = useState(false);
   const [transferring, setTransferring] = useState(false);
   const [dealCount, setDealCount] = useState<number | null>(null);
   const [orphans, setOrphans] = useState<OrphanUser[]>([]);
@@ -248,6 +249,7 @@ export function TeamManager() {
     setTransferMember(member);
     setTransferTargetId("");
     setIncludeArchived(true);
+    setTransferOnly(false);
     setDealCount(null);
     setTransferIsOrphan(isOrphan);
     setTransferOpen(true);
@@ -260,8 +262,9 @@ export function TeamManager() {
 
   const handleTransfer = async () => {
     if (!transferMember || !transferTargetId) return;
-    const confirmMsg = transferIsOrphan
-      ? `Transferir os leads remanescentes de ${transferMember.full_name || "usuário"}?`
+    const skipDeactivation = transferIsOrphan || transferOnly;
+    const confirmMsg = skipDeactivation
+      ? `Transferir os leads de ${transferMember.full_name || "usuário"}?`
       : `Transferir leads de ${transferMember.full_name || "usuário"} e desativar a conta? Esta ação não pode ser desfeita facilmente.`;
     if (!confirm(confirmMsg)) return;
     setTransferring(true);
@@ -271,7 +274,7 @@ export function TeamManager() {
           from_user_id: transferMember.id,
           to_user_id: transferTargetId,
           include_archived: includeArchived,
-          skip_deactivation: transferIsOrphan,
+          skip_deactivation: skipDeactivation,
         },
       });
       if (res.error) throw new Error(res.error.message || "Erro");
@@ -279,13 +282,14 @@ export function TeamManager() {
       if (data?.error) throw new Error(data.error);
       toast({
         title: "Transferência concluída!",
-        description: transferIsOrphan
+        description: skipDeactivation
           ? `${data.transferred_count} negociação(ões) transferida(s).`
           : `${data.transferred_count} negociação(ões) transferida(s). Usuário desativado.`,
       });
       setTransferOpen(false);
       setTransferMember(null);
       setTransferIsOrphan(false);
+      setTransferOnly(false);
       fetchTeamMembers();
       fetchOrphans();
     } catch (err: any) {
@@ -502,12 +506,20 @@ export function TeamManager() {
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{transferIsOrphan ? "Transferir leads pendentes" : "Transferir leads e desativar"}</DialogTitle>
+            <DialogTitle>
+              {transferIsOrphan
+                ? "Transferir leads pendentes"
+                : transferOnly
+                ? "Transferir leads"
+                : "Transferir leads e desativar"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-foreground">
               {transferIsOrphan ? (
                 <>Os leads ainda atribuídos a <strong>{transferMember?.full_name || "este usuário"}</strong> serão transferidos para o destinatário escolhido.</>
+              ) : transferOnly ? (
+                <>Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. O usuário continuará ativo.</>
               ) : (
                 <>Todas as negociações de <strong>{transferMember?.full_name || "este usuário"}</strong> serão atribuídas ao destinatário escolhido. Em seguida, a conta será desativada e não poderá mais acessar o sistema.</>
               )}
@@ -546,18 +558,30 @@ export function TeamManager() {
                 Transferir também negociações arquivadas
               </Label>
             </div>
+            {!transferIsOrphan && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="transfer-only"
+                  checked={transferOnly}
+                  onCheckedChange={(v) => setTransferOnly(!!v)}
+                />
+                <Label htmlFor="transfer-only" className="cursor-pointer text-sm font-normal">
+                  Apenas transferir (manter usuário ativo)
+                </Label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTransferOpen(false)} disabled={transferring}>
               Cancelar
             </Button>
             <Button
-              variant={transferIsOrphan ? "default" : "destructive"}
+              variant={transferIsOrphan || transferOnly ? "default" : "destructive"}
               onClick={handleTransfer}
               disabled={transferring || !transferTargetId}
             >
               {transferring ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCog className="h-4 w-4 mr-1" />}
-              {transferIsOrphan ? "Transferir" : "Transferir e desativar"}
+              {transferIsOrphan || transferOnly ? "Transferir" : "Transferir e desativar"}
             </Button>
           </DialogFooter>
         </DialogContent>
