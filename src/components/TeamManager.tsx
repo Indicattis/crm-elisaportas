@@ -249,6 +249,7 @@ export function TeamManager() {
     setTransferMember(member);
     setTransferTargetId("");
     setIncludeArchived(true);
+    setTransferOnly(false);
     setDealCount(null);
     setTransferIsOrphan(isOrphan);
     setTransferOpen(true);
