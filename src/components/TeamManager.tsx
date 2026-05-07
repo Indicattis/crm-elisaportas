@@ -47,6 +47,7 @@ export function TeamManager() {
   const [transferMember, setTransferMember] = useState<TeamMember | null>(null);
   const [transferTargetId, setTransferTargetId] = useState<string>("");
   const [includeArchived, setIncludeArchived] = useState(true);
+  const [transferOnly, setTransferOnly] = useState(false);
   const [transferring, setTransferring] = useState(false);
   const [dealCount, setDealCount] = useState<number | null>(null);
   const [orphans, setOrphans] = useState<OrphanUser[]>([]);
