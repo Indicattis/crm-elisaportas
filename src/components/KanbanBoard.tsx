@@ -243,10 +243,20 @@ export function KanbanBoard() {
 
     if (data && data.length > 0) {
       const userIds = data.map((m: any) => m.user_id);
+      const { data: sellerRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor")
+        .in("user_id", userIds);
+      const sellerIds = (sellerRoles || []).map((r: any) => r.user_id);
+      if (sellerIds.length === 0) {
+        setFunnelMembers([]);
+        return;
+      }
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name")
-        .in("id", userIds);
+        .in("id", sellerIds);
       setFunnelMembers(
         (profiles || []).map((p: any) => ({ id: p.id, full_name: p.full_name }))
           .sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || ""))
