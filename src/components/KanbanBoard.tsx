@@ -235,36 +235,25 @@ export function KanbanBoard() {
   }, []);
 
   const fetchFunnelMembers = useCallback(async () => {
-    if (!selectedFunnelId) return;
-    const { data } = await supabase
-      .from("funnel_members")
+    const { data: sellerRoles } = await supabase
+      .from("user_roles")
       .select("user_id")
-      .eq("funnel_id", selectedFunnelId);
-
-    if (data && data.length > 0) {
-      const userIds = data.map((m: any) => m.user_id);
-      const { data: sellerRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor")
-        .in("user_id", userIds);
-      const sellerIds = (sellerRoles || []).map((r: any) => r.user_id);
-      if (sellerIds.length === 0) {
-        setFunnelMembers([]);
-        return;
-      }
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", sellerIds);
-      setFunnelMembers(
-        (profiles || []).map((p: any) => ({ id: p.id, full_name: p.full_name }))
-          .sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || ""))
-      );
-    } else {
+      .eq("role", "vendedor");
+    const sellerIds = (sellerRoles || []).map((r: any) => r.user_id);
+    if (sellerIds.length === 0) {
       setFunnelMembers([]);
+      return;
     }
-  }, [selectedFunnelId]);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", sellerIds);
+    setFunnelMembers(
+      (profiles || []).map((p: any) => ({ id: p.id, full_name: p.full_name }))
+        .sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || ""))
+    );
+  }, []);
+
 
   const navigate = useNavigate();
 
