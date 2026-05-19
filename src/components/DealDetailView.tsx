@@ -731,22 +731,23 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [delegating, setDelegating] = useState(false);
 
   const fetchFunnelMembers = useCallback(async () => {
-    if (!deal?.funnel_id) return;
-    // Get funnel members + funnel owner
-    const [{ data: members }, { data: funnel }] = await Promise.all([
-      supabase.from("funnel_members").select("user_id").eq("funnel_id", deal.funnel_id),
-      supabase.from("funnels").select("user_id").eq("id", deal.funnel_id).single(),
-    ]);
-    const userIds = new Set<string>();
-    (members || []).forEach((m) => userIds.add(m.user_id));
-    if (funnel?.user_id) userIds.add(funnel.user_id);
+    // Fetch all users with the "vendedor" role
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "vendedor");
+    const userIds = new Set<string>((roles || []).map((r: any) => r.user_id));
     // Remove currently assigned user
-    if (deal.assigned_to) userIds.delete(deal.assigned_to);
+    if (deal?.assigned_to) userIds.delete(deal.assigned_to);
 
     if (userIds.size === 0) { setFunnelMembers([]); return; }
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", [...userIds]);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", [...userIds])
+      .order("full_name");
     setFunnelMembers((profiles || []).map((p) => ({ id: p.id, full_name: p.full_name })));
-  }, [deal?.funnel_id, deal?.assigned_to]);
+  }, [deal?.assigned_to]);
 
   useEffect(() => {
     if (delegateOpen) fetchFunnelMembers();
