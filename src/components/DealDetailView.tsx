@@ -362,20 +362,20 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
     setDealTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updateData } as DealTask : t));
 
     // Persistência principal
-    const updatePromise = supabase.from("deal_tasks").update(updateData).eq("id", taskId);
+    const updatePromise = Promise.resolve(supabase.from("deal_tasks").update(updateData).eq("id", taskId));
 
     // Log de histórico em paralelo (a cor diária verde é tratada por trigger no banco)
     let historyPromise: Promise<any> = Promise.resolve();
     if (completed && deal && user) {
       const task = dealTasks.find(t => t.id === taskId);
       const taskDesc = task?.description || (task?.type === "mensagem" ? "Enviar mensagem" : task?.type === "ligacao" ? "Realizar ligação" : "Tarefa");
-      historyPromise = supabase.from("deal_history").insert({
+      historyPromise = Promise.resolve(supabase.from("deal_history").insert({
         deal_id: deal.id,
         user_id: user.id,
         event_type: "task_completed",
         description: `Concluiu tarefa: ${taskDesc}`,
         metadata: { task_id: taskId, task_type: task?.type },
-      } as any);
+      } as any));
     }
 
     await Promise.all([updatePromise, historyPromise]);
