@@ -233,7 +233,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       </div>
 
       {/* Row 4: Value */}
-      {deal.value && deal.value > 0 && (
+      {(deal.value ?? 0) > 0 && (
         <div className="flex items-center justify-end text-[11px]">
           <span className="bg-primary/10 text-primary font-bold text-xs rounded px-2 py-0.5 flex items-center gap-0.5">
             <DollarSign className="h-3 w-3" />
