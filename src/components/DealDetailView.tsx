@@ -351,48 +351,25 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
     if (completed) {
       updateData.completed_at = new Date().toISOString();
       updateData.completed_by = user?.id || null;
-
-      // Start animation
+      // Start animation (no artificial delay — persistência roda em paralelo)
       setCompletingTaskIds(prev => new Set(prev).add(taskId));
-
-      // Wait for animation to finish before persisting
-      await new Promise(resolve => setTimeout(resolve, 500));
     } else {
       updateData.completed_at = null;
       updateData.completed_by = null;
     }
-    await supabase.from("deal_tasks").update(updateData).eq("id", taskId);
 
-    // Auto-update daily color to green when completing a task (overrides red/yellow)
-    if (completed && deal && user) {
-      const today = new Date().toISOString().split("T")[0];
-      const { data: existingColor } = await supabase
-        .from("deal_daily_color")
-        .select("id")
-        .eq("deal_id", deal.id)
-        .eq("date", today)
-        .maybeSingle();
+    // Optimistic update local para UI responder imediatamente
+    setDealTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updateData } as DealTask : t));
 
-      if (!existingColor) {
-        await supabase.from("deal_daily_color").insert({
-          deal_id: deal.id,
-          date: today,
-          color: "green",
-          updated_by: user.id,
-        });
-      } else {
-        await supabase
-          .from("deal_daily_color")
-          .update({ color: "green", updated_by: user.id })
-          .eq("id", existingColor.id);
-      }
-    }
+    // Persistência principal
+    const updatePromise = supabase.from("deal_tasks").update(updateData).eq("id", taskId);
 
-    // Log history for task completion
+    // Log de histórico em paralelo (a cor diária verde é tratada por trigger no banco)
+    let historyPromise: Promise<any> = Promise.resolve();
     if (completed && deal && user) {
       const task = dealTasks.find(t => t.id === taskId);
       const taskDesc = task?.description || (task?.type === "mensagem" ? "Enviar mensagem" : task?.type === "ligacao" ? "Realizar ligação" : "Tarefa");
-      await supabase.from("deal_history").insert({
+      historyPromise = supabase.from("deal_history").insert({
         deal_id: deal.id,
         user_id: user.id,
         event_type: "task_completed",
@@ -401,11 +378,14 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
       } as any);
     }
 
+    await Promise.all([updatePromise, historyPromise]);
+
     setCompletingTaskIds(prev => {
       const next = new Set(prev);
       next.delete(taskId);
       return next;
     });
+    // Refetch em paralelo, sem aguardar
     fetchDealTasks();
     fetchHistory();
   };
