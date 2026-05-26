@@ -439,6 +439,20 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
       setReloadingTasks(false);
     }
   };
+  const handleAddTaskCycle = async () => {
+    if (!deal || addingCycle) return;
+    setAddingCycle(true);
+    try {
+      await supabase.rpc("add_deal_tasks_cycle", { _deal_id: deal.id });
+      await fetchDealTasks(deal.id);
+      toast({ title: "Novo ciclo de tarefas criado" });
+    } catch (err: any) {
+      toast({ title: "Erro ao recriar tarefas", description: err.message, variant: "destructive" });
+    } finally {
+      setAddingCycle(false);
+    }
+  };
+
 
 
   useEffect(() => {
