@@ -271,6 +271,7 @@ export type Database = {
           completed_at: string | null
           completed_by: string | null
           created_at: string
+          cycle: number
           deadline_at: string
           deal_id: string
           description: string | null
@@ -285,6 +286,7 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          cycle?: number
           deadline_at: string
           deal_id: string
           description?: string | null
@@ -299,6 +301,7 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          cycle?: number
           deadline_at?: string
           deal_id?: string
           description?: string | null
@@ -840,6 +843,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_deal_tasks_cycle: { Args: { _deal_id: string }; Returns: undefined }
       can_access_deal: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
