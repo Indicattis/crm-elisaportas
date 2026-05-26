@@ -374,7 +374,7 @@ export function KanbanBoard() {
     while (true) {
       const { data: page } = await supabase
         .from("deal_tasks")
-        .select("deal_id, completed")
+        .select("deal_id, completed, stage_id, cycle")
         .in("deal_id", dealIds)
         .range(from, from + PAGE_SIZE - 1);
       if (!page || page.length === 0) break;
@@ -382,14 +382,29 @@ export function KanbanBoard() {
       if (page.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
-    const progress: Record<string, { completed: number; total: number }> = {};
+    // Group by deal -> stage bucket (stage_id + cycle). A stage is considered
+    // completed when ALL its tasks are completed. Tasks without stage_id are
+    // bucketed together per cycle as a single "unstaged" stage.
+    const stageBuckets: Record<string, Record<string, { total: number; completed: number }>> = {};
     for (const task of allTasks) {
-      if (!progress[task.deal_id]) progress[task.deal_id] = { completed: 0, total: 0 };
-      progress[task.deal_id].total++;
-      if (task.completed) progress[task.deal_id].completed++;
+      const dealId = task.deal_id as string;
+      const cycle = task.cycle ?? 1;
+      const stageKey = `${task.stage_id ?? "unstaged"}::${cycle}`;
+      if (!stageBuckets[dealId]) stageBuckets[dealId] = {};
+      if (!stageBuckets[dealId][stageKey]) stageBuckets[dealId][stageKey] = { total: 0, completed: 0 };
+      stageBuckets[dealId][stageKey].total++;
+      if (task.completed) stageBuckets[dealId][stageKey].completed++;
+    }
+    const progress: Record<string, { completed: number; total: number }> = {};
+    for (const [dealId, buckets] of Object.entries(stageBuckets)) {
+      const stages = Object.values(buckets);
+      const total = stages.length;
+      const completed = stages.filter((s) => s.total > 0 && s.completed === s.total).length;
+      progress[dealId] = { completed, total };
     }
     setTaskProgressMap(progress);
   }, []);
+
 
   const fetchDailyColors = useCallback(async (currentDeals: Deal[]) => {
     if (currentDeals.length === 0) return;
