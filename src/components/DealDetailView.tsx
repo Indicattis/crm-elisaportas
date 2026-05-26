@@ -445,7 +445,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
     try {
       await supabase.rpc("add_deal_tasks_cycle", { _deal_id: deal.id });
       await fetchDealTasks(deal.id);
-      toast({ title: "Novo ciclo de tarefas criado" });
+      toast({ title: "Nova etapa criada" });
     } catch (err: any) {
       toast({ title: "Erro ao recriar tarefas", description: err.message, variant: "destructive" });
     } finally {
