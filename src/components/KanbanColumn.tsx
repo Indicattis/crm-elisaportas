@@ -31,6 +31,7 @@ interface KanbanColumnProps {
   nextTaskMap?: Record<string, string>;
   channelIconMap?: Record<string, string>;
   dealStageMap?: Record<string, { name: string; color: string }>;
+  taskProgressMap?: Record<string, { completed: number; total: number }>;
   showDropSpacer?: boolean;
   isNotice?: boolean;
   noticeText?: string;
@@ -72,6 +73,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   nextTaskMap = {},
   channelIconMap = {},
   dealStageMap = {},
+  taskProgressMap = {},
   showDropSpacer = false,
   isNotice = false,
   noticeText = "",
@@ -249,6 +251,7 @@ export const KanbanColumn = memo(function KanbanColumn({
                 nextTaskDeadline={nextTaskMap[deal.id]}
                 channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
                 currentStage={dealStageMap[deal.id]}
+                taskProgress={taskProgressMap[deal.id]}
                 onTagsChanged={onTagsChanged}
                 onCapture={onCapture}
                 onColorChange={onColorChange}
