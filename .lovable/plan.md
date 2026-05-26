@@ -1,28 +1,32 @@
 ## Objetivo
-Adicionar um botão "Recriar tarefas" no final da listagem de tarefas em `/deal/:id` que cria um novo ciclo das mesmas tarefas/etapas sem apagar as existentes. Se o deal tem 3 etapas (ciclo 1), o botão cria a 4ª, 5ª e 6ª etapa (ciclo 2) com a mesma configuração.
+Mudar o comportamento do botão "Recriar tarefas" em `/deal/:id`: em vez de regenerar **todas** as etapas do grupo de tarefas como um novo ciclo, deve criar **apenas uma nova etapa**, espelhando exatamente as tarefas da última etapa existente no deal.
+
+## Comportamento atual
+`public.add_deal_tasks_cycle(_deal_id)` calcula `next_cycle = MAX(cycle)+1` e insere **todos** os `task_templates`/`task_group_schedules` do `task_group_id` com `cycle = next_cycle`. Resultado: 3 etapas → vira 6.
+
+## Novo comportamento
+A função deve:
+1. Encontrar a "última etapa" do deal = o conjunto de tarefas com maior `cycle` e, dentro dele, o maior `stage_id` por `position` em `task_group_stages` (ou `NULL`/"Sem etapa" se for o caso).
+2. Copiar **somente** as tarefas dessa última etapa, criando-as como uma nova etapa do mesmo deal:
+   - Mesmo `template_id`, `type`, `description`, `stage_id` da origem.
+   - `deadline_at = now() + (template.deadline_hours)` quando houver template; quando não houver template (modo `recurring_days`), usar `now() + intervalo equivalente` derivado do schedule original ou simplesmente `now() + 24h` como fallback.
+   - `cycle = MAX(cycle)+1` (mantém a separação visual por ciclo na sidebar — cada nova chamada gera mais uma etapa, nomeada "Etapa X (ciclo N)").
+   - `completed = false`, `completed_at = NULL`.
+3. Se o deal ainda não tem nenhuma tarefa, não fazer nada (botão só aparece quando há tarefas, então é defensivo).
 
 ## Mudanças
 
-### 1. Banco (migration)
-- Adicionar coluna `cycle INTEGER NOT NULL DEFAULT 1` em `public.deal_tasks`.
-- Criar índice `(deal_id, cycle)` para a sidebar.
-- Criar função `public.add_deal_tasks_cycle(_deal_id uuid)` (SECURITY DEFINER):
-  - Descobre o `task_group_id` da coluna atual do deal (via `funnel_columns`).
-  - Calcula `next_cycle = COALESCE(MAX(cycle), 1) + 1` em `deal_tasks` para o deal.
-  - Reaproveita a lógica de `recreate_deal_tasks` (templates e/ou `task_group_schedules`), mas **sem deletar nada**, e gravando `cycle = next_cycle` nas novas tarefas inseridas. Deadlines contados a partir de `now()`.
+### 1. Migração: substituir `public.add_deal_tasks_cycle`
+- Detectar `v_last_cycle = MAX(cycle)` em `deal_tasks` do deal.
+- Detectar `v_last_stage_id`: dentro de `v_last_cycle`, escolher o `stage_id` da última etapa. Critério: maior `position` em `task_group_stages` entre os `stage_id` presentes; se todos forem `NULL`, tratar como "sem etapa".
+- Selecionar as tarefas de origem: `deal_tasks WHERE deal_id = _deal_id AND cycle = v_last_cycle AND stage_id IS NOT DISTINCT FROM v_last_stage_id`.
+- Para cada uma, inserir nova linha com `cycle = v_last_cycle + 1`, `deadline_at = now() + COALESCE(tt.deadline_hours, 24) hours` (join opcional em `task_templates` via `template_id`), demais campos copiados.
+- Manter `SECURITY DEFINER` e `search_path = public`.
 
-### 2. Frontend — `src/components/DealDetailView.tsx`
-- Tipo `DealTask`: incluir `cycle: number`.
-- `fetchDealTasks`: passar a selecionar `cycle`.
-- Handler `handleAddTaskCycle`: chama `supabase.rpc("add_deal_tasks_cycle", { _deal_id: deal.id })`, recarrega `fetchDealTasks` e mostra toast.
-- Renderização da lista quando `taskStages.length > 0`:
-  - Agrupar por **ciclo** primeiro (ordenado asc), e dentro do ciclo iterar `taskStages` (já ordenadas).
-  - Nome exibido: `"<stage.name> (ciclo N)"` quando `cycle > 1`; para `cycle === 1` mantém apenas `stage.name` para não mudar o visual atual.
-  - Manter bloco "Sem etapa" como hoje (agrupado também por ciclo).
-- Logo abaixo de toda a lista de tarefas (antes do `Separator` do footer), adicionar botão `"Recriar tarefas"` com `variant="outline"`, ícone `RotateCw` e estado de loading. Só aparece se já existir pelo menos uma tarefa e se a coluna tiver `task_group_id` configurado.
+### 2. Frontend (`src/components/DealDetailView.tsx`)
+- Nenhuma mudança de UI necessária. O label do botão "Recriar tarefas" e o toast continuam válidos (ajustar a mensagem do toast para "Nova etapa criada" para refletir o comportamento).
+- A renderização já agrupa por `cycle`, então a nova etapa aparece como "Etapa X (ciclo N)" automaticamente.
 
-## Detalhes técnicos
-- Tasks novas usam mesmos `stage_id`/`template_id` das originais — a separação visual é apenas pelo campo `cycle`.
-- `handle_deal_tasks_on_status_change` continua deletando tarefas pendentes ao trocar de status; o novo ciclo só é criado por ação manual.
-- RLS de `deal_tasks` já cobre admin + dono + membro do funil; a função roda como SECURITY DEFINER seguindo o padrão de `recreate_deal_tasks`.
-- Sem mudanças no kanban (o badge de progresso `completed/total` continua somando todos os ciclos, o que é o comportamento desejado).
+## Observações
+- `recreate_deal_tasks` (chamada em outros fluxos, ex.: mudança de coluna) **não** é alterada — continua regenerando tudo.
+- O badge de progresso por etapas no kanban (`KanbanBoard.tsx`) continua funcionando: a nova etapa entra como um bucket `stage_id::cycle` adicional.
