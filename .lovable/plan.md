@@ -1,21 +1,28 @@
-## Permitir transferir leads sem desativar usuário
+## Objetivo
+Adicionar um botão "Recriar tarefas" no final da listagem de tarefas em `/deal/:id` que cria um novo ciclo das mesmas tarefas/etapas sem apagar as existentes. Se o deal tem 3 etapas (ciclo 1), o botão cria a 4ª, 5ª e 6ª etapa (ciclo 2) com a mesma configuração.
 
-Hoje na gestão de equipe (/crm-config) o botão "Transferir leads e desativar" sempre desativa a conta do usuário origem. A solicitação é poder apenas transferir, mantendo o usuário ativo.
+## Mudanças
 
-### Mudanças
+### 1. Banco (migration)
+- Adicionar coluna `cycle INTEGER NOT NULL DEFAULT 1` em `public.deal_tasks`.
+- Criar índice `(deal_id, cycle)` para a sidebar.
+- Criar função `public.add_deal_tasks_cycle(_deal_id uuid)` (SECURITY DEFINER):
+  - Descobre o `task_group_id` da coluna atual do deal (via `funnel_columns`).
+  - Calcula `next_cycle = COALESCE(MAX(cycle), 1) + 1` em `deal_tasks` para o deal.
+  - Reaproveita a lógica de `recreate_deal_tasks` (templates e/ou `task_group_schedules`), mas **sem deletar nada**, e gravando `cycle = next_cycle` nas novas tarefas inseridas. Deadlines contados a partir de `now()`.
 
-**`src/components/TeamManager.tsx`**
-- Adicionar estado `transferOnly` (boolean) controlado por um Checkbox no diálogo de transferência: "Apenas transferir (manter usuário ativo)".
-- Ajustar `handleTransfer`:
-  - Quando `transferOnly` for `true`, enviar `skip_deactivation: true` para a edge function `transfer-and-deactivate` (a função já suporta esse parâmetro e, nesse caso, não banirá o usuário).
-  - Atualizar mensagem de confirmação e toast de sucesso para refletir o modo (sem desativação) — sem mencionar remoção de papel/membership.
-- O título e o texto do diálogo passam a se adaptar a três estados: órfão, transferir e desativar, ou apenas transferir.
-- Botão final muda label para "Transferir" (variant default) quando `transferOnly` estiver marcado.
+### 2. Frontend — `src/components/DealDetailView.tsx`
+- Tipo `DealTask`: incluir `cycle: number`.
+- `fetchDealTasks`: passar a selecionar `cycle`.
+- Handler `handleAddTaskCycle`: chama `supabase.rpc("add_deal_tasks_cycle", { _deal_id: deal.id })`, recarrega `fetchDealTasks` e mostra toast.
+- Renderização da lista quando `taskStages.length > 0`:
+  - Agrupar por **ciclo** primeiro (ordenado asc), e dentro do ciclo iterar `taskStages` (já ordenadas).
+  - Nome exibido: `"<stage.name> (ciclo N)"` quando `cycle > 1`; para `cycle === 1` mantém apenas `stage.name` para não mudar o visual atual.
+  - Manter bloco "Sem etapa" como hoje (agrupado também por ciclo).
+- Logo abaixo de toda a lista de tarefas (antes do `Separator` do footer), adicionar botão `"Recriar tarefas"` com `variant="outline"`, ícone `RotateCw` e estado de loading. Só aparece se já existir pelo menos uma tarefa e se a coluna tiver `task_group_id` configurado.
 
-**`supabase/functions/transfer-and-deactivate/index.ts`**
-- Atualmente, mesmo com `skip_deactivation`, a função remove `funnel_members` e `user_roles` do usuário origem, o que efetivamente o desativa.
-- Ajuste: quando `skip_deactivation === true`, **não** apagar `user_roles` nem remover as `funnel_members` do usuário origem (manter o vínculo). Apenas transferir os deals (e adicionar destinatário aos funis necessários, como já faz).
-
-### Observações
-- Nenhuma migração de banco necessária.
-- Comportamento atual de "Transferir e desativar" continua disponível como opção padrão.
+## Detalhes técnicos
+- Tasks novas usam mesmos `stage_id`/`template_id` das originais — a separação visual é apenas pelo campo `cycle`.
+- `handle_deal_tasks_on_status_change` continua deletando tarefas pendentes ao trocar de status; o novo ciclo só é criado por ação manual.
+- RLS de `deal_tasks` já cobre admin + dono + membro do funil; a função roda como SECURITY DEFINER seguindo o padrão de `recreate_deal_tasks`.
+- Sem mudanças no kanban (o badge de progresso `completed/total` continua somando todos os ciclos, o que é o comportamento desejado).

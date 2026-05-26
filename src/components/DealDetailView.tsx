@@ -18,7 +18,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, ImagePlus, Loader2, Lock } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, RotateCw, ImagePlus, Loader2, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -71,6 +71,7 @@ interface DealTask {
   template_id: string | null;
   next_recurrence_at: string | null;
   stage_id: string | null;
+  cycle: number;
 }
 
 interface TaskStage {
@@ -124,6 +125,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [taskStages, setTaskStages] = useState<TaskStage[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [reloadingTasks, setReloadingTasks] = useState(false);
+  const [addingCycle, setAddingCycle] = useState(false);
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
@@ -437,6 +439,20 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
       setReloadingTasks(false);
     }
   };
+  const handleAddTaskCycle = async () => {
+    if (!deal || addingCycle) return;
+    setAddingCycle(true);
+    try {
+      await supabase.rpc("add_deal_tasks_cycle", { _deal_id: deal.id });
+      await fetchDealTasks(deal.id);
+      toast({ title: "Novo ciclo de tarefas criado" });
+    } catch (err: any) {
+      toast({ title: "Erro ao recriar tarefas", description: err.message, variant: "destructive" });
+    } finally {
+      setAddingCycle(false);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -1595,39 +1611,61 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                 };
 
                 if (taskStages.length > 0) {
-                  const unstaged = dealTasks.filter(t => !t.stage_id);
+                  const cycles = Array.from(new Set(dealTasks.map(t => t.cycle || 1))).sort((a, b) => a - b);
                   return (
-                    <div className="space-y-3">
-                      {taskStages.map(stage => {
-                        const stageTasks = dealTasks.filter(t => t.stage_id === stage.id);
-                        if (stageTasks.length === 0) return null;
-                        const completedCount = stageTasks.filter(t => t.completed).length;
+                    <div className="space-y-4">
+                      {cycles.map(cycle => {
+                        const cycleTasks = dealTasks.filter(t => (t.cycle || 1) === cycle);
+                        const unstaged = cycleTasks.filter(t => !t.stage_id);
                         return (
-                          <div key={stage.id} className="flex gap-0">
-                            {/* Vertical line with dot */}
-                            <div className="flex flex-col items-center shrink-0 mr-2.5">
-                              <span className="h-2.5 w-2.5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: stage.color }} />
-                              <div className="flex-1 w-0.5 rounded-full min-h-[8px]" style={{ backgroundColor: stage.color, opacity: 0.35 }} />
-                            </div>
-                            {/* Stage content */}
-                            <div className="flex-1 space-y-1.5 pb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-semibold text-foreground">{stage.name}</span>
-                                <span className="text-[10px] text-muted-foreground">{completedCount}/{stageTasks.length}</span>
+                          <div key={cycle} className="space-y-3">
+                            {taskStages.map(stage => {
+                              const stageTasks = cycleTasks.filter(t => t.stage_id === stage.id);
+                              if (stageTasks.length === 0) return null;
+                              const completedCount = stageTasks.filter(t => t.completed).length;
+                              return (
+                                <div key={`${cycle}-${stage.id}`} className="flex gap-0">
+                                  {/* Vertical line with dot */}
+                                  <div className="flex flex-col items-center shrink-0 mr-2.5">
+                                    <span className="h-2.5 w-2.5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: stage.color }} />
+                                    <div className="flex-1 w-0.5 rounded-full min-h-[8px]" style={{ backgroundColor: stage.color, opacity: 0.35 }} />
+                                  </div>
+                                  {/* Stage content */}
+                                  <div className="flex-1 space-y-1.5 pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] font-semibold text-foreground">
+                                        {stage.name}{cycle > 1 ? ` (ciclo ${cycle})` : ""}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground">{completedCount}/{stageTasks.length}</span>
+                                    </div>
+                                    {stageTasks.map(renderTask)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {unstaged.length > 0 && (
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 px-1">
+                                  <span className="text-[11px] font-semibold text-muted-foreground">
+                                    Sem etapa{cycle > 1 ? ` (ciclo ${cycle})` : ""}
+                                  </span>
+                                </div>
+                                {unstaged.map(renderTask)}
                               </div>
-                              {stageTasks.map(renderTask)}
-                            </div>
+                            )}
                           </div>
                         );
                       })}
-                      {unstaged.length > 0 && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 px-1">
-                            <span className="text-[11px] font-semibold text-muted-foreground">Sem etapa</span>
-                          </div>
-                          {unstaged.map(renderTask)}
-                        </div>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={handleAddTaskCycle}
+                        disabled={addingCycle}
+                      >
+                        <RotateCw className={`h-3.5 w-3.5 ${addingCycle ? "animate-spin" : ""}`} />
+                        Recriar tarefas
+                      </Button>
                     </div>
                   );
                 }
@@ -1635,6 +1673,18 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                 return (
                   <div className="space-y-2">
                     {dealTasks.map(renderTask)}
+                    {dealTasks.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 mt-3"
+                        onClick={handleAddTaskCycle}
+                        disabled={addingCycle}
+                      >
+                        <RotateCw className={`h-3.5 w-3.5 ${addingCycle ? "animate-spin" : ""}`} />
+                        Recriar tarefas
+                      </Button>
+                    )}
                   </div>
                 );
               })()
