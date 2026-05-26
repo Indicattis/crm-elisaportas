@@ -125,6 +125,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [taskStages, setTaskStages] = useState<TaskStage[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [reloadingTasks, setReloadingTasks] = useState(false);
+  const [addingCycle, setAddingCycle] = useState(false);
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
