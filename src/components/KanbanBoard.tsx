@@ -84,6 +84,7 @@ export function KanbanBoard() {
   const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
+  const [taskProgressMap, setTaskProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
   const [viewMode, setViewMode] = useState<"kanban" | "list">(sessionFilters.viewMode || "kanban");
@@ -361,6 +362,35 @@ export function KanbanBoard() {
     }
   }, []);
 
+  const fetchTaskProgress = useCallback(async (currentDeals: Deal[]) => {
+    if (currentDeals.length === 0) {
+      setTaskProgressMap({});
+      return;
+    }
+    const dealIds = currentDeals.map((d) => d.id);
+    const PAGE_SIZE = 1000;
+    let allTasks: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data: page } = await supabase
+        .from("deal_tasks")
+        .select("deal_id, completed")
+        .in("deal_id", dealIds)
+        .range(from, from + PAGE_SIZE - 1);
+      if (!page || page.length === 0) break;
+      allTasks = allTasks.concat(page);
+      if (page.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    const progress: Record<string, { completed: number; total: number }> = {};
+    for (const task of allTasks) {
+      if (!progress[task.deal_id]) progress[task.deal_id] = { completed: 0, total: 0 };
+      progress[task.deal_id].total++;
+      if (task.completed) progress[task.deal_id].completed++;
+    }
+    setTaskProgressMap(progress);
+  }, []);
+
   const fetchDailyColors = useCallback(async (currentDeals: Deal[]) => {
     if (currentDeals.length === 0) return;
     const dealIds = currentDeals.map((d) => d.id);
@@ -395,6 +425,7 @@ export function KanbanBoard() {
           fetchOverdueTasks(fetchedDeals),
           fetchDailyColors(fetchedDeals),
           fetchDealTags(dealIds),
+          fetchTaskProgress(fetchedDeals),
         ]);
       } else {
         setProfilesMap({});
@@ -403,11 +434,12 @@ export function KanbanBoard() {
         setDealStageMap({});
         setDailyColorsMap({});
         setDealTagsMap({});
+        setTaskProgressMap({});
       }
       setLoading(false);
     };
-    loadAll();
-  }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
+  loadAll();
+  }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags, fetchTaskProgress]);
 
   // Helper to refresh deals + dependent data after mutations
   const refreshDeals = useCallback(async () => {
@@ -419,9 +451,10 @@ export function KanbanBoard() {
         fetchOverdueTasks(freshDeals),
         fetchDailyColors(freshDeals),
         fetchDealTags(dealIds),
+        fetchTaskProgress(freshDeals),
       ]);
     }
-  }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags]);
+  }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags, fetchTaskProgress]);
 
   const handleColorChange = useCallback(async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
@@ -794,6 +827,7 @@ export function KanbanBoard() {
                   nextTaskMap={nextTaskMap}
                   channelIconMap={channelIconMap}
                   dealStageMap={dealStageMap}
+                  taskProgressMap={taskProgressMap}
                   hasDailyColor={(column as any).has_daily_color !== false}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
