@@ -39,7 +39,6 @@ interface DealCardProps {
   taskProgress?: { completed: number; total: number } | null;
   onClick: () => void;
 }
-}
 
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16);
