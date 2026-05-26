@@ -71,6 +71,7 @@ interface DealTask {
   template_id: string | null;
   next_recurrence_at: string | null;
   stage_id: string | null;
+  cycle: number;
 }
 
 interface TaskStage {
