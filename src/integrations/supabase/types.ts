@@ -843,7 +843,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_deal_tasks_cycle: { Args: { _deal_id: string }; Returns: undefined }
       can_access_deal: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
