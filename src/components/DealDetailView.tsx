@@ -1673,20 +1673,9 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                 return (
                   <div className="space-y-2">
                     {dealTasks.map(renderTask)}
-                    {dealTasks.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 mt-3"
-                        onClick={handleAddTaskCycle}
-                        disabled={addingCycle}
-                      >
-                        <RotateCw className={`h-3.5 w-3.5 ${addingCycle ? "animate-spin" : ""}`} />
-                        Recriar tarefas
-                      </Button>
-                    )}
                   </div>
                 );
+
               })()
             )}
           </div>
