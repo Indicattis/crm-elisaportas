@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.add_deal_tasks_cycle(uuid);

@@ -125,7 +125,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [taskStages, setTaskStages] = useState<TaskStage[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [reloadingTasks, setReloadingTasks] = useState(false);
-  const [addingCycle, setAddingCycle] = useState(false);
+  
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
   const [historyProfiles, setHistoryProfiles] = useState<Record<string, CommentProfile>>({});
@@ -437,19 +437,6 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
       toast({ title: "Erro ao recarregar", description: err.message, variant: "destructive" });
     } finally {
       setReloadingTasks(false);
-    }
-  };
-  const handleAddTaskCycle = async () => {
-    if (!deal || addingCycle) return;
-    setAddingCycle(true);
-    try {
-      await supabase.rpc("add_deal_tasks_cycle", { _deal_id: deal.id });
-      await fetchDealTasks(deal.id);
-      toast({ title: "Nova etapa criada" });
-    } catch (err: any) {
-      toast({ title: "Erro ao recriar tarefas", description: err.message, variant: "destructive" });
-    } finally {
-      setAddingCycle(false);
     }
   };
 
@@ -1656,16 +1643,6 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                           </div>
                         );
                       })}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={handleAddTaskCycle}
-                        disabled={addingCycle}
-                      >
-                        <RotateCw className={`h-3.5 w-3.5 ${addingCycle ? "animate-spin" : ""}`} />
-                        Recriar tarefas
-                      </Button>
                     </div>
                   );
                 }
@@ -1673,20 +1650,9 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                 return (
                   <div className="space-y-2">
                     {dealTasks.map(renderTask)}
-                    {dealTasks.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 mt-3"
-                        onClick={handleAddTaskCycle}
-                        disabled={addingCycle}
-                      >
-                        <RotateCw className={`h-3.5 w-3.5 ${addingCycle ? "animate-spin" : ""}`} />
-                        Recriar tarefas
-                      </Button>
-                    )}
                   </div>
                 );
+
               })()
             )}
           </div>

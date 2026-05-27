@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.prevent_late_task_completion() CASCADE;
