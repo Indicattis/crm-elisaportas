@@ -1656,16 +1656,6 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                           </div>
                         );
                       })}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={handleAddTaskCycle}
-                        disabled={addingCycle}
-                      >
-                        <RotateCw className={`h-3.5 w-3.5 ${addingCycle ? "animate-spin" : ""}`} />
-                        Recriar tarefas
-                      </Button>
                     </div>
                   );
                 }
