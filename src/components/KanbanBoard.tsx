@@ -717,6 +717,7 @@ export function KanbanBoard() {
             onCityChange={setFilterCity}
             compact
           />
+          <SharedNotesDialog />
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
