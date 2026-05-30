@@ -416,6 +416,7 @@ export type Database = {
           allowed_actions: string[]
           color: string
           created_at: string
+          daily_colors: string[]
           funnel_id: string
           has_daily_color: boolean
           id: string
@@ -431,6 +432,7 @@ export type Database = {
           allowed_actions?: string[]
           color?: string
           created_at?: string
+          daily_colors?: string[]
           funnel_id: string
           has_daily_color?: boolean
           id?: string
@@ -446,6 +448,7 @@ export type Database = {
           allowed_actions?: string[]
           color?: string
           created_at?: string
+          daily_colors?: string[]
           funnel_id?: string
           has_daily_color?: boolean
           id?: string
