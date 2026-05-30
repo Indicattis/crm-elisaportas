@@ -626,6 +626,30 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_task_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          period_start: string
+          task_key: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          period_start: string
+          task_key: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          period_start?: string
+          task_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shared_notes: {
         Row: {
           content: string
