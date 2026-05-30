@@ -79,6 +79,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   isNotice = false,
   noticeText = "",
   hasDailyColor = true,
+  allowedDailyColors,
   isCreatedAtSort = false,
   onToggleSort,
   collapsed = false,
