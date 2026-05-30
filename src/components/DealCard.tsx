@@ -30,6 +30,7 @@ interface DealCardProps {
   assignedProfile?: AssignedProfile | null;
   hasOverdueTasks?: boolean;
   dailyColor?: string;
+  allowedDailyColors?: string[];
   nextTaskDeadline?: string;
   channelIconKey?: string;
   currentStage?: { name: string; color: string };
