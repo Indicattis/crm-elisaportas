@@ -720,6 +720,7 @@ export function KanbanBoard() {
             compact
           />
           <SharedNotesDialog />
+          <RecurringTasksDialog />
         </div>
 
         <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
