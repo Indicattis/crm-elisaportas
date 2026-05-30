@@ -1,41 +1,53 @@
 ## Objetivo
 
-Na página inicial (`/`), adicionar na barra de filtros um botão que abre um modal estilo "bloco de notas" com um texto longo compartilhado entre todos os usuários. Administradores podem editar e salvar; vendedores só visualizam.
+Adicionar, ao lado do botão "Notas", um botão "Minhas tarefas" que abre um modal com duas tarefas recorrentes por vendedor — uma semanal e uma mensal — com histórico de conclusões.
 
-## Mudanças no banco
+Tarefas fixas:
+- **Semanal:** "Chamar Autorizados e Serralheiros" (renova toda segunda)
+- **Mensal:** "Chamar Parceiros" (renova todo dia 1)
 
-Nova tabela `public.shared_notes` (singleton — apenas uma linha):
+## Banco
 
-- `id` (uuid, PK, default `gen_random_uuid()`)
-- `content` (text, default `''`)
-- `updated_at`, `updated_by`
+Nova tabela `public.recurring_task_completions`:
 
-GRANTs: `SELECT` para `authenticated`, `ALL` para `service_role`. RLS habilitado.
+- `id` uuid PK
+- `user_id` uuid (vendedor que concluiu)
+- `task_key` text — `'weekly_authorized'` ou `'monthly_partners'`
+- `period_start` date — segunda-feira da semana (semanal) ou primeiro dia do mês (mensal)
+- `completed_at` timestamptz default `now()`
+- UNIQUE (`user_id`, `task_key`, `period_start`)
+
+GRANTs: `SELECT, INSERT, DELETE` para `authenticated`; `ALL` para `service_role`. RLS habilitada.
 
 Políticas:
-- SELECT: qualquer usuário autenticado
-- INSERT/UPDATE: apenas `has_role(auth.uid(), 'admin')`
+- SELECT: usuário vê suas próprias; admin vê todas (`has_role(auth.uid(),'admin')`)
+- INSERT: `auth.uid() = user_id` (cada vendedor marca a própria)
+- DELETE: dono da linha ou admin (permite desmarcar do período atual)
 
-Seed: inserir uma linha inicial vazia para servir como registro único.
+Como o registro é a própria evidência de conclusão, o "histórico" é só a leitura ordenada dessa tabela.
 
 ## Frontend
 
-### Novo componente `src/components/SharedNotesDialog.tsx`
-- `Dialog` (shadcn) acionado por um botão externo.
-- Conteúdo com visual de bloco de notas: fundo amarelo claro (`bg-yellow-50 dark:bg-yellow-950/30`), borda suave, fonte serifada/monoespaçada para o texto, linhas horizontais sutis via `background-image` para lembrar caderno pautado, cabeçalho com ícone `Notebook` (lucide).
-- `Textarea` grande (mín. ~60vh), `readOnly` quando o papel não é admin.
-- Carrega via `supabase.from('shared_notes').select('content').limit(1).single()`.
-- Para admins: botão "Salvar" no rodapé que faz `update` na linha existente e mostra toast.
-- Para vendedores: rodapé mostra apenas "Somente leitura" e data da última atualização.
+### Novo componente `src/components/RecurringTasksDialog.tsx`
+- Dialog acionado por botão `variant="outline" size="sm"` com ícone `ListChecks` (lucide) e texto "Minhas tarefas".
+- Calcula `currentWeekStart` (segunda da semana, `date-fns/startOfWeek` `weekStartsOn:1`) e `currentMonthStart` (`startOfMonth`).
+- Consulta `recurring_task_completions`:
+  - Para o **vendedor**: filtra `user_id = auth.uid()`, busca os 2 registros do período atual para determinar checkboxes.
+  - Para o **admin**: busca todos os registros do período atual e mostra matriz "vendedor × tarefa" (lista de `profiles` do banco). Admin não marca pelos outros — apenas vê o status.
+- Seção "Tarefas atuais":
+  - Vendedor: 2 cards/checkboxes ("Semanal — Chamar Autorizados e Serralheiros" e "Mensal — Chamar Parceiros"). Clicar marca/desmarca o registro do período atual.
+  - Admin: lista de vendedores com 2 indicadores (concluída/pendente) cada, mostrando data de conclusão quando houver.
+- Seção "Histórico" (abaixo, scroll):
+  - Vendedor: últimas 30 conclusões próprias (data, tipo, período).
+  - Admin: últimas 50 conclusões de qualquer vendedor (data, vendedor, tipo, período).
 
 ### `src/components/KanbanBoard.tsx`
-- Importar o novo componente e o ícone `Notebook` (lucide-react).
-- Adicionar `<SharedNotesDialog />` (que renderiza seu próprio trigger `Button variant="outline" size="sm"` com ícone + texto "Notas") dentro da `<div className="flex items-center gap-3">` da barra de filtros (após o `StateCitySelect`, linha ~719).
+- Importar `RecurringTasksDialog` e renderizá-lo logo após `<SharedNotesDialog />` na barra de filtros.
 
-Sem mudança em nenhum outro filtro ou lógica do Kanban.
+Nenhuma outra parte da app é alterada.
 
 ## Notas técnicas
 
-- O papel é lido via `useUserRole()` (já existe em `src/contexts/RoleContext.tsx`).
-- A edição é protegida server-side pelas políticas RLS, não apenas no frontend.
-- Como é uma única linha compartilhada, não há paginação nem múltiplas notas — se no futuro precisar de várias, basta criar UI adicional sobre a mesma tabela.
+- Não há job — a "renovação" é implícita: ao mudar de período (`period_start`), o registro do período atual deixa de existir e o checkbox volta a aparecer desmarcado.
+- Papel lido via `useUserRole()` já existente; `auth.uid()` obtido por `supabase.auth.getUser()`.
+- Sem mudança de schema fora dessa tabela.
