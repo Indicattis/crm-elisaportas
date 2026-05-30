@@ -824,6 +824,13 @@ export function KanbanBoard() {
                     const tB = rB ? new Date(rB).getTime() : (nextTaskMap[b.id] ? new Date(nextTaskMap[b.id]).getTime() : Infinity);
                     return tA - tB;
                   }
+                  if (order === "return_date") {
+                    const rA = (a as any).return_date as string | null | undefined;
+                    const rB = (b as any).return_date as string | null | undefined;
+                    const tA = rA ? new Date(rA).getTime() : Infinity;
+                    const tB = rB ? new Date(rB).getTime() : Infinity;
+                    return tA - tB;
+                  }
                   if (order === "value_desc") return (b.value || 0) - (a.value || 0);
                   if (order === "value_asc") return (a.value || 0) - (b.value || 0);
                   // channel (default)

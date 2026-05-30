@@ -418,6 +418,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                         <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
                         <SelectItem value="created_at">Data de criação</SelectItem>
                         <SelectItem value="next_task">Próxima tarefa</SelectItem>
+                        <SelectItem value="return_date">Data de retorno</SelectItem>
                         <SelectItem value="value_desc">Maior valor</SelectItem>
                         <SelectItem value="value_asc">Menor valor</SelectItem>
                       </SelectContent>
