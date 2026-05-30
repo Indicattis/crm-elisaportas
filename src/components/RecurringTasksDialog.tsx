@@ -51,20 +51,17 @@ export function RecurringTasksDialog() {
 
   const load = async () => {
     setLoading(true);
-    const tasks: Promise<any>[] = [
-      supabase
-        .from("recurring_task_completions")
-        .select("*")
-        .order("completed_at", { ascending: false })
-        .limit(isAdmin ? 200 : 60),
-    ];
-    if (isAdmin) {
-      tasks.push(supabase.from("profiles").select("id, full_name, email"));
-    }
-    const [compRes, profRes] = await Promise.all(tasks);
+    const compRes = await supabase
+      .from("recurring_task_completions")
+      .select("*")
+      .order("completed_at", { ascending: false })
+      .limit(isAdmin ? 200 : 60);
     if (compRes.error) toast.error("Erro ao carregar tarefas");
     else setCompletions((compRes.data as Completion[]) ?? []);
-    if (isAdmin && profRes && !profRes.error) setProfiles(profRes.data ?? []);
+    if (isAdmin) {
+      const profRes = await supabase.from("profiles").select("id, full_name, email");
+      if (!profRes.error) setProfiles(profRes.data ?? []);
+    }
     setLoading(false);
   };
 
