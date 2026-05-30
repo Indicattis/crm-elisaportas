@@ -36,6 +36,7 @@ interface KanbanColumnProps {
   isNotice?: boolean;
   noticeText?: string;
   hasDailyColor?: boolean;
+  allowedDailyColors?: string[];
   isCreatedAtSort?: boolean;
   onToggleSort?: () => void;
   collapsed?: boolean;
@@ -78,6 +79,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   isNotice = false,
   noticeText = "",
   hasDailyColor = true,
+  allowedDailyColors,
   isCreatedAtSort = false,
   onToggleSort,
   collapsed = false,
@@ -248,6 +250,7 @@ export const KanbanColumn = memo(function KanbanColumn({
                 assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
                 hasOverdueTasks={overdueDeals.has(deal.id)}
                 dailyColor={hasDailyColor ? (dailyColorsMap[deal.id] || "red") : undefined}
+                allowedDailyColors={allowedDailyColors}
                 nextTaskDeadline={nextTaskMap[deal.id]}
                 channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
                 currentStage={dealStageMap[deal.id]}

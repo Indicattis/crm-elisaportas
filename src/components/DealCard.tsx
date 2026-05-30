@@ -30,6 +30,7 @@ interface DealCardProps {
   assignedProfile?: AssignedProfile | null;
   hasOverdueTasks?: boolean;
   dailyColor?: string;
+  allowedDailyColors?: string[];
   nextTaskDeadline?: string;
   channelIconKey?: string;
   currentStage?: { name: string; color: string };
@@ -47,10 +48,10 @@ function hexToRgb(hex: string) {
   return `${r}, ${g}, ${b}`;
 }
 
-const COLOR_CYCLE: Record<string, string> = { red: "yellow", yellow: "red", green: "red" };
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
+const COLOR_ORDER = ["red", "yellow", "green"] as const;
 
-export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, nextTaskDeadline, channelIconKey, currentStage, taskProgress, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -89,21 +90,28 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       {/* Row 1: Status indicators + Title + Avatar */}
       <div className="flex items-start justify-between gap-1.5">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          {dailyColor !== undefined && (
-            <button
-              className="shrink-0 h-3 w-3 rounded-full transition-all"
-              style={{
-                backgroundColor: COLOR_HEX[dailyColor || "red"],
-                boxShadow: `0 0 8px ${COLOR_HEX[dailyColor || "red"]}`,
-              }}
-              title="Alterar status diário"
-              onClick={(e) => {
-                e.stopPropagation();
-                const next = COLOR_CYCLE[dailyColor || "red"];
-                onColorChange?.(deal.id, next);
-              }}
-            />
-          )}
+          {dailyColor !== undefined && (() => {
+            const allowed = (allowedDailyColors && allowedDailyColors.length > 0)
+              ? COLOR_ORDER.filter((c) => allowedDailyColors.includes(c))
+              : [...COLOR_ORDER];
+            const effective = allowed.includes((dailyColor || "red") as any) ? (dailyColor || "red") : allowed[0];
+            const idx = allowed.indexOf(effective as any);
+            const next = allowed[(idx + 1) % allowed.length];
+            return (
+              <button
+                className="shrink-0 h-3 w-3 rounded-full transition-all"
+                style={{
+                  backgroundColor: COLOR_HEX[effective],
+                  boxShadow: `0 0 8px ${COLOR_HEX[effective]}`,
+                }}
+                title="Alterar status diário"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onColorChange?.(deal.id, next);
+                }}
+              />
+            );
+          })()}
           {channelIconKey && (() => {
             const ChannelIcon = getChannelIcon(channelIconKey).icon;
             return <ChannelIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
