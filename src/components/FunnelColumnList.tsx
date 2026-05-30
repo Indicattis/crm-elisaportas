@@ -344,6 +344,42 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                     <span className="text-sm font-medium">Bolas coloridas</span>
                   </label>
 
+                  {(editingColumn as any).has_daily_color !== false && (() => {
+                    const current: string[] = (editingColumn as any).daily_colors ?? ["red", "yellow", "green"];
+                    const opts: { key: string; label: string; hex: string }[] = [
+                      { key: "red", label: "Vermelho", hex: "#ef4444" },
+                      { key: "yellow", label: "Amarelo", hex: "#eab308" },
+                      { key: "green", label: "Verde", hex: "#22c55e" },
+                    ];
+                    return (
+                      <div className="ml-6 flex flex-wrap gap-3">
+                        {opts.map((o) => {
+                          const checked = current.includes(o.key);
+                          const isLast = checked && current.length === 1;
+                          return (
+                            <label key={o.key} className={`flex items-center gap-1.5 ${isLast ? "opacity-60" : "cursor-pointer"}`}>
+                              <Checkbox
+                                checked={checked}
+                                disabled={isLast}
+                                onCheckedChange={(v) => {
+                                  const next = v
+                                    ? Array.from(new Set([...current, o.key]))
+                                    : current.filter((c) => c !== o.key);
+                                  // preserve canonical order
+                                  const ordered = ["red", "yellow", "green"].filter((k) => next.includes(k));
+                                  if (ordered.length === 0) return;
+                                  handleUpdateDailyColors(editingColumn.id, ordered);
+                                }}
+                              />
+                              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: o.hex }} />
+                              <span className="text-xs">{o.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
                   {/* Grupo de tarefas */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-1.5">
