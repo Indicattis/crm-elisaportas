@@ -26,6 +26,7 @@ import { createNotification } from "@/lib/notifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { LayoutGrid, List, Search, User } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
+import { SharedNotesDialog } from "./SharedNotesDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
