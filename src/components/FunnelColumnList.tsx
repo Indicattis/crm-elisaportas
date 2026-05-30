@@ -150,6 +150,11 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
+  const handleUpdateDailyColors = async (colId: string, colors: string[]) => {
+    await supabase.from("funnel_columns").update({ daily_colors: colors } as any).eq("id", colId);
+    onChanged();
+  };
+
   const handleAdd = async () => {
     if (!newName.trim()) return;
     if (!authUser) return;
