@@ -59,8 +59,14 @@ export function RecurringTasksDialog() {
     if (compRes.error) toast.error("Erro ao carregar tarefas");
     else setCompletions((compRes.data as Completion[]) ?? []);
     if (isAdmin) {
-      const profRes = await supabase.from("profiles").select("id, full_name, email");
-      if (!profRes.error) setProfiles(profRes.data ?? []);
+      const rolesRes = await supabase.from("user_roles").select("user_id").eq("role", "vendedor");
+      const ids = (rolesRes.data ?? []).map((r: any) => r.user_id);
+      if (ids.length > 0) {
+        const profRes = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
+        if (!profRes.error) setProfiles(profRes.data ?? []);
+      } else {
+        setProfiles([]);
+      }
     }
     setLoading(false);
   };
