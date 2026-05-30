@@ -36,6 +36,7 @@ interface KanbanColumnProps {
   isNotice?: boolean;
   noticeText?: string;
   hasDailyColor?: boolean;
+  allowedDailyColors?: string[];
   isCreatedAtSort?: boolean;
   onToggleSort?: () => void;
   collapsed?: boolean;
