@@ -410,17 +410,19 @@ export function KanbanBoard() {
 
   const fetchDailyColors = useCallback(async (currentDeals: Deal[]) => {
     if (currentDeals.length === 0) return;
-    const dealIds = currentDeals.map((d) => d.id);
+    const dealIdSet = new Set(currentDeals.map((d) => d.id));
     const today = new Date().toISOString().slice(0, 10);
     const { data } = await supabase
       .from("deal_daily_color")
       .select("deal_id, color")
-      .in("deal_id", dealIds)
       .eq("date", today);
     const map: Record<string, string> = {};
-    (data || []).forEach((row: any) => { map[row.deal_id] = row.color; });
+    (data || []).forEach((row: any) => {
+      if (dealIdSet.has(row.deal_id)) map[row.deal_id] = row.color;
+    });
     setDailyColorsMap(map);
   }, []);
+
 
   // BLOCK 1: Load everything in parallel when funnel changes
   useEffect(() => {
