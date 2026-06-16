@@ -225,8 +225,13 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
               style={currentStage ? { borderColor: currentStage.color, color: currentStage.color } : undefined}
             >
               {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: currentStage.color }} />}
-              {currentStage?.name ?? "Etapas"}
-              {taskProgress && taskProgress.total > 0 ? ` ${taskProgress.completed}/${taskProgress.total}` : ""}
+              <span>{currentStage?.name ?? "Etapas"}</span>
+              {taskProgress && taskProgress.total > 0 && (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span>{taskProgress.completed}/{taskProgress.total}</span>
+                </>
+              )}
             </Badge>
           )}
         </div>
