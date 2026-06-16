@@ -108,10 +108,23 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
     setDuplicateInfo(null);
   }, [deal, defaultStatus, open, statuses]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const findDuplicate = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 4) return null;
+    let query = supabase.from("deals").select("id, title, status, assigned_to").ilike("phone", `%${digits.split("").join("%")}%`);
+    if (deal?.id) query = query.neq("id", deal.id);
+    const { data } = await query.limit(1).maybeSingle();
+    if (!data) return null;
+    let assignedName = "Não atribuído";
+    if (data.assigned_to) {
+      const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", data.assigned_to).maybeSingle();
+      if (profile?.full_name) assignedName = profile.full_name;
+    }
+    return { title: data.title, status: data.status, assignedName };
+  };
 
+  const performSave = async () => {
+    setLoading(true);
     try {
       if (!authUser) throw new Error("Não autenticado");
       const user = authUser;
@@ -158,6 +171,18 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const dup = await findDuplicate();
+    setLoading(false);
+    if (dup) {
+      setPendingDuplicate(dup);
+      return;
+    }
+    await performSave();
   };
 
   const handleDelete = async () => {
