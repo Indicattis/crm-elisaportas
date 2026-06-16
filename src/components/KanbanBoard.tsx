@@ -299,7 +299,7 @@ export function KanbanBoard() {
       return;
     }
 
-    const dealIds = currentDeals.map((deal) => deal.id);
+    const dealIdSet = new Set(currentDeals.map((deal) => deal.id));
     // Paginate to bypass Supabase's 1000-row default limit
     const PAGE_SIZE = 1000;
     let allTasks: any[] = [];
@@ -308,12 +308,11 @@ export function KanbanBoard() {
       const { data: page } = await supabase
         .from("deal_tasks")
         .select("deal_id, deadline_at, stage_id")
-        .in("deal_id", dealIds)
         .eq("completed", false)
         .order("deadline_at", { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
       if (!page || page.length === 0) break;
-      allTasks = allTasks.concat(page);
+      allTasks = allTasks.concat(page.filter((task: any) => dealIdSet.has(task.deal_id)));
       if (page.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
@@ -369,7 +368,7 @@ export function KanbanBoard() {
       setTaskProgressMap({});
       return;
     }
-    const dealIds = currentDeals.map((d) => d.id);
+    const dealIdSet = new Set(currentDeals.map((d) => d.id));
     const PAGE_SIZE = 1000;
     let allTasks: any[] = [];
     let from = 0;
@@ -377,10 +376,9 @@ export function KanbanBoard() {
       const { data: page } = await supabase
         .from("deal_tasks")
         .select("deal_id, completed, stage_id, cycle")
-        .in("deal_id", dealIds)
         .range(from, from + PAGE_SIZE - 1);
       if (!page || page.length === 0) break;
-      allTasks = allTasks.concat(page);
+      allTasks = allTasks.concat(page.filter((task: any) => dealIdSet.has(task.deal_id)));
       if (page.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
