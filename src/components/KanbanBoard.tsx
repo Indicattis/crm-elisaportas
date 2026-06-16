@@ -413,7 +413,7 @@ export function KanbanBoard() {
   }, []);
 
 
-  // BLOCK 1: Load everything in parallel when funnel changes
+  // BLOCK 1: Load core data, then unblock UI; tasks/colors load in background
   useEffect(() => {
     if (!selectedFunnelId) return;
     const loadAll = async () => {
@@ -425,17 +425,8 @@ export function KanbanBoard() {
         fetchAllTags(),
         fetchChannels(),
       ]);
-      // BLOCK 2: Load deal-dependent data in parallel
-      if (fetchedDeals && fetchedDeals.length > 0) {
-        const dealIds = fetchedDeals.map((d: Deal) => d.id);
-        await Promise.all([
-          fetchProfiles(fetchedDeals),
-          fetchOverdueTasks(fetchedDeals),
-          fetchDailyColors(fetchedDeals),
-          fetchDealTags(dealIds),
-          fetchTaskProgress(fetchedDeals),
-        ]);
-      } else {
+
+      if (!fetchedDeals || fetchedDeals.length === 0) {
         setProfilesMap({});
         setOverdueDeals(new Set());
         setNextTaskMap({});
@@ -443,11 +434,27 @@ export function KanbanBoard() {
         setDailyColorsMap({});
         setDealTagsMap({});
         setTaskProgressMap({});
+        setLoading(false);
+        return;
       }
+
+      const dealIds = fetchedDeals.map((d: Deal) => d.id);
+
+      // Profiles & tags are needed for the card header — await them, then show board
+      await Promise.all([
+        fetchProfiles(fetchedDeals),
+        fetchDealTags(dealIds),
+      ]);
       setLoading(false);
+
+      // Heavy task/color data continues in background; badges fill in progressively
+      Promise.all([
+        fetchTasksData(fetchedDeals),
+        fetchDailyColors(fetchedDeals),
+      ]);
     };
-  loadAll();
-  }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags, fetchTaskProgress]);
+    loadAll();
+  }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags]);
 
   // Helper to refresh deals + dependent data after mutations
   const refreshDeals = useCallback(async () => {
@@ -456,13 +463,13 @@ export function KanbanBoard() {
       const dealIds = freshDeals.map((d: Deal) => d.id);
       await Promise.all([
         fetchProfiles(freshDeals),
-        fetchOverdueTasks(freshDeals),
+        fetchTasksData(freshDeals),
         fetchDailyColors(freshDeals),
         fetchDealTags(dealIds),
-        fetchTaskProgress(freshDeals),
       ]);
     }
-  }, [fetchDeals, fetchProfiles, fetchOverdueTasks, fetchDailyColors, fetchDealTags, fetchTaskProgress]);
+  }, [fetchDeals, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags]);
+
 
   const handleColorChange = useCallback(async (dealId: string, newColor: string) => {
     setDailyColorsMap((prev) => ({ ...prev, [dealId]: newColor }));
