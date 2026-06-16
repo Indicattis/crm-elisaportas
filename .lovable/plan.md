@@ -1,32 +1,41 @@
 ## Objetivo
+Diminuir o tempo da tela de loading em `/` (KanbanBoard).
 
-Hoje o `DealDialog` já mostra um alerta amarelo inline quando detecta telefone duplicado, mas o usuário consegue salvar mesmo assim sem nenhuma confirmação. Vamos transformar isso em um aviso bloqueante.
+## Diagnóstico
+Hoje o `loading=true` só vira `false` depois que TUDO termina (colunas, deals, perfis, tags, canais, membros, **tarefas em atraso, progresso de tarefas, cores diárias**). Os dois maiores gargalos:
 
-## Mudanças em `src/components/DealDialog.tsx`
+1. **`fetchOverdueTasks` e `fetchTaskProgress` fazem queries quase idênticas** na tabela `deal_tasks` — buscam praticamente as mesmas colunas (`deal_id, completed, stage_id, deadline_at, cycle`) para os mesmos `deal_id`s. Hoje são 2 varreduras separadas.
+2. **A paginação dos chunks é sequencial** (`for (const chunk of chunkArray(dealIds, 100))` com `await` dentro). Com muitos deals, isso vira N requisições em série.
+3. **A UI espera todos os dados secundários** (progresso, stages, cores diárias) para mostrar qualquer card. Esses dados são usados para badges/indicadores — os cards podem aparecer antes e ir "preenchendo".
 
-1. **Revalidação no submit**
-   - Antes de inserir/atualizar, rodar uma checagem síncrona em `deals` pelo telefone (mesma lógica de `checkDuplicatePhone`, com `>=4` dígitos e ignorando o próprio `deal.id` no modo edição). Isso evita escapar pela janela do debounce de 500ms.
+## Mudanças propostas
 
-2. **AlertDialog de confirmação**
-   - Se houver duplicidade, abrir um `AlertDialog` (shadcn) com:
-     - Título: "Telefone já cadastrado"
-     - Mensagem: nome da negociação existente, etapa atual e responsável (`assignedName`).
-     - Botões: **Cancelar** (fecha o aviso, mantém o formulário aberto) e **Cadastrar mesmo assim** (prossegue com o insert/update).
-   - Só aplicar para criação e edição manual; o alerta inline amarelo continua visível enquanto o usuário digita.
+### 1. Unificar as duas queries de `deal_tasks` (maior ganho)
+Substituir `fetchOverdueTasks` + `fetchTaskProgress` por uma única função `fetchAllTasksData(deals)` que:
+- Faz uma única consulta `select("deal_id, completed, stage_id, deadline_at, cycle")` por chunk.
+- Calcula em memória os 4 mapas derivados: `overdueDeals`, `nextTaskMap`, `dealStageMap`, `taskProgressMap`.
+- Mantém a busca de `task_group_stages` (nomes/cores) como hoje, após o agrupamento.
 
-3. **Estado novo**
-   - `pendingDuplicate: { title, status, assignedName } | null` para controlar a abertura do `AlertDialog`.
-   - Função `confirmAndSave()` que executa o `INSERT/UPDATE` após confirmação.
+Isso reduz o volume de I/O à metade nas tabelas de tarefas, que são a parte mais pesada do load.
 
-## Comportamento final
+### 2. Paginar chunks em paralelo
+Trocar o `for…of` sequencial por `Promise.all(chunks.map(...))`. Os chunks são independentes; rodar em paralelo reduz drasticamente o tempo total quando há muitos deals.
 
-- Digitando telefone que já existe → alerta amarelo inline (já existe).
-- Clicar em "Salvar" com duplicidade → abre `AlertDialog` perguntando se deseja prosseguir.
-- "Cancelar" → volta ao formulário sem salvar.
-- "Cadastrar mesmo assim" → salva normalmente.
-- Sem duplicidade → fluxo atual inalterado.
+### 3. Mostrar o board antes dos dados de tarefas
+Mover `setLoading(false)` para logo após o BLOCK 1 (colunas + deals + membros + tags + canais). Os dados de tarefas/cores/progresso continuam carregando em background e os badges (atrasada, progresso X/Y, etapa) aparecem progressivamente — os cards já ficam visíveis e interativos.
 
-## Fora do escopo
+Para evitar "flash" de cards sem badges, manter um estado leve `tasksLoading` que apenas oculta os indicadores enquanto ainda estiverem carregando (sem bloquear o board inteiro).
 
-- Lead capture via edge function (`submit-lead`) — manter como está.
-- Alterar regras de RLS ou schema.
+### 4. Pequenas otimizações adicionais
+- Em `fetchColumns`, paralelizar a busca de `column_entry_requirements` com `fetchDeals` (hoje espera colunas terminarem).
+- Remover do `select("*")` em `fetchDeals` colunas grandes não usadas no card — manter como está se não houver colunas pesadas óbvias; verificar antes de cortar.
+
+## Resultado esperado
+- Tempo de "tela de loading cheia" cai significativamente (cards aparecem assim que os deals chegam, ~1 round-trip em vez de esperar 2 varreduras seriais de `deal_tasks`).
+- Badges de tarefa/progresso preenchem em seguida sem bloquear interação.
+
+## Arquivos afetados
+- `src/components/KanbanBoard.tsx` (única mudança de código).
+
+## Sem mudanças
+- Schema, RLS, triggers, lógica de negócio e UI dos cards permanecem iguais.
