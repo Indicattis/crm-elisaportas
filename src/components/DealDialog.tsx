@@ -230,7 +230,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             <Alert className="border-yellow-500/50 bg-yellow-500/10">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
               <AlertDescription className="text-sm">
-                Telefone já cadastrado na negociação <strong>{duplicateInfo.title}</strong> (etapa: {duplicateInfo.status}), atendido por <strong>{duplicateInfo.assignedName}</strong>
+                Telefone já cadastrado na negociação <strong>{duplicateInfo.title}</strong> (etapa: {duplicateInfo.status}) — vendedor: <strong>{duplicateInfo.assignedName}</strong>
               </AlertDescription>
             </Alert>
           )}
@@ -310,7 +310,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             <AlertDialogDescription>
               {pendingDuplicate && (
                 <>
-                  Já existe a negociação <strong>{pendingDuplicate.title}</strong> (etapa: {pendingDuplicate.status}), atendida por <strong>{pendingDuplicate.assignedName}</strong>. Deseja cadastrar mesmo assim?
+                  Já existe a negociação <strong>{pendingDuplicate.title}</strong> (etapa: {pendingDuplicate.status}) — vendedor: <strong>{pendingDuplicate.assignedName}</strong>. Deseja cadastrar mesmo assim?
                 </>
               )}
             </AlertDialogDescription>
