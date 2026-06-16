@@ -332,9 +332,9 @@ export function KanbanBoard() {
     const dealStageIds: Record<string, Set<string>> = {};
 
     (data || []).forEach((task: any) => {
-      if (task.deadline_at < now) overdue.add(task.deal_id);
+      if (!task.completed && task.deadline_at < now) overdue.add(task.deal_id);
       // Only consider non-overdue tasks for "next task" display
-      if (task.deadline_at >= now && !nextMap[task.deal_id]) {
+      if (!task.completed && task.deadline_at >= now && !nextMap[task.deal_id]) {
         nextMap[task.deal_id] = task.deadline_at;
       }
       if (task.stage_id) {
