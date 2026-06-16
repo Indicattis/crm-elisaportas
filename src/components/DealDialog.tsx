@@ -303,6 +303,31 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
           </div>
         </form>
       </DialogContent>
+      <AlertDialog open={!!pendingDuplicate} onOpenChange={(o) => { if (!o) setPendingDuplicate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Telefone já cadastrado</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDuplicate && (
+                <>
+                  Já existe a negociação <strong>{pendingDuplicate.title}</strong> (etapa: {pendingDuplicate.status}), atendida por <strong>{pendingDuplicate.assignedName}</strong>. Deseja cadastrar mesmo assim?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setPendingDuplicate(null);
+                await performSave();
+              }}
+            >
+              Cadastrar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
