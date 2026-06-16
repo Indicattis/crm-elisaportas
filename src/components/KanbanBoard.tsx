@@ -314,9 +314,8 @@ export function KanbanBoard() {
       while (true) {
         const { data: page } = await supabase
           .from("deal_tasks")
-          .select("deal_id, deadline_at, stage_id")
+          .select("deal_id, deadline_at, stage_id, completed")
           .in("deal_id", chunk)
-          .eq("completed", false)
           .order("deadline_at", { ascending: true })
           .range(from, from + PAGE_SIZE - 1);
         if (!page || page.length === 0) break;
