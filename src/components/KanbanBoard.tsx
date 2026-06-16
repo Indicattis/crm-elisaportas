@@ -28,6 +28,7 @@ import { LayoutGrid, List, Search, User } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
 import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
+import { KanbanLoading } from "./KanbanLoading";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
@@ -745,16 +746,7 @@ export function KanbanBoard() {
       </div>
 
       {loading ? (
-        <div className="flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)]">
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="flex-shrink-0 w-72 space-y-3 h-full">
-              <Skeleton className="h-8 w-full rounded-lg" />
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
-            </div>
-          ))}
-        </div>
+        <KanbanLoading />
       ) : funnels.length === 0 ? (
         <div className="flex items-center justify-center h-[calc(100vh-120px)] text-muted-foreground">
           <p>Você não tem acesso a nenhum funil. Solicite acesso a um administrador.</p>
