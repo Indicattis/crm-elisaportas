@@ -1,17 +1,20 @@
-## Adicionar opção "Data de retorno" na ordenação das colunas
+## Problema
 
-**`src/components/FunnelColumnList.tsx`**
-- Adicionar `<SelectItem value="return_date">Data de retorno</SelectItem>` no Select de ordenação (após "Próxima tarefa").
+A bolinha colorida no `DealCard` está dentro de um container que recebe `{...listeners}` e `{...attributes}` do `useSortable` (dnd-kit). Isso faz com que o `pointerdown` na bolinha seja capturado pelo sistema de drag, e o `onClick` muitas vezes não dispara (ou só dispara em condições específicas) — então a cor parece mudar "sozinha" em alguns casos, ou não mudar quando clicada.
 
-**`src/components/KanbanBoard.tsx`**
-- No `.sort(...)` da listagem de deals, adicionar branch:
-  ```
-  if (order === "return_date") {
-    const tA = a.return_date ? new Date(a.return_date).getTime() : Infinity;
-    const tB = b.return_date ? new Date(b.return_date).getTime() : Infinity;
-    return tA - tB;
-  }
-  ```
-  Deals sem `return_date` vão para o final (ascendente: retornos mais próximos primeiro).
+Além disso, o card inteiro tem `onClick={onClick}` que abre o detalhe do deal, então qualquer clique que escapar do botão abre o modal.
 
-Sem migração de banco — `sort_order` já é texto livre.
+## Solução
+
+Em `src/components/DealCard.tsx`, ajustar o `<button>` da bolinha para:
+
+1. Adicionar `onPointerDown={(e) => e.stopPropagation()}` — impede que o dnd-kit inicie um drag a partir do clique na bolinha.
+2. Adicionar `onMouseDown={(e) => e.stopPropagation()}` por segurança (alguns navegadores).
+3. Manter `onClick` com `e.stopPropagation()` + `e.preventDefault()` para não abrir o modal do deal nem propagar pro card.
+4. Trocar a tag `<button>` por `type="button"` explícito (boa prática, já que não é submit).
+
+Nenhuma outra mudança: a lógica de cores permitidas (`allowedDailyColors`) e o ciclo `red → yellow → green` continuam iguais. Apenas garantimos que o clique na bolinha é o ÚNICO gatilho de mudança.
+
+## Arquivos
+
+- `src/components/DealCard.tsx` — ajustar handlers do botão da bolinha colorida.

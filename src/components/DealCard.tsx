@@ -99,14 +99,19 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
             const next = allowed[(idx + 1) % allowed.length];
             return (
               <button
+                type="button"
                 className="shrink-0 h-3 w-3 rounded-full transition-all"
                 style={{
                   backgroundColor: COLOR_HEX[effective],
                   boxShadow: `0 0 8px ${COLOR_HEX[effective]}`,
                 }}
                 title="Alterar status diário"
+                onPointerDown={(e) => { e.stopPropagation(); }}
+                onMouseDown={(e) => { e.stopPropagation(); }}
+                onTouchStart={(e) => { e.stopPropagation(); }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onColorChange?.(deal.id, next);
                 }}
               />
