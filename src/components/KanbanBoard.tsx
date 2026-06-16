@@ -298,56 +298,79 @@ export function KanbanBoard() {
     setProfilesMap(map);
   }, []);
 
-  const fetchOverdueTasks = useCallback(async (currentDeals: Deal[]) => {
+  const fetchTasksData = useCallback(async (currentDeals: Deal[]) => {
     if (currentDeals.length === 0) {
       setOverdueDeals(new Set());
       setNextTaskMap({});
       setDealStageMap({});
+      setTaskProgressMap({});
       return;
     }
 
-    const dealIds = currentDeals.map((deal) => deal.id);
-    // Paginate to bypass Supabase's 1000-row default limit
+    const dealIds = currentDeals.map((d) => d.id);
     const PAGE_SIZE = 1000;
-    let allTasks: any[] = [];
-    for (const chunk of chunkArray(dealIds, 100)) {
-      let from = 0;
-      while (true) {
-        const { data: page } = await supabase
-          .from("deal_tasks")
-          .select("deal_id, deadline_at, stage_id, completed")
-          .in("deal_id", chunk)
-          .order("deadline_at", { ascending: true })
-          .range(from, from + PAGE_SIZE - 1);
-        if (!page || page.length === 0) break;
-        allTasks = allTasks.concat(page);
-        if (page.length < PAGE_SIZE) break;
-        from += PAGE_SIZE;
-      }
-    }
-    const data = allTasks;
+    const chunks = chunkArray(dealIds, 100);
 
+    // Run all chunks in parallel; each chunk paginates internally
+    const chunkResults = await Promise.all(
+      chunks.map(async (chunk) => {
+        const tasks: any[] = [];
+        let from = 0;
+        while (true) {
+          const { data: page } = await supabase
+            .from("deal_tasks")
+            .select("deal_id, deadline_at, stage_id, completed, cycle")
+            .in("deal_id", chunk)
+            .order("deadline_at", { ascending: true })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!page || page.length === 0) break;
+          tasks.push(...page);
+          if (page.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return tasks;
+      })
+    );
+    const allTasks = chunkResults.flat();
+
+    // Compute overdue + next task + stage buckets in a single pass
     const overdue = new Set<string>();
     const nextMap: Record<string, string> = {};
     const now = new Date().toISOString();
     const dealStageIds: Record<string, Set<string>> = {};
+    const stageBuckets: Record<string, Record<string, { total: number; completed: number }>> = {};
 
-    (data || []).forEach((task: any) => {
-      if (!task.completed && task.deadline_at < now) overdue.add(task.deal_id);
-      // Only consider non-overdue tasks for "next task" display
-      if (!task.completed && task.deadline_at >= now && !nextMap[task.deal_id]) {
-        nextMap[task.deal_id] = task.deadline_at;
+    for (const task of allTasks) {
+      const dealId = task.deal_id as string;
+      if (!task.completed && task.deadline_at < now) overdue.add(dealId);
+      if (!task.completed && task.deadline_at >= now && !nextMap[dealId]) {
+        nextMap[dealId] = task.deadline_at;
       }
       if (task.stage_id) {
-        if (!dealStageIds[task.deal_id]) dealStageIds[task.deal_id] = new Set();
-        dealStageIds[task.deal_id].add(task.stage_id);
+        if (!dealStageIds[dealId]) dealStageIds[dealId] = new Set();
+        dealStageIds[dealId].add(task.stage_id);
       }
-    });
+      const cycle = task.cycle ?? 1;
+      const stageKey = `${task.stage_id ?? "unstaged"}::${cycle}`;
+      if (!stageBuckets[dealId]) stageBuckets[dealId] = {};
+      if (!stageBuckets[dealId][stageKey]) stageBuckets[dealId][stageKey] = { total: 0, completed: 0 };
+      stageBuckets[dealId][stageKey].total++;
+      if (task.completed) stageBuckets[dealId][stageKey].completed++;
+    }
 
     setOverdueDeals(overdue);
     setNextTaskMap(nextMap);
 
-    const allStageIds = [...new Set(Object.values(dealStageIds).flatMap(s => [...s]))];
+    const progress: Record<string, { completed: number; total: number }> = {};
+    for (const [dealId, buckets] of Object.entries(stageBuckets)) {
+      const stages = Object.values(buckets);
+      const total = stages.length;
+      const completed = stages.filter((s) => s.total > 0 && s.completed === s.total).length;
+      progress[dealId] = { completed, total };
+    }
+    setTaskProgressMap(progress);
+
+    const allStageIds = [...new Set(Object.values(dealStageIds).flatMap((s) => [...s]))];
     if (allStageIds.length > 0) {
       const { data: stages } = await supabase
         .from("task_group_stages")
@@ -372,50 +395,6 @@ export function KanbanBoard() {
     }
   }, []);
 
-  const fetchTaskProgress = useCallback(async (currentDeals: Deal[]) => {
-    if (currentDeals.length === 0) {
-      setTaskProgressMap({});
-      return;
-    }
-    const dealIds = currentDeals.map((d) => d.id);
-    const PAGE_SIZE = 1000;
-    let allTasks: any[] = [];
-    for (const chunk of chunkArray(dealIds, 100)) {
-      let from = 0;
-      while (true) {
-        const { data: page } = await supabase
-          .from("deal_tasks")
-          .select("deal_id, completed, stage_id, cycle")
-          .in("deal_id", chunk)
-          .range(from, from + PAGE_SIZE - 1);
-        if (!page || page.length === 0) break;
-        allTasks = allTasks.concat(page);
-        if (page.length < PAGE_SIZE) break;
-        from += PAGE_SIZE;
-      }
-    }
-    // Group by deal -> stage bucket (stage_id + cycle). A stage is considered
-    // completed when ALL its tasks are completed. Tasks without stage_id are
-    // bucketed together per cycle as a single "unstaged" stage.
-    const stageBuckets: Record<string, Record<string, { total: number; completed: number }>> = {};
-    for (const task of allTasks) {
-      const dealId = task.deal_id as string;
-      const cycle = task.cycle ?? 1;
-      const stageKey = `${task.stage_id ?? "unstaged"}::${cycle}`;
-      if (!stageBuckets[dealId]) stageBuckets[dealId] = {};
-      if (!stageBuckets[dealId][stageKey]) stageBuckets[dealId][stageKey] = { total: 0, completed: 0 };
-      stageBuckets[dealId][stageKey].total++;
-      if (task.completed) stageBuckets[dealId][stageKey].completed++;
-    }
-    const progress: Record<string, { completed: number; total: number }> = {};
-    for (const [dealId, buckets] of Object.entries(stageBuckets)) {
-      const stages = Object.values(buckets);
-      const total = stages.length;
-      const completed = stages.filter((s) => s.total > 0 && s.completed === s.total).length;
-      progress[dealId] = { completed, total };
-    }
-    setTaskProgressMap(progress);
-  }, []);
 
 
   const fetchDailyColors = useCallback(async (currentDeals: Deal[]) => {
