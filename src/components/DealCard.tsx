@@ -216,10 +216,14 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
               <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
             </>
           )}
-          {currentStage && (
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border" style={{ borderColor: currentStage.color, color: currentStage.color }}>
-              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: currentStage.color }} />
-              {currentStage.name}
+          {(currentStage || (taskProgress && taskProgress.total > 0)) && (
+            <Badge
+              variant="outline"
+              className={`text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border ${currentStage ? "" : "text-muted-foreground"}`}
+              style={currentStage ? { borderColor: currentStage.color, color: currentStage.color } : undefined}
+            >
+              {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: currentStage.color }} />}
+              {currentStage?.name ?? "Etapas"}
               {taskProgress && taskProgress.total > 0 ? ` ${taskProgress.completed}/${taskProgress.total}` : ""}
             </Badge>
           )}
