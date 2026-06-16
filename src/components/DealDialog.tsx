@@ -39,6 +39,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const [assignedTo, setAssignedTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [duplicateInfo, setDuplicateInfo] = useState<{ title: string; status: string; assignedName: string } | null>(null);
+  const [pendingDuplicate, setPendingDuplicate] = useState<{ title: string; status: string; assignedName: string } | null>(null);
   const [channelOptions, setChannelOptions] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string }[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
