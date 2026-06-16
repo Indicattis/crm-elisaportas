@@ -1,20 +1,32 @@
-## Problema
+## Objetivo
 
-A bolinha colorida no `DealCard` está dentro de um container que recebe `{...listeners}` e `{...attributes}` do `useSortable` (dnd-kit). Isso faz com que o `pointerdown` na bolinha seja capturado pelo sistema de drag, e o `onClick` muitas vezes não dispara (ou só dispara em condições específicas) — então a cor parece mudar "sozinha" em alguns casos, ou não mudar quando clicada.
+Hoje o `DealDialog` já mostra um alerta amarelo inline quando detecta telefone duplicado, mas o usuário consegue salvar mesmo assim sem nenhuma confirmação. Vamos transformar isso em um aviso bloqueante.
 
-Além disso, o card inteiro tem `onClick={onClick}` que abre o detalhe do deal, então qualquer clique que escapar do botão abre o modal.
+## Mudanças em `src/components/DealDialog.tsx`
 
-## Solução
+1. **Revalidação no submit**
+   - Antes de inserir/atualizar, rodar uma checagem síncrona em `deals` pelo telefone (mesma lógica de `checkDuplicatePhone`, com `>=4` dígitos e ignorando o próprio `deal.id` no modo edição). Isso evita escapar pela janela do debounce de 500ms.
 
-Em `src/components/DealCard.tsx`, ajustar o `<button>` da bolinha para:
+2. **AlertDialog de confirmação**
+   - Se houver duplicidade, abrir um `AlertDialog` (shadcn) com:
+     - Título: "Telefone já cadastrado"
+     - Mensagem: nome da negociação existente, etapa atual e responsável (`assignedName`).
+     - Botões: **Cancelar** (fecha o aviso, mantém o formulário aberto) e **Cadastrar mesmo assim** (prossegue com o insert/update).
+   - Só aplicar para criação e edição manual; o alerta inline amarelo continua visível enquanto o usuário digita.
 
-1. Adicionar `onPointerDown={(e) => e.stopPropagation()}` — impede que o dnd-kit inicie um drag a partir do clique na bolinha.
-2. Adicionar `onMouseDown={(e) => e.stopPropagation()}` por segurança (alguns navegadores).
-3. Manter `onClick` com `e.stopPropagation()` + `e.preventDefault()` para não abrir o modal do deal nem propagar pro card.
-4. Trocar a tag `<button>` por `type="button"` explícito (boa prática, já que não é submit).
+3. **Estado novo**
+   - `pendingDuplicate: { title, status, assignedName } | null` para controlar a abertura do `AlertDialog`.
+   - Função `confirmAndSave()` que executa o `INSERT/UPDATE` após confirmação.
 
-Nenhuma outra mudança: a lógica de cores permitidas (`allowedDailyColors`) e o ciclo `red → yellow → green` continuam iguais. Apenas garantimos que o clique na bolinha é o ÚNICO gatilho de mudança.
+## Comportamento final
 
-## Arquivos
+- Digitando telefone que já existe → alerta amarelo inline (já existe).
+- Clicar em "Salvar" com duplicidade → abre `AlertDialog` perguntando se deseja prosseguir.
+- "Cancelar" → volta ao formulário sem salvar.
+- "Cadastrar mesmo assim" → salva normalmente.
+- Sem duplicidade → fluxo atual inalterado.
 
-- `src/components/DealCard.tsx` — ajustar handlers do botão da bolinha colorida.
+## Fora do escopo
+
+- Lead capture via edge function (`submit-lead`) — manter como está.
+- Alterar regras de RLS ou schema.
