@@ -55,6 +55,12 @@ const readSession = () => {
   } catch { return {}; }
 };
 
+const chunkArray = <T,>(items: T[], size: number) => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+};
+
 export function KanbanBoard() {
   const sessionFilters = (typeof window !== "undefined" ? readSession() : {}) as {
     selectedFunnelId?: string;
@@ -303,19 +309,21 @@ export function KanbanBoard() {
     // Paginate to bypass Supabase's 1000-row default limit
     const PAGE_SIZE = 1000;
     let allTasks: any[] = [];
-    let from = 0;
-    while (true) {
-      const { data: page } = await supabase
-        .from("deal_tasks")
-        .select("deal_id, deadline_at, stage_id")
-        .in("deal_id", dealIds)
-        .eq("completed", false)
-        .order("deadline_at", { ascending: true })
-        .range(from, from + PAGE_SIZE - 1);
-      if (!page || page.length === 0) break;
-      allTasks = allTasks.concat(page);
-      if (page.length < PAGE_SIZE) break;
-      from += PAGE_SIZE;
+    for (const chunk of chunkArray(dealIds, 100)) {
+      let from = 0;
+      while (true) {
+        const { data: page } = await supabase
+          .from("deal_tasks")
+          .select("deal_id, deadline_at, stage_id")
+          .in("deal_id", chunk)
+          .eq("completed", false)
+          .order("deadline_at", { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (!page || page.length === 0) break;
+        allTasks = allTasks.concat(page);
+        if (page.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
     }
     const data = allTasks;
 
@@ -372,17 +380,19 @@ export function KanbanBoard() {
     const dealIds = currentDeals.map((d) => d.id);
     const PAGE_SIZE = 1000;
     let allTasks: any[] = [];
-    let from = 0;
-    while (true) {
-      const { data: page } = await supabase
-        .from("deal_tasks")
-        .select("deal_id, completed, stage_id, cycle")
-        .in("deal_id", dealIds)
-        .range(from, from + PAGE_SIZE - 1);
-      if (!page || page.length === 0) break;
-      allTasks = allTasks.concat(page);
-      if (page.length < PAGE_SIZE) break;
-      from += PAGE_SIZE;
+    for (const chunk of chunkArray(dealIds, 100)) {
+      let from = 0;
+      while (true) {
+        const { data: page } = await supabase
+          .from("deal_tasks")
+          .select("deal_id, completed, stage_id, cycle")
+          .in("deal_id", chunk)
+          .range(from, from + PAGE_SIZE - 1);
+        if (!page || page.length === 0) break;
+        allTasks = allTasks.concat(page);
+        if (page.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
     }
     // Group by deal -> stage bucket (stage_id + cycle). A stage is considered
     // completed when ALL its tasks are completed. Tasks without stage_id are
