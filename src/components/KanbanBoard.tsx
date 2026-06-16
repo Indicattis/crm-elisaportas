@@ -314,9 +314,8 @@ export function KanbanBoard() {
       while (true) {
         const { data: page } = await supabase
           .from("deal_tasks")
-          .select("deal_id, deadline_at, stage_id")
+          .select("deal_id, deadline_at, stage_id, completed")
           .in("deal_id", chunk)
-          .eq("completed", false)
           .order("deadline_at", { ascending: true })
           .range(from, from + PAGE_SIZE - 1);
         if (!page || page.length === 0) break;
@@ -333,9 +332,9 @@ export function KanbanBoard() {
     const dealStageIds: Record<string, Set<string>> = {};
 
     (data || []).forEach((task: any) => {
-      if (task.deadline_at < now) overdue.add(task.deal_id);
+      if (!task.completed && task.deadline_at < now) overdue.add(task.deal_id);
       // Only consider non-overdue tasks for "next task" display
-      if (task.deadline_at >= now && !nextMap[task.deal_id]) {
+      if (!task.completed && task.deadline_at >= now && !nextMap[task.deal_id]) {
         nextMap[task.deal_id] = task.deadline_at;
       }
       if (task.stage_id) {

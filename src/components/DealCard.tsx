@@ -207,15 +207,17 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
         </div>
       </div>
 
-      {/* Row 3: Location + Stage + Next task */}
+      {/* Row 3: Location */}
+      {(deal.city || deal.state) && (
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
+        </div>
+      )}
+
+      {/* Row 4: Stage index + Next task */}
       <div className="flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
-          {(deal.city || deal.state) && (
-            <>
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="truncate">{[deal.city, deal.state].filter(Boolean).join(" - ")}</span>
-            </>
-          )}
+        <div className="flex items-center gap-1.5 min-w-0">
           {(currentStage || (taskProgress && taskProgress.total > 0)) && (
             <Badge
               variant="outline"
