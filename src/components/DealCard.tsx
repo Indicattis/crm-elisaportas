@@ -219,20 +219,24 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       <div className="flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-1.5 min-w-0">
           {(currentStage || (taskProgress && taskProgress.total > 0)) && (
-            <Badge
-              variant="outline"
-              className={`text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border ${currentStage ? "" : "text-muted-foreground"}`}
-              style={currentStage ? { borderColor: currentStage.color, color: currentStage.color } : undefined}
-            >
-              {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: currentStage.color }} />}
-              <span>{currentStage?.name ?? "Etapas"}</span>
-              {taskProgress && taskProgress.total > 0 && (
-                <>
-                  <span className="opacity-50">·</span>
-                  <span>{taskProgress.completed}/{taskProgress.total}</span>
-                </>
-              )}
-            </Badge>
+            (() => {
+              const allDone = taskProgress && taskProgress.total > 0 && taskProgress.completed === taskProgress.total;
+              return (
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border ${allDone ? "text-destructive border-destructive" : "text-foreground border-foreground/40"}`}
+                >
+                  {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: allDone ? "hsl(var(--destructive))" : currentStage.color }} />}
+                  <span>{currentStage?.name ?? "Etapas"}</span>
+                  {taskProgress && taskProgress.total > 0 && (
+                    <>
+                      <span className="opacity-50">·</span>
+                      <span>{taskProgress.completed}/{taskProgress.total}</span>
+                    </>
+                  )}
+                </Badge>
+              );
+            })()
           )}
         </div>
         {(() => {
