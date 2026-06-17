@@ -774,15 +774,36 @@ export function KanbanBoard() {
           onDragCancel={handleDragCancel}
           onDragEnd={handleDragEnd}
         >
+          {viewMode === "tabs" && (
+            <div className="px-6 pt-3 flex gap-2 overflow-x-auto">
+              {columns.filter((c) => !(c as any).is_notice).map((column) => {
+                const count = deals.filter((d) => d.status === column.name).filter(filterBySeller).filter(filterByLocation).length;
+                const active = selectedTab === column.name;
+                return (
+                  <button
+                    key={column.id}
+                    onClick={() => setSelectedTab(column.name)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${active ? "text-white shadow" : "text-foreground/70 hover:text-foreground bg-muted/40 border-transparent"}`}
+                    style={active ? { backgroundColor: column.color, borderColor: column.color } : undefined}
+                  >
+                    {column.name}
+                    <span className={`ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${active ? "bg-white/20" : "bg-foreground/10"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div
             ref={scrollContainerRef}
-            className={`flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)] ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
+            className={`flex gap-4 overflow-x-auto p-6 pb-8 ${viewMode === "tabs" ? "h-[calc(100vh-170px)]" : "h-[calc(100vh-120px)]"} ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
             onMouseDown={handleGrabMouseDown}
             onMouseMove={handleGrabMouseMove}
             onMouseUp={handleGrabMouseUp}
             onMouseLeave={handleGrabMouseLeave}
           >
-            {columns.map((column) => {
+            {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && c.name === selectedTab) : columns).map((column) => {
               if ((column as any).is_notice) {
                 return (
                   <KanbanColumn
