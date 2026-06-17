@@ -210,7 +210,7 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Título</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Ex: Porta automática loja centro" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value.replace(/[0-9]/g, ""))} required placeholder="Ex: Porta automática loja centro" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
