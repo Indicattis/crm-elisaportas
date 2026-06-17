@@ -90,7 +90,7 @@ export default function LeadForm() {
           <Input
             id="name"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value.replace(/[0-9]/g, "") }))}
             placeholder="Seu nome completo"
             required
           />
