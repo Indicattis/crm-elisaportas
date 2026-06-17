@@ -1,41 +1,72 @@
-## Objetivo
-Diminuir o tempo da tela de loading em `/` (KanbanBoard).
+# Campos bloqueados por coluna do funil
 
-## Diagnóstico
-Hoje o `loading=true` só vira `false` depois que TUDO termina (colunas, deals, perfis, tags, canais, membros, **tarefas em atraso, progresso de tarefas, cores diárias**). Os dois maiores gargalos:
+Hoje cada coluna do funil tem **Requisitos de entrada** (campos obrigatórios). Vamos adicionar a configuração oposta: **Campos bloqueados** — campos que não podem existir/serem preenchidos enquanto o card estiver naquela coluna. Ao entrar na coluna, os valores são limpos automaticamente; nos formulários e edições, os campos ficam escondidos/desabilitados.
 
-1. **`fetchOverdueTasks` e `fetchTaskProgress` fazem queries quase idênticas** na tabela `deal_tasks` — buscam praticamente as mesmas colunas (`deal_id, completed, stage_id, deadline_at, cycle`) para os mesmos `deal_id`s. Hoje são 2 varreduras separadas.
-2. **A paginação dos chunks é sequencial** (`for (const chunk of chunkArray(dealIds, 100))` com `await` dentro). Com muitos deals, isso vira N requisições em série.
-3. **A UI espera todos os dados secundários** (progresso, stages, cores diárias) para mostrar qualquer card. Esses dados são usados para badges/indicadores — os cards podem aparecer antes e ir "preenchendo".
+## Banco de dados
 
-## Mudanças propostas
+Nova tabela `column_blocked_fields` (espelho de `column_entry_requirements`):
+- `column_id` → `funnel_columns.id` (cascade)
+- `field_name` text
+- `user_id` uuid
+- timestamps + RLS equivalente à de requirements
+- unique (`column_id`, `field_name`)
 
-### 1. Unificar as duas queries de `deal_tasks` (maior ganho)
-Substituir `fetchOverdueTasks` + `fetchTaskProgress` por uma única função `fetchAllTasksData(deals)` que:
-- Faz uma única consulta `select("deal_id, completed, stage_id, deadline_at, cycle")` por chunk.
-- Calcula em memória os 4 mapas derivados: `overdueDeals`, `nextTaskMap`, `dealStageMap`, `taskProgressMap`.
-- Mantém a busca de `task_group_stages` (nomes/cores) como hoje, após o agrupamento.
+Trigger `clear_blocked_fields_on_status_change()` em `deals` (BEFORE UPDATE OF status / BEFORE INSERT):
+- busca a coluna destino via `funnel_id` + `status`
+- para cada `field_name` em `column_blocked_fields`, zera o campo correspondente no registro (`NEW.phone := NULL`, etc.)
+- campos cobertos abaixo
 
-Isso reduz o volume de I/O à metade nas tabelas de tarefas, que são a parte mais pesada do load.
+Também limpa dados relacionados quando aplicável:
+- `tags` → `DELETE FROM deal_tags WHERE deal_id = NEW.id` (em trigger AFTER)
+- `acquisition_channel` → seta `acquisition_channel_id = NULL`
 
-### 2. Paginar chunks em paralelo
-Trocar o `for…of` sequencial por `Promise.all(chunks.map(...))`. Os chunks são independentes; rodar em paralelo reduz drasticamente o tempo total quando há muitos deals.
+## Campos suportados (mesma lista de requisitos + extras pedidos)
 
-### 3. Mostrar o board antes dos dados de tarefas
-Mover `setLoading(false)` para logo após o BLOCK 1 (colunas + deals + membros + tags + canais). Os dados de tarefas/cores/progresso continuam carregando em background e os badges (atrasada, progresso X/Y, etapa) aparecem progressivamente — os cards já ficam visíveis e interativos.
+`phone`, `email`, `value`, `state`, `city`, `acquisition_channel`, `notes`, `return_date`, `tags`
 
-Para evitar "flash" de cards sem badges, manter um estado leve `tasksLoading` que apenas oculta os indicadores enquanto ainda estiverem carregando (sem bloquear o board inteiro).
+(Excluímos `task` porque não é um campo do deal.)
 
-### 4. Pequenas otimizações adicionais
-- Em `fetchColumns`, paralelizar a busca de `column_entry_requirements` com `fetchDeals` (hoje espera colunas terminarem).
-- Remover do `select("*")` em `fetchDeals` colunas grandes não usadas no card — manter como está se não houver colunas pesadas óbvias; verificar antes de cortar.
+## Frontend
 
-## Resultado esperado
-- Tempo de "tela de loading cheia" cai significativamente (cards aparecem assim que os deals chegam, ~1 round-trip em vez de esperar 2 varreduras seriais de `deal_tasks`).
-- Badges de tarefa/progresso preenchem em seguida sem bloquear interação.
+### Configuração (`src/components/FunnelColumnList.tsx`)
+- Novo botão por coluna: **Campos bloqueados** (ícone de cadeado), abrindo Sheet idêntico ao de Requisitos.
+- Mesma lista de checkboxes, gravando em `column_blocked_fields`.
+- Validação: um mesmo campo não pode estar marcado como obrigatório E bloqueado na mesma coluna (toast de erro).
 
-## Arquivos afetados
-- `src/components/KanbanBoard.tsx` (única mudança de código).
+### Aplicação do bloqueio em todos os pontos
+Hook utilitário `useBlockedFields(columnId | funnelId+status)` que retorna `Set<string>`.
 
-## Sem mudanças
-- Schema, RLS, triggers, lógica de negócio e UI dos cards permanecem iguais.
+- **`DealDialog.tsx`** (criar/editar pelo CRM): esconde inputs bloqueados conforme a coluna selecionada; ao trocar o status, limpa o estado local dos campos que passaram a ser bloqueados.
+- **`DealDetailView.tsx`**: oculta/desabilita seções de campos bloqueados pela coluna atual.
+- **`KanbanBoard.tsx`** (drag-and-drop): antes de mover, limpa localmente os campos bloqueados (o trigger garante no servidor).
+- **`DealCard.tsx`**: não renderiza badges/ícones de campos bloqueados (telefone, valor, tags, canal).
+- **`LeadForm.tsx`** (captação pública) e **`supabase/functions/submit-lead`**: lêem `column_blocked_fields` da coluna inicial do funil e omitem/limpam esses campos no payload antes de inserir.
+- **`EntryRequirementsModal.tsx`**: filtra requisitos para não pedir campo que também é bloqueado (defesa em profundidade).
+
+## Detalhes técnicos
+
+```text
+column_blocked_fields
+├── id uuid PK
+├── column_id uuid FK funnel_columns(id) ON DELETE CASCADE
+├── field_name text
+├── user_id uuid
+├── created_at, updated_at
+└── UNIQUE(column_id, field_name)
+
+GRANT SELECT, INSERT, UPDATE, DELETE TO authenticated
+RLS: leitura para membros do funil; escrita só admin/dono do funil (mesma policy de column_entry_requirements)
+```
+
+Trigger SQL (resumo):
+```sql
+CREATE FUNCTION clear_blocked_fields_on_deal_change() RETURNS trigger ...
+  -- monta SET dinâmico com base em field_name
+  -- phone/email/notes → NULL; value → 0 ou NULL; state/city → NULL;
+  -- return_date → NULL; acquisition_channel → acquisition_channel_id NULL
+-- AFTER trigger separado para tags: DELETE FROM deal_tags
+```
+
+## Fora do escopo
+- Histórico/log de campos limpos (pode ser adicionado depois se necessário).
+- Bloquear campos personalizados além da lista acima.

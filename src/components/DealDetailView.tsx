@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBlockedFields } from "@/hooks/use-blocked-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -153,6 +154,9 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const { role } = useUserRole();
 
   const { user: authUser } = useAuth();
+
+  const blocked = useBlockedFields(deal?.funnel_id, deal?.status);
+  const isBlocked = (f: string) => blocked.has(f);
 
   useEffect(() => {
     setCurrentUserId(authUser?.id ?? null);
@@ -821,6 +825,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
             )}
           </div>
           {/* Tags in header */}
+          {!isBlocked("tags") && (
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {dealTags.map((tag) => (
               <Badge key={tag.id} style={{ backgroundColor: tag.color, color: "#fff" }} className="gap-1 pr-1 text-[11px] h-5">
@@ -855,6 +860,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               </PopoverContent>
             </Popover>
           </div>
+          )}
         </div>
 
         <Separator />
@@ -873,6 +879,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
             </h3>
             <div className="space-y-2.5">
               {/* Phone */}
+              {!isBlocked("phone") && (
               <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
                 <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
                   <Phone className="h-3.5 w-3.5 text-primary" />
@@ -920,8 +927,10 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                   </Button>
                 )}
               </div>
+              )}
 
               {/* Email */}
+              {!isBlocked("email") && (
               <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
                 <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
                   <Mail className="h-3.5 w-3.5 text-primary" />
@@ -956,8 +965,10 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                   </span>
                 )}
               </div>
+              )}
 
               {/* Location */}
+              {!(isBlocked("state") && isBlocked("city")) && (
               <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
                 <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
                   <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -996,17 +1007,21 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                   </span>
                 )}
               </div>
+              )}
 
               {/* Data para retorno */}
-              <ReturnDateField
-                deal={deal}
-                onUpdated={onUpdated}
-              />
+              {!isBlocked("return_date") && (
+                <ReturnDateField
+                  deal={deal}
+                  onUpdated={onUpdated}
+                />
+              )}
             </div>
           </div>
 
           {/* Info section */}
           <div className="grid grid-cols-4 gap-2">
+            {!isBlocked("value") && (
             <div className="flex flex-col gap-1 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 px-3 py-2.5 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15">
@@ -1033,6 +1048,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                 </span>
               )}
             </div>
+            )}
             <div className="flex flex-col gap-1 rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/8 to-blue-500/3 px-3 py-2.5 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center justify-center h-5 w-5 rounded-md bg-blue-500/15">
@@ -1085,6 +1101,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
           </div>
 
           {/* Acquisition channel */}
+          {!isBlocked("acquisition_channel") && (
           <div className="flex flex-col gap-1 rounded-lg border border-border bg-card px-2.5 py-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Canal de Aquisição</span>
             <Select
@@ -1110,36 +1127,39 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               </SelectContent>
             </Select>
           </div>
+          )}
 
           {/* Notes - inline editable */}
-          {editingField === "notes" ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Observações</p>
-              <Textarea
-                autoFocus
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                onBlur={() => saveField("notes")}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") setEditingField(null);
-                  if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); saveField("notes"); }
-                }}
-                rows={3}
-                className="resize-none"
-                placeholder="Adicionar observações..."
-              />
-              <p className="text-xs text-muted-foreground">Ctrl+Enter para salvar, Esc para cancelar</p>
-            </div>
-          ) : (
-            <div
-              className="rounded-lg border border-border bg-muted/50 p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => startEditing("notes")}
-            >
-              <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
-              <p className="text-sm text-foreground whitespace-pre-wrap">
-                {deal.notes || <span className="italic text-muted-foreground">Clique para adicionar observações...</span>}
-              </p>
-            </div>
+          {!isBlocked("notes") && (
+            editingField === "notes" ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Observações</p>
+                <Textarea
+                  autoFocus
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  onBlur={() => saveField("notes")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setEditingField(null);
+                    if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); saveField("notes"); }
+                  }}
+                  rows={3}
+                  className="resize-none"
+                  placeholder="Adicionar observações..."
+                />
+                <p className="text-xs text-muted-foreground">Ctrl+Enter para salvar, Esc para cancelar</p>
+              </div>
+            ) : (
+              <div
+                className="rounded-lg border border-border bg-muted/50 p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => startEditing("notes")}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {deal.notes || <span className="italic text-muted-foreground">Clique para adicionar observações...</span>}
+                </p>
+              </div>
+            )
           )}
 
 

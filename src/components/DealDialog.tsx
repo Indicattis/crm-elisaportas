@@ -15,6 +15,7 @@ import { applyPhoneMask } from "@/lib/phone-mask";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBlockedFields } from "@/hooks/use-blocked-fields";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface DealDialogProps {
@@ -46,6 +47,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
+  const blocked = useBlockedFields(funnelId, status);
+  const isBlocked = (f: string) => blocked.has(f);
 
   const checkDuplicatePhone = useCallback((phoneValue: string, currentDealId?: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -131,13 +134,13 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
 
       const payload = {
         title,
-        phone: phone.trim(),
-        email: email.trim() || null,
-        value: value ? parseFloat(value) : 0,
+        phone: isBlocked("phone") ? null : phone.trim(),
+        email: isBlocked("email") ? null : (email.trim() || null),
+        value: isBlocked("value") ? null : (value ? parseFloat(value) : 0),
         status,
-        acquisition_channel: channel && channel !== "none" ? channel : null,
-        state: state.trim() || null,
-        city: city.trim() || null,
+        acquisition_channel: isBlocked("acquisition_channel") ? null : (channel && channel !== "none" ? channel : null),
+        state: isBlocked("state") ? null : (state.trim() || null),
+        city: isBlocked("city") ? null : (city.trim() || null),
         user_id: user.id,
         funnel_id: funnelId,
       } as any;
@@ -213,18 +216,22 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             <Input value={title} onChange={(e) => setTitle(e.target.value.replace(/[0-9]/g, ""))} required placeholder="Ex: Porta automática loja centro" />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Telefone *</Label>
-              <Input value={phone} onChange={(e) => {
-                const masked = applyPhoneMask(e.target.value);
-                setPhone(masked);
-                checkDuplicatePhone(masked, deal?.id);
-              }} required placeholder="(00) 00000-0000" />
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
-            </div>
+            {!isBlocked("phone") && (
+              <div className="space-y-2">
+                <Label>Telefone *</Label>
+                <Input value={phone} onChange={(e) => {
+                  const masked = applyPhoneMask(e.target.value);
+                  setPhone(masked);
+                  checkDuplicatePhone(masked, deal?.id);
+                }} required placeholder="(00) 00000-0000" />
+              </div>
+            )}
+            {!isBlocked("email") && (
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+            )}
           </div>
           {duplicateInfo && (
             <Alert className="border-yellow-500/50 bg-yellow-500/10">
@@ -235,10 +242,12 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             </Alert>
           )}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Valor (R$)</Label>
-              <Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0,00" />
-            </div>
+            {!isBlocked("value") && (
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0,00" />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
@@ -251,33 +260,37 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Canal de Aquisição</Label>
-            <Select value={channel} onValueChange={setChannel}>
-              <SelectTrigger><SelectValue placeholder="Selecionar canal..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem canal</SelectItem>
-                {channelOptions.map((c) => {
-                  const iconData = getChannelIcon(c.icon);
-                  const Icon = iconData.icon;
-                  return (
-                    <SelectItem key={c.id} value={c.name}>
-                      <span className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        {c.name}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-          <StateCitySelect
-            state={state}
-            city={city}
-            onStateChange={setState}
-            onCityChange={setCity}
-          />
+          {!isBlocked("acquisition_channel") && (
+            <div className="space-y-2">
+              <Label>Canal de Aquisição</Label>
+              <Select value={channel} onValueChange={setChannel}>
+                <SelectTrigger><SelectValue placeholder="Selecionar canal..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem canal</SelectItem>
+                  {channelOptions.map((c) => {
+                    const iconData = getChannelIcon(c.icon);
+                    const Icon = iconData.icon;
+                    return (
+                      <SelectItem key={c.id} value={c.name}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!(isBlocked("state") && isBlocked("city")) && (
+            <StateCitySelect
+              state={state}
+              city={city}
+              onStateChange={setState}
+              onCityChange={setCity}
+            />
+          )}
           {role === "admin" && (
             <div className="space-y-2">
               <Label>Responsável</Label>

@@ -68,6 +68,38 @@ export type Database = {
         }
         Relationships: []
       }
+      column_blocked_fields: {
+        Row: {
+          column_id: string
+          created_at: string
+          field_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          column_id: string
+          created_at?: string
+          field_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          column_id?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "column_blocked_fields_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       column_entry_requirements: {
         Row: {
           column_id: string

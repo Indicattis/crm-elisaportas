@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings, ShieldCheck, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -53,6 +53,18 @@ const REQUIREMENT_FIELDS = [
   { value: "task", label: "Tarefa obrigatória" },
 ];
 
+const BLOCKED_FIELDS = [
+  { value: "phone", label: "Telefone" },
+  { value: "email", label: "E-mail" },
+  { value: "value", label: "Valor" },
+  { value: "state", label: "Estado" },
+  { value: "city", label: "Cidade" },
+  { value: "acquisition_channel", label: "Canal de aquisição" },
+  { value: "notes", label: "Notas" },
+  { value: "return_date", label: "Data de retorno" },
+  { value: "tags", label: "Tags" },
+];
+
 export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
@@ -60,12 +72,15 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [requirementsColumnId, setRequirementsColumnId] = useState<string | null>(null);
   const [requirements, setRequirements] = useState<Record<string, string[]>>({});
+  const [blockedColumnId, setBlockedColumnId] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<Record<string, string[]>>({});
   const [columnDealCounts, setColumnDealCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
   const { user: authUser } = useAuth();
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
   const requirementsColumn = columns.find((c) => c.id === requirementsColumnId);
+  const blockedColumn = columns.find((c) => c.id === blockedColumnId);
 
   const fetchTaskGroups = useCallback(async () => {
     const { data } = await supabase.from("task_groups").select("id, name").order("name");
@@ -85,6 +100,21 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
       map[r.column_id].push(r.field_name);
     });
     setRequirements(map);
+  }, [columns]);
+
+  const fetchBlocked = useCallback(async () => {
+    const colIds = columns.map((c) => c.id);
+    if (colIds.length === 0) { setBlocked({}); return; }
+    const { data } = await supabase
+      .from("column_blocked_fields" as any)
+      .select("column_id, field_name")
+      .in("column_id", colIds);
+    const map: Record<string, string[]> = {};
+    (data || []).forEach((r: any) => {
+      if (!map[r.column_id]) map[r.column_id] = [];
+      map[r.column_id].push(r.field_name);
+    });
+    setBlocked(map);
   }, [columns]);
 
   const fetchColumnDealCounts = useCallback(async () => {
@@ -107,6 +137,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
   useEffect(() => { fetchRequirements(); }, [fetchRequirements]);
+  useEffect(() => { fetchBlocked(); }, [fetchBlocked]);
   useEffect(() => { fetchColumnDealCounts(); }, [fetchColumnDealCounts]);
 
   const handleToggleRequirement = async (colId: string, fieldName: string, checked: boolean) => {
@@ -118,6 +149,26 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
       await supabase.from("column_entry_requirements").delete().eq("column_id", colId).eq("field_name", fieldName);
     }
     fetchRequirements();
+  };
+
+  const handleToggleBlocked = async (colId: string, fieldName: string, checked: boolean) => {
+    if (!authUser) return;
+    const user = authUser;
+    if (checked) {
+      const reqs = requirements[colId] || [];
+      if (reqs.includes(fieldName)) {
+        toast({
+          title: "Conflito",
+          description: "Este campo já é obrigatório nesta coluna. Remova o requisito antes de bloqueá-lo.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await supabase.from("column_blocked_fields" as any).insert({ column_id: colId, field_name: fieldName, user_id: user.id } as any);
+    } else {
+      await supabase.from("column_blocked_fields" as any).delete().eq("column_id", colId).eq("field_name", fieldName);
+    }
+    fetchBlocked();
   };
 
   const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
@@ -257,6 +308,10 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setRequirementsColumnId(col.id)} title="Requisitos de entrada">
               <ShieldCheck className="h-4 w-4" />
+            </Button>
+
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setBlockedColumnId(col.id)} title="Campos bloqueados">
+              <Lock className="h-4 w-4" />
             </Button>
 
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingColumnId(col.id)} title="Configurações">
@@ -477,6 +532,38 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                     <Checkbox
                       checked={checked}
                       onCheckedChange={(v) => handleToggleRequirement(requirementsColumn.id, field.value, !!v)}
+                    />
+                    <span className="text-sm font-medium">{field.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Sheet de campos bloqueados */}
+      <Sheet open={!!blockedColumnId} onOpenChange={(open) => { if (!open) setBlockedColumnId(null); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Campos bloqueados — {blockedColumn?.name}</SheetTitle>
+          </SheetHeader>
+
+          {blockedColumn && (
+            <div className="space-y-4 mt-6">
+              <p className="text-sm text-muted-foreground">
+                Selecione os campos que não podem ser preenchidos enquanto o card estiver nesta etapa.
+                Ao entrar na coluna, o valor desses campos será automaticamente limpo.
+              </p>
+
+              {BLOCKED_FIELDS.map((field) => {
+                const colBlocked = blocked[blockedColumn.id] || [];
+                const checked = colBlocked.includes(field.value);
+                return (
+                  <label key={field.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => handleToggleBlocked(blockedColumn.id, field.value, !!v)}
                     />
                     <span className="text-sm font-medium">{field.label}</span>
                   </label>
