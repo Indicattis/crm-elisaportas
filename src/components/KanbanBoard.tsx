@@ -67,9 +67,10 @@ export function KanbanBoard() {
     selectedFunnelId?: string;
     searchQuery?: string;
     selectedSellerId?: string;
-    viewMode?: "kanban" | "list";
+    viewMode?: "kanban" | "list" | "tabs";
     filterState?: string;
     filterCity?: string;
+    selectedTab?: string;
   };
 
   const [deals, setDeals] = useState<Deal[]>([]);
