@@ -80,6 +80,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   const editingColumn = columns.find((c) => c.id === editingColumnId);
   const requirementsColumn = columns.find((c) => c.id === requirementsColumnId);
+  const blockedColumn = columns.find((c) => c.id === blockedColumnId);
 
   const fetchTaskGroups = useCallback(async () => {
     const { data } = await supabase.from("task_groups").select("id, name").order("name");
