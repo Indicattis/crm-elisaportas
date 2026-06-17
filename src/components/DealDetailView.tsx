@@ -1101,6 +1101,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
           </div>
 
           {/* Acquisition channel */}
+          {!isBlocked("acquisition_channel") && (
           <div className="flex flex-col gap-1 rounded-lg border border-border bg-card px-2.5 py-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Canal de Aquisição</span>
             <Select
@@ -1126,6 +1127,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               </SelectContent>
             </Select>
           </div>
+          )}
 
           {/* Notes - inline editable */}
           {editingField === "notes" ? (
