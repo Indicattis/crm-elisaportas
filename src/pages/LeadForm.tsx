@@ -99,33 +99,39 @@ export default function LeadForm() {
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="phone">Telefone</Label>
-          <Input
-            id="phone"
-            value={form.phone}
-            onChange={(e) => setForm((f) => ({ ...f, phone: applyPhoneMask(e.target.value) }))}
-            placeholder="(00) 00000-0000"
-          />
-        </div>
+        {!isBlocked("phone") && (
+          <div className="space-y-1.5">
+            <Label htmlFor="phone">Telefone</Label>
+            <Input
+              id="phone"
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: applyPhoneMask(e.target.value) }))}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+        )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            placeholder="seu@email.com"
-          />
-        </div>
+        {!isBlocked("email") && (
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="seu@email.com"
+            />
+          </div>
+        )}
 
-        <StateCitySelect
-          state={form.estado}
-          city={form.cidade}
-          onStateChange={(v) => setForm((f) => ({ ...f, estado: v }))}
-          onCityChange={(v) => setForm((f) => ({ ...f, cidade: v }))}
-        />
+        {!(isBlocked("state") && isBlocked("city")) && (
+          <StateCitySelect
+            state={form.estado}
+            city={form.cidade}
+            onStateChange={(v) => setForm((f) => ({ ...f, estado: v }))}
+            onCityChange={(v) => setForm((f) => ({ ...f, cidade: v }))}
+          />
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
