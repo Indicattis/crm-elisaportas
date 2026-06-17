@@ -965,8 +965,10 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                   </span>
                 )}
               </div>
+              )}
 
               {/* Location */}
+              {!(isBlocked("state") && isBlocked("city")) && (
               <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
                 <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
                   <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -1005,12 +1007,15 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                   </span>
                 )}
               </div>
+              )}
 
               {/* Data para retorno */}
-              <ReturnDateField
-                deal={deal}
-                onUpdated={onUpdated}
-              />
+              {!isBlocked("return_date") && (
+                <ReturnDateField
+                  deal={deal}
+                  onUpdated={onUpdated}
+                />
+              )}
             </div>
           </div>
 
