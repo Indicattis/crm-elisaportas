@@ -879,6 +879,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
             </h3>
             <div className="space-y-2.5">
               {/* Phone */}
+              {!isBlocked("phone") && (
               <div className="flex items-center gap-3 rounded-lg bg-background/60 border border-border/50 px-3 py-2">
                 <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 shrink-0">
                   <Phone className="h-3.5 w-3.5 text-primary" />
