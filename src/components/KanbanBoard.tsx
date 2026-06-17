@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { createNotification } from "@/lib/notifications";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutGrid, List, Search, User } from "lucide-react";
+import { LayoutGrid, List, Search, User, Rows3 } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
 import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
@@ -67,9 +67,10 @@ export function KanbanBoard() {
     selectedFunnelId?: string;
     searchQuery?: string;
     selectedSellerId?: string;
-    viewMode?: "kanban" | "list";
+    viewMode?: "kanban" | "list" | "tabs";
     filterState?: string;
     filterCity?: string;
+    selectedTab?: string;
   };
 
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -96,7 +97,8 @@ export function KanbanBoard() {
   const [taskProgressMap, setTaskProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
-  const [viewMode, setViewMode] = useState<"kanban" | "list">(sessionFilters.viewMode || "kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "tabs">(sessionFilters.viewMode || "kanban");
+  const [selectedTab, setSelectedTab] = useState<string>(sessionFilters.selectedTab || "");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
   const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
   const [pendingMoveReqs, setPendingMoveReqs] = useState<{ field_name: string }[]>([]);
@@ -128,10 +130,10 @@ export function KanbanBoard() {
   useEffect(() => {
     try {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity,
+        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab,
       }));
     } catch { /* ignore */ }
-  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity]);
+  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
@@ -270,6 +272,15 @@ export function KanbanBoard() {
   useEffect(() => {
     fetchFunnels();
   }, [fetchFunnels]);
+
+  // Ensure selectedTab is valid for current columns
+  useEffect(() => {
+    const valid = columns.filter((c) => !(c as any).is_notice).map((c) => c.name);
+    if (valid.length === 0) return;
+    if (!selectedTab || !valid.includes(selectedTab)) {
+      setSelectedTab(valid[0]);
+    }
+  }, [columns, selectedTab]);
 
   const fetchChannels = useCallback(async () => {
     const { data } = await supabase.from("acquisition_channels").select("name, icon, position").order("position");
@@ -721,9 +732,12 @@ export function KanbanBoard() {
           <RecurringTasksDialog />
         </div>
 
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list" | "tabs")}>
           <ToggleGroupItem value="kanban" aria-label="Kanban" size="sm">
             <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="tabs" aria-label="Abas" size="sm">
+            <Rows3 className="h-4 w-4" />
           </ToggleGroupItem>
           <ToggleGroupItem value="list" aria-label="Lista" size="sm">
             <List className="h-4 w-4" />
@@ -760,15 +774,36 @@ export function KanbanBoard() {
           onDragCancel={handleDragCancel}
           onDragEnd={handleDragEnd}
         >
+          {viewMode === "tabs" && (
+            <div className="px-6 pt-3 flex gap-2 overflow-x-auto">
+              {columns.filter((c) => !(c as any).is_notice).map((column) => {
+                const count = deals.filter((d) => d.status === column.name).filter(filterBySeller).filter(filterByLocation).length;
+                const active = selectedTab === column.name;
+                return (
+                  <button
+                    key={column.id}
+                    onClick={() => setSelectedTab(column.name)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${active ? "text-white shadow" : "text-foreground/70 hover:text-foreground bg-muted/40 border-transparent"}`}
+                    style={active ? { backgroundColor: column.color, borderColor: column.color } : undefined}
+                  >
+                    {column.name}
+                    <span className={`ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${active ? "bg-white/20" : "bg-foreground/10"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div
             ref={scrollContainerRef}
-            className={`flex gap-4 overflow-x-auto p-6 pb-8 h-[calc(100vh-120px)] ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
+            className={`flex gap-4 overflow-x-auto p-6 pb-8 ${viewMode === "tabs" ? "h-[calc(100vh-170px)]" : "h-[calc(100vh-120px)]"} ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
             onMouseDown={handleGrabMouseDown}
             onMouseMove={handleGrabMouseMove}
             onMouseUp={handleGrabMouseUp}
             onMouseLeave={handleGrabMouseLeave}
           >
-            {columns.map((column) => {
+            {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && c.name === selectedTab) : columns).map((column) => {
               if ((column as any).is_notice) {
                 return (
                   <KanbanColumn
