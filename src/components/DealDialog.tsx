@@ -216,18 +216,22 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
             <Input value={title} onChange={(e) => setTitle(e.target.value.replace(/[0-9]/g, ""))} required placeholder="Ex: Porta automática loja centro" />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Telefone *</Label>
-              <Input value={phone} onChange={(e) => {
-                const masked = applyPhoneMask(e.target.value);
-                setPhone(masked);
-                checkDuplicatePhone(masked, deal?.id);
-              }} required placeholder="(00) 00000-0000" />
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
-            </div>
+            {!isBlocked("phone") && (
+              <div className="space-y-2">
+                <Label>Telefone *</Label>
+                <Input value={phone} onChange={(e) => {
+                  const masked = applyPhoneMask(e.target.value);
+                  setPhone(masked);
+                  checkDuplicatePhone(masked, deal?.id);
+                }} required placeholder="(00) 00000-0000" />
+              </div>
+            )}
+            {!isBlocked("email") && (
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+            )}
           </div>
           {duplicateInfo && (
             <Alert className="border-yellow-500/50 bg-yellow-500/10">
