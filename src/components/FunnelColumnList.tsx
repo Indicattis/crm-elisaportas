@@ -310,6 +310,10 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               <ShieldCheck className="h-4 w-4" />
             </Button>
 
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setBlockedColumnId(col.id)} title="Campos bloqueados">
+              <Lock className="h-4 w-4" />
+            </Button>
+
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingColumnId(col.id)} title="Configurações">
               <Settings className="h-4 w-4" />
             </Button>
