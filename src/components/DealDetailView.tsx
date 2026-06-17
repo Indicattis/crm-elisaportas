@@ -1130,34 +1130,36 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
           )}
 
           {/* Notes - inline editable */}
-          {editingField === "notes" ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Observações</p>
-              <Textarea
-                autoFocus
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                onBlur={() => saveField("notes")}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") setEditingField(null);
-                  if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); saveField("notes"); }
-                }}
-                rows={3}
-                className="resize-none"
-                placeholder="Adicionar observações..."
-              />
-              <p className="text-xs text-muted-foreground">Ctrl+Enter para salvar, Esc para cancelar</p>
-            </div>
-          ) : (
-            <div
-              className="rounded-lg border border-border bg-muted/50 p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => startEditing("notes")}
-            >
-              <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
-              <p className="text-sm text-foreground whitespace-pre-wrap">
-                {deal.notes || <span className="italic text-muted-foreground">Clique para adicionar observações...</span>}
-              </p>
-            </div>
+          {!isBlocked("notes") && (
+            editingField === "notes" ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Observações</p>
+                <Textarea
+                  autoFocus
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  onBlur={() => saveField("notes")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setEditingField(null);
+                    if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); saveField("notes"); }
+                  }}
+                  rows={3}
+                  className="resize-none"
+                  placeholder="Adicionar observações..."
+                />
+                <p className="text-xs text-muted-foreground">Ctrl+Enter para salvar, Esc para cancelar</p>
+              </div>
+            ) : (
+              <div
+                className="rounded-lg border border-border bg-muted/50 p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => startEditing("notes")}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {deal.notes || <span className="italic text-muted-foreground">Clique para adicionar observações...</span>}
+                </p>
+              </div>
+            )
           )}
 
 
