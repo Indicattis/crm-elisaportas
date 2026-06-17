@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { createNotification } from "@/lib/notifications";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutGrid, List, Search, User } from "lucide-react";
+import { LayoutGrid, List, Search, User, Rows3 } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
 import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
