@@ -155,6 +155,9 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
 
   const { user: authUser } = useAuth();
 
+  const blocked = useBlockedFields(deal?.funnel_id, deal?.status);
+  const isBlocked = (f: string) => blocked.has(f);
+
   useEffect(() => {
     setCurrentUserId(authUser?.id ?? null);
   }, [authUser]);
