@@ -825,6 +825,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
             )}
           </div>
           {/* Tags in header */}
+          {!isBlocked("tags") && (
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {dealTags.map((tag) => (
               <Badge key={tag.id} style={{ backgroundColor: tag.color, color: "#fff" }} className="gap-1 pr-1 text-[11px] h-5">
