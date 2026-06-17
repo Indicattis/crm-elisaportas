@@ -18,6 +18,8 @@ export default function LeadForm() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const blocked = useBlockedFields(funnelId || null, funnelId ? status : null);
+  const isBlocked = (f: string) => blocked.has(f);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
