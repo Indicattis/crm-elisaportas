@@ -860,6 +860,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               </PopoverContent>
             </Popover>
           </div>
+          )}
         </div>
 
         <Separator />
