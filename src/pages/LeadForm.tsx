@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { StateCitySelect } from "@/components/StateCitySelect";
 import { applyPhoneMask } from "@/lib/phone-mask";
+import { useBlockedFields } from "@/hooks/use-blocked-fields";
 
 export default function LeadForm() {
   const [searchParams] = useSearchParams();
