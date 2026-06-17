@@ -1021,6 +1021,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
 
           {/* Info section */}
           <div className="grid grid-cols-4 gap-2">
+            {!isBlocked("value") && (
             <div className="flex flex-col gap-1 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 px-3 py-2.5 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15">
@@ -1047,6 +1048,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
                 </span>
               )}
             </div>
+            )}
             <div className="flex flex-col gap-1 rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/8 to-blue-500/3 px-3 py-2.5 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center justify-center h-5 w-5 rounded-md bg-blue-500/15">
