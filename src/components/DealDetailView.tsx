@@ -343,12 +343,6 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
       toast({ title: "Tarefa concluída", description: "Tarefas concluídas não podem ser desmarcadas.", variant: "destructive" });
       return;
     }
-    if (completed) {
-      if (existing && !existing.completed && Date.now() > new Date(existing.deadline_at).getTime() + 24 * 60 * 60 * 1000) {
-        toast({ title: "Tarefa expirada", description: "Esta tarefa venceu há mais de 1 dia e não pode mais ser concluída.", variant: "destructive" });
-        return;
-      }
-    }
     const updateData: any = { completed };
     if (completed) {
       updateData.completed_at = new Date().toISOString();
