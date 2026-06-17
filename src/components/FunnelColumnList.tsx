@@ -102,6 +102,21 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     setRequirements(map);
   }, [columns]);
 
+  const fetchBlocked = useCallback(async () => {
+    const colIds = columns.map((c) => c.id);
+    if (colIds.length === 0) { setBlocked({}); return; }
+    const { data } = await supabase
+      .from("column_blocked_fields" as any)
+      .select("column_id, field_name")
+      .in("column_id", colIds);
+    const map: Record<string, string[]> = {};
+    (data || []).forEach((r: any) => {
+      if (!map[r.column_id]) map[r.column_id] = [];
+      map[r.column_id].push(r.field_name);
+    });
+    setBlocked(map);
+  }, [columns]);
+
   const fetchColumnDealCounts = useCallback(async () => {
     const colNames = columns.map((c) => c.name);
     if (colNames.length === 0) { setColumnDealCounts({}); return; }
