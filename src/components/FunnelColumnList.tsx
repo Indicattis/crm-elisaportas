@@ -151,6 +151,26 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     fetchRequirements();
   };
 
+  const handleToggleBlocked = async (colId: string, fieldName: string, checked: boolean) => {
+    if (!authUser) return;
+    const user = authUser;
+    if (checked) {
+      const reqs = requirements[colId] || [];
+      if (reqs.includes(fieldName)) {
+        toast({
+          title: "Conflito",
+          description: "Este campo já é obrigatório nesta coluna. Remova o requisito antes de bloqueá-lo.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await supabase.from("column_blocked_fields" as any).insert({ column_id: colId, field_name: fieldName, user_id: user.id } as any);
+    } else {
+      await supabase.from("column_blocked_fields" as any).delete().eq("column_id", colId).eq("field_name", fieldName);
+    }
+    fetchBlocked();
+  };
+
   const handleUpdateTaskGroup = async (colId: string, taskGroupId: string | null) => {
     await supabase.from("funnel_columns").update({ task_group_id: taskGroupId } as any).eq("id", colId);
     onChanged();
