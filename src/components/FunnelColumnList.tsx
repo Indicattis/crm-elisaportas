@@ -53,6 +53,18 @@ const REQUIREMENT_FIELDS = [
   { value: "task", label: "Tarefa obrigatória" },
 ];
 
+const BLOCKED_FIELDS = [
+  { value: "phone", label: "Telefone" },
+  { value: "email", label: "E-mail" },
+  { value: "value", label: "Valor" },
+  { value: "state", label: "Estado" },
+  { value: "city", label: "Cidade" },
+  { value: "acquisition_channel", label: "Canal de aquisição" },
+  { value: "notes", label: "Notas" },
+  { value: "return_date", label: "Data de retorno" },
+  { value: "tags", label: "Tags" },
+];
+
 export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_OPTIONS[0]);
