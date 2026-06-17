@@ -732,9 +732,12 @@ export function KanbanBoard() {
           <RecurringTasksDialog />
         </div>
 
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list")}>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "kanban" | "list" | "tabs")}>
           <ToggleGroupItem value="kanban" aria-label="Kanban" size="sm">
             <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="tabs" aria-label="Abas" size="sm">
+            <Rows3 className="h-4 w-4" />
           </ToggleGroupItem>
           <ToggleGroupItem value="list" aria-label="Lista" size="sm">
             <List className="h-4 w-4" />
