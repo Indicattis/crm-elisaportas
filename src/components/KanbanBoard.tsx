@@ -273,6 +273,15 @@ export function KanbanBoard() {
     fetchFunnels();
   }, [fetchFunnels]);
 
+  // Ensure selectedTab is valid for current columns
+  useEffect(() => {
+    const valid = columns.filter((c) => !(c as any).is_notice).map((c) => c.name);
+    if (valid.length === 0) return;
+    if (!selectedTab || !valid.includes(selectedTab)) {
+      setSelectedTab(valid[0]);
+    }
+  }, [columns, selectedTab]);
+
   const fetchChannels = useCallback(async () => {
     const { data } = await supabase.from("acquisition_channels").select("name, icon, position").order("position");
     const iconMap: Record<string, string> = {};
