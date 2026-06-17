@@ -137,6 +137,7 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
 
   useEffect(() => { fetchTaskGroups(); }, [fetchTaskGroups]);
   useEffect(() => { fetchRequirements(); }, [fetchRequirements]);
+  useEffect(() => { fetchBlocked(); }, [fetchBlocked]);
   useEffect(() => { fetchColumnDealCounts(); }, [fetchColumnDealCounts]);
 
   const handleToggleRequirement = async (colId: string, fieldName: string, checked: boolean) => {
