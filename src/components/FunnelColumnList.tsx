@@ -72,6 +72,8 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [requirementsColumnId, setRequirementsColumnId] = useState<string | null>(null);
   const [requirements, setRequirements] = useState<Record<string, string[]>>({});
+  const [blockedColumnId, setBlockedColumnId] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<Record<string, string[]>>({});
   const [columnDealCounts, setColumnDealCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
   const { user: authUser } = useAuth();
