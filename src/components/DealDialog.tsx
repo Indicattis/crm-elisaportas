@@ -47,6 +47,8 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
+  const blocked = useBlockedFields(funnelId, status);
+  const isBlocked = (f: string) => blocked.has(f);
 
   const checkDuplicatePhone = useCallback((phoneValue: string, currentDealId?: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
