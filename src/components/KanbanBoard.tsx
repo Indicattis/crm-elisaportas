@@ -130,10 +130,10 @@ export function KanbanBoard() {
   useEffect(() => {
     try {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity,
+        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab,
       }));
     } catch { /* ignore */ }
-  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity]);
+  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
