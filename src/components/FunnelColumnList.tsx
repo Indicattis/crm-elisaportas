@@ -541,6 +541,38 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Sheet de campos bloqueados */}
+      <Sheet open={!!blockedColumnId} onOpenChange={(open) => { if (!open) setBlockedColumnId(null); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Campos bloqueados — {blockedColumn?.name}</SheetTitle>
+          </SheetHeader>
+
+          {blockedColumn && (
+            <div className="space-y-4 mt-6">
+              <p className="text-sm text-muted-foreground">
+                Selecione os campos que não podem ser preenchidos enquanto o card estiver nesta etapa.
+                Ao entrar na coluna, o valor desses campos será automaticamente limpo.
+              </p>
+
+              {BLOCKED_FIELDS.map((field) => {
+                const colBlocked = blocked[blockedColumn.id] || [];
+                const checked = colBlocked.includes(field.value);
+                return (
+                  <label key={field.value} className="flex items-center gap-2 py-1 cursor-pointer">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => handleToggleBlocked(blockedColumn.id, field.value, !!v)}
+                    />
+                    <span className="text-sm font-medium">{field.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
