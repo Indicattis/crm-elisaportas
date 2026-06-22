@@ -17,7 +17,7 @@ x-api-key: <CHAVE_FORNECIDA_PELO_TIME>
 Content-Type: application/json
 ```
 
-A chave é entregue por canal seguro. Não compartilhe nem versione em repositórios públicos.
+A chave é entregue por canal seguro (secret `HUNT_INTEGRATION` no backend). Não compartilhe nem versione em repositórios públicos.
 
 ## Body
 
