@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
   }
 
   // API key auth
-  const expectedKey = Deno.env.get("EXTERNAL_INTEGRATION_API_KEY");
+  const expectedKey = Deno.env.get("HUNT_INTEGRATION");
   if (!expectedKey) {
-    console.error("EXTERNAL_INTEGRATION_API_KEY not configured");
+    console.error("HUNT_INTEGRATION not configured");
     return jsonResponse({ error: "Integração não configurada" }, 500);
   }
   const providedKey =
