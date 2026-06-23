@@ -229,6 +229,8 @@ export function LeadFlowManager() {
         })}
       </div>
 
+      <ExternalIntegrationLogs />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
