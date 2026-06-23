@@ -443,6 +443,57 @@ export type Database = {
           },
         ]
       }
+      external_integration_logs: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          deal_id: string | null
+          error_message: string | null
+          http_status: number
+          id: string
+          ip: string | null
+          phone: string | null
+          raw_body: Json | null
+          source: string
+          status: string
+          title: string | null
+          user_agent: string | null
+          warning: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          deal_id?: string | null
+          error_message?: string | null
+          http_status: number
+          id?: string
+          ip?: string | null
+          phone?: string | null
+          raw_body?: Json | null
+          source?: string
+          status: string
+          title?: string | null
+          user_agent?: string | null
+          warning?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          deal_id?: string | null
+          error_message?: string | null
+          http_status?: number
+          id?: string
+          ip?: string | null
+          phone?: string | null
+          raw_body?: Json | null
+          source?: string
+          status?: string
+          title?: string | null
+          user_agent?: string | null
+          warning?: string | null
+        }
+        Relationships: []
+      }
       funnel_columns: {
         Row: {
           allowed_actions: string[]
