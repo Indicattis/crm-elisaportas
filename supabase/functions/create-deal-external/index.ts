@@ -31,12 +31,65 @@ function maskPhoneBR(raw: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+function getSupabaseAdmin() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  return createClient(supabaseUrl, serviceRoleKey);
+}
+
+async function writeLog(entry: {
+  status: string;
+  http_status: number;
+  title?: string | null;
+  phone?: string | null;
+  deal_id?: string | null;
+  assigned_to?: string | null;
+  warning?: string | null;
+  error_message?: string | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  raw_body?: unknown;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    await supabase.from("external_integration_logs").insert({
+      source: "hunt",
+      status: entry.status,
+      http_status: entry.http_status,
+      title: entry.title ?? null,
+      phone: entry.phone ?? null,
+      deal_id: entry.deal_id ?? null,
+      assigned_to: entry.assigned_to ?? null,
+      warning: entry.warning ?? null,
+      error_message: entry.error_message ?? null,
+      ip: entry.ip ?? null,
+      user_agent: entry.user_agent ?? null,
+      raw_body: entry.raw_body ?? null,
+    });
+  } catch (e) {
+    console.error("Failed to write integration log:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    null;
+  const userAgent = req.headers.get("user-agent") || null;
+
   if (req.method !== "POST") {
+    await writeLog({
+      status: "error",
+      http_status: 405,
+      error_message: "Método não permitido",
+      ip,
+      user_agent: userAgent,
+    });
     return jsonResponse({ error: "Método não permitido" }, 405);
   }
 
@@ -44,33 +97,84 @@ Deno.serve(async (req) => {
   const expectedKey = Deno.env.get("HUNT_INTEGRATION");
   if (!expectedKey) {
     console.error("HUNT_INTEGRATION not configured");
+    await writeLog({
+      status: "error",
+      http_status: 500,
+      error_message: "Integração não configurada (HUNT_INTEGRATION ausente)",
+      ip,
+      user_agent: userAgent,
+    });
     return jsonResponse({ error: "Integração não configurada" }, 500);
   }
   const providedKey =
     req.headers.get("x-api-key") ||
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!providedKey || providedKey !== expectedKey) {
+    await writeLog({
+      status: "error",
+      http_status: 401,
+      error_message: "Chave de API inválida ou ausente",
+      ip,
+      user_agent: userAgent,
+    });
     return jsonResponse({ error: "Não autorizado" }, 401);
   }
 
+  let body: any = null;
   try {
-    let body: any;
     try {
       body = await req.json();
     } catch {
+      await writeLog({
+        status: "error",
+        http_status: 400,
+        error_message: "JSON inválido",
+        ip,
+        user_agent: userAgent,
+      });
       return jsonResponse({ error: "JSON inválido" }, 400);
     }
 
-    const { title, phone, heat: _heatIgnored } = body ?? {};
+    const { title, phone } = body ?? {};
 
     // Validation
     if (typeof title !== "string" || title.trim().length === 0) {
+      await writeLog({
+        status: "error",
+        http_status: 400,
+        title: typeof title === "string" ? title : null,
+        phone: typeof phone === "string" ? phone : null,
+        error_message: "title é obrigatório",
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
       return jsonResponse({ error: "title é obrigatório" }, 400);
     }
     if (title.length > 255) {
+      await writeLog({
+        status: "error",
+        http_status: 400,
+        title,
+        phone: typeof phone === "string" ? phone : null,
+        error_message: "title deve ter no máximo 255 caracteres",
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
       return jsonResponse({ error: "title deve ter no máximo 255 caracteres" }, 400);
     }
     if (typeof phone !== "string" || phone.replace(/\D/g, "").length < 4) {
+      await writeLog({
+        status: "error",
+        http_status: 400,
+        title,
+        phone: typeof phone === "string" ? phone : null,
+        error_message: "phone é obrigatório (mínimo 4 dígitos)",
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
       return jsonResponse(
         { error: "phone é obrigatório (mínimo 4 dígitos)" },
         400
@@ -81,11 +185,9 @@ Deno.serve(async (req) => {
     const maskedPhone = maskPhoneBR(phone);
     const phoneDigits = phone.replace(/\D/g, "");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = getSupabaseAdmin();
 
-    // Round-robin: pick the rotation user with fewest active deals in this funnel
+    // Round-robin
     const counts: Record<string, number> = {};
     for (const id of ROTATION_USER_IDS) counts[id] = 0;
 
@@ -98,6 +200,16 @@ Deno.serve(async (req) => {
 
     if (countError) {
       console.error("Error counting deals:", countError);
+      await writeLog({
+        status: "error",
+        http_status: 500,
+        title: cleanTitle,
+        phone: maskedPhone,
+        error_message: `Erro ao calcular rotação: ${countError.message}`,
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
       return jsonResponse({ error: "Erro ao calcular rotação" }, 500);
     }
 
@@ -116,7 +228,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Duplicate phone warning (non-blocking)
+    // Duplicate phone warning
     let duplicateWarning: string | null = null;
     const { data: existingByPhone } = await supabase
       .from("deals")
@@ -137,7 +249,6 @@ Deno.serve(async (req) => {
       }
       duplicateWarning = `Telefone já cadastrado na negociação "${existingByPhone.title}" (etapa: ${existingByPhone.status}), atendido por ${assignedName}`;
     } else if (phoneDigits.length >= 4) {
-      // Fallback search by digits substring in case of mask differences
       const { data: byDigits } = await supabase
         .from("deals")
         .select("title, status")
@@ -167,18 +278,42 @@ Deno.serve(async (req) => {
 
     if (dealError) {
       console.error("Error inserting deal:", dealError);
+      await writeLog({
+        status: "error",
+        http_status: 500,
+        title: cleanTitle,
+        phone: maskedPhone,
+        assigned_to: chosen,
+        error_message: `Erro ao criar negociação: ${dealError.message}`,
+        warning: duplicateWarning,
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
       return jsonResponse(
         { error: "Erro ao criar negociação", details: dealError.message },
         500
       );
     }
 
-    // History
     await supabase.from("deal_history").insert({
       deal_id: deal.id,
       event_type: "creation",
       description: "Negociação criada via integração externa",
       user_id: chosen,
+    });
+
+    await writeLog({
+      status: duplicateWarning ? "duplicate" : "success",
+      http_status: 200,
+      title: cleanTitle,
+      phone: maskedPhone,
+      deal_id: deal.id,
+      assigned_to: chosen,
+      warning: duplicateWarning,
+      ip,
+      user_agent: userAgent,
+      raw_body: body,
     });
 
     return jsonResponse({
@@ -190,6 +325,14 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Unexpected error:", err);
+    await writeLog({
+      status: "error",
+      http_status: 500,
+      error_message: `Erro interno: ${(err as Error)?.message ?? String(err)}`,
+      ip,
+      user_agent: userAgent,
+      raw_body: body,
+    });
     return jsonResponse({ error: "Erro interno" }, 500);
   }
 });
