@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useRole } from "@/contexts/RoleContext";
+import { useUserRole } from "@/contexts/RoleContext";
 
 interface IntegrationLog {
   id: string;
