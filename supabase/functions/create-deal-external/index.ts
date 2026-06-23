@@ -301,11 +301,13 @@ Deno.serve(async (req) => {
         user_id: chosen,
         assigned_to: chosen,
         phone: maskedPhone,
+        notes: cleanObservation,
         heat: 0,
         archived: false,
       })
       .select("id, deal_number")
       .single();
+
 
     if (dealError) {
       console.error("Error inserting deal:", dealError);
