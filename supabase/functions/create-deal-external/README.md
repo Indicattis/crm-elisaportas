@@ -78,7 +78,7 @@ Formato:
 curl -X POST https://wnlrbbeqnnvrmkoznnsg.supabase.co/functions/v1/create-deal-external \
   -H "Content-Type: application/json" \
   -H "x-api-key: SUA_CHAVE_AQUI" \
-  -d '{"title":"João Pereira","phone":"11912345678"}'
+  -d '{"title":"João Pereira","phone":"11912345678","observation":"Cliente pediu retorno à tarde"}'
 ```
 
 ## Retry / idempotência
