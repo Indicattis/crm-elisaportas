@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "JSON inválido" }, 400);
     }
 
-    const { title, phone } = body ?? {};
+    const { title, phone, observation } = body ?? {};
 
     // Validation
     if (typeof title !== "string" || title.trim().length === 0) {
@@ -180,10 +180,41 @@ Deno.serve(async (req) => {
         400
       );
     }
+    if (observation !== undefined && observation !== null && typeof observation !== "string") {
+      await writeLog({
+        status: "error",
+        http_status: 400,
+        title,
+        phone,
+        error_message: "observation deve ser uma string",
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
+      return jsonResponse({ error: "observation deve ser uma string" }, 400);
+    }
+    if (typeof observation === "string" && observation.length > 5000) {
+      await writeLog({
+        status: "error",
+        http_status: 400,
+        title,
+        phone,
+        error_message: "observation deve ter no máximo 5000 caracteres",
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
+      return jsonResponse({ error: "observation deve ter no máximo 5000 caracteres" }, 400);
+    }
 
     const cleanTitle = title.trim();
     const maskedPhone = maskPhoneBR(phone);
     const phoneDigits = phone.replace(/\D/g, "");
+    const cleanObservation =
+      typeof observation === "string" && observation.trim().length > 0
+        ? observation.trim()
+        : null;
+
 
     const supabase = getSupabaseAdmin();
 
@@ -270,11 +301,13 @@ Deno.serve(async (req) => {
         user_id: chosen,
         assigned_to: chosen,
         phone: maskedPhone,
+        notes: cleanObservation,
         heat: 0,
         archived: false,
       })
       .select("id, deal_number")
       .single();
+
 
     if (dealError) {
       console.error("Error inserting deal:", dealError);
