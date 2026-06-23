@@ -44,7 +44,7 @@ export function ExternalIntegrationLogs() {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const { toast } = useToast();
-  const { role } = useRole();
+  const { role } = useUserRole();
   const isAdmin = role === "admin";
 
   const fetchLogs = useCallback(async () => {
