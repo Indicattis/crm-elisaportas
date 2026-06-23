@@ -24,14 +24,16 @@ A chave é entregue por canal seguro (secret `HUNT_INTEGRATION` no backend). Nã
 ```json
 {
   "title": "Nome do cliente",
-  "phone": "(11) 91234-5678"
+  "phone": "(11) 91234-5678",
+  "observation": "Texto longo com observações sobre o lead..."
 }
 ```
 
-| Campo | Tipo   | Obrigatório | Regras |
-|-------|--------|-------------|--------|
-| title | string | sim         | 1–255 caracteres |
-| phone | string | sim         | mínimo 4 dígitos; aceita com ou sem máscara, é normalizado para `(XX) XXXXX-XXXX` |
+| Campo       | Tipo   | Obrigatório | Regras |
+|-------------|--------|-------------|--------|
+| title       | string | sim         | 1–255 caracteres |
+| phone       | string | sim         | mínimo 4 dígitos; aceita com ou sem máscara, é normalizado para `(XX) XXXXX-XXXX` |
+| observation | string | não         | até 5000 caracteres; salvo no campo de observações da negociação |
 
 Campos preenchidos automaticamente pela integração:
 - `funnel_id`: fixo no funil de orçamentos
