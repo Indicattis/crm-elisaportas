@@ -426,46 +426,55 @@ export function KanbanBoard() {
 
   // BLOCK 1: Load core data, then unblock UI; tasks/colors load in background
   useEffect(() => {
-    if (!selectedFunnelId) return;
+    if (!selectedFunnelId) {
+      // No funnel yet: don't keep the user stuck on the loading screen.
+      // If funnels were already fetched (and there were none), release the spinner.
+      if (funnels.length === 0) setLoading(false);
+      return;
+    }
     const loadAll = async () => {
       setLoading(true);
-      const [, fetchedDeals] = await Promise.all([
-        fetchColumns(),
-        fetchDeals(),
-        fetchFunnelMembers(),
-        fetchAllTags(),
-        fetchChannels(),
-      ]);
+      try {
+        const [, fetchedDeals] = await Promise.all([
+          fetchColumns(),
+          fetchDeals(),
+          fetchFunnelMembers(),
+          fetchAllTags(),
+          fetchChannels(),
+        ]);
 
-      if (!fetchedDeals || fetchedDeals.length === 0) {
-        setProfilesMap({});
-        setOverdueDeals(new Set());
-        setNextTaskMap({});
-        setDealStageMap({});
-        setDailyColorsMap({});
-        setDealTagsMap({});
-        setTaskProgressMap({});
+        if (!fetchedDeals || fetchedDeals.length === 0) {
+          setProfilesMap({});
+          setOverdueDeals(new Set());
+          setNextTaskMap({});
+          setDealStageMap({});
+          setDailyColorsMap({});
+          setDealTagsMap({});
+          setTaskProgressMap({});
+          return;
+        }
+
+        const dealIds = fetchedDeals.map((d: Deal) => d.id);
+
+        // Profiles & tags are needed for the card header — await them, then show board
+        await Promise.all([
+          fetchProfiles(fetchedDeals).catch((e) => console.error("fetchProfiles failed", e)),
+          fetchDealTags(dealIds).catch((e) => console.error("fetchDealTags failed", e)),
+        ]);
+
+        // Heavy task/color data continues in background; badges fill in progressively
+        Promise.all([
+          fetchTasksData(fetchedDeals).catch((e) => console.error("fetchTasksData failed", e)),
+          fetchDailyColors(fetchedDeals).catch((e) => console.error("fetchDailyColors failed", e)),
+        ]);
+      } catch (e) {
+        console.error("KanbanBoard initial load failed", e);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const dealIds = fetchedDeals.map((d: Deal) => d.id);
-
-      // Profiles & tags are needed for the card header — await them, then show board
-      await Promise.all([
-        fetchProfiles(fetchedDeals),
-        fetchDealTags(dealIds),
-      ]);
-      setLoading(false);
-
-      // Heavy task/color data continues in background; badges fill in progressively
-      Promise.all([
-        fetchTasksData(fetchedDeals),
-        fetchDailyColors(fetchedDeals),
-      ]);
     };
     loadAll();
-  }, [selectedFunnelId, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags]);
+  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags]);
 
   // Helper to refresh deals + dependent data after mutations
   const refreshDeals = useCallback(async () => {
