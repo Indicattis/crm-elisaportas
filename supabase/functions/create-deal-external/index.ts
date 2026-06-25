@@ -22,14 +22,24 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function normalizePhoneDigitsBR(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  // Remove country code 55 quando vem prefixado (12 ou 13 dígitos iniciando em 55)
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
+    digits = digits.slice(2);
+  }
+  return digits.slice(0, 11);
+}
+
 function maskPhoneBR(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 11);
+  const digits = normalizePhoneDigitsBR(raw);
   if (digits.length <= 2) return digits;
   if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   if (digits.length <= 10)
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
+
 
 function getSupabaseAdmin() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -209,7 +219,7 @@ Deno.serve(async (req) => {
 
     const cleanTitle = title.trim();
     const maskedPhone = maskPhoneBR(phone);
-    const phoneDigits = phone.replace(/\D/g, "");
+    const phoneDigits = normalizePhoneDigitsBR(phone);
     const cleanObservation =
       typeof observation === "string" && observation.trim().length > 0
         ? observation.trim()
