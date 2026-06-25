@@ -222,15 +222,15 @@ Deno.serve(async (req) => {
     const counts: Record<string, number> = {};
     for (const id of ROTATION_USER_IDS) counts[id] = 0;
 
-    const { data: existingDeals, error: countError } = await supabase
-      .from("deals")
+    const { data: logRows, error: countError } = await supabase
+      .from("external_integration_logs")
       .select("assigned_to")
-      .eq("funnel_id", FUNNEL_ID)
-      .eq("archived", false)
+      .eq("source", "hunt")
+      .in("status", ["success", "duplicate"])
       .in("assigned_to", ROTATION_USER_IDS);
 
     if (countError) {
-      console.error("Error counting deals:", countError);
+      console.error("Error counting integration logs:", countError);
       await writeLog({
         status: "error",
         http_status: 500,
@@ -244,9 +244,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Erro ao calcular rotação" }, 500);
     }
 
-    for (const d of existingDeals ?? []) {
-      if (d.assigned_to && counts[d.assigned_to] !== undefined) {
-        counts[d.assigned_to]++;
+    for (const r of logRows ?? []) {
+      if (r.assigned_to && counts[r.assigned_to] !== undefined) {
+        counts[r.assigned_to]++;
       }
     }
 
