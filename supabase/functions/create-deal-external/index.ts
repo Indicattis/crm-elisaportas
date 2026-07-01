@@ -217,6 +217,35 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "observation deve ter no máximo 5000 caracteres" }, 400);
     }
 
+    // Validate attachments (optional)
+    const attachmentsInput = body?.attachments;
+    if (attachmentsInput !== undefined && attachmentsInput !== null) {
+      if (!Array.isArray(attachmentsInput)) {
+        await writeLog({
+          status: "error", http_status: 400, title, phone,
+          error_message: "attachments deve ser um array",
+          ip, user_agent: userAgent, raw_body: body,
+        });
+        return jsonResponse({ error: "attachments deve ser um array" }, 400);
+      }
+      if (attachmentsInput.length > 10) {
+        return jsonResponse({ error: "attachments: máximo 10 itens" }, 400);
+      }
+      for (const [i, a] of attachmentsInput.entries()) {
+        if (!a || typeof a !== "object") {
+          return jsonResponse({ error: `attachments[${i}]: item inválido` }, 400);
+        }
+        if (typeof a.file_name !== "string" || a.file_name.trim().length === 0 || a.file_name.length > 255) {
+          return jsonResponse({ error: `attachments[${i}].file_name é obrigatório (1-255 chars)` }, 400);
+        }
+        const hasUrl = typeof a.url === "string" && a.url.trim().length > 0;
+        const hasData = typeof a.data_base64 === "string" && a.data_base64.trim().length > 0;
+        if (hasUrl === hasData) {
+          return jsonResponse({ error: `attachments[${i}]: informe apenas 'url' OU 'data_base64'` }, 400);
+        }
+      }
+    }
+
     const cleanTitle = title.trim();
     const maskedPhone = maskPhoneBR(phone);
     const phoneDigits = normalizePhoneDigitsBR(phone);
@@ -346,6 +375,58 @@ Deno.serve(async (req) => {
       user_id: chosen,
     });
 
+    // Process attachments (best-effort — never fail the deal)
+    const MAX_BYTES = 10 * 1024 * 1024;
+    const attachmentsWarnings: string[] = [];
+    let attachmentsUploaded = 0;
+    const items = Array.isArray(attachmentsInput) ? attachmentsInput : [];
+    for (const a of items) {
+      const fileName: string = a.file_name.trim();
+      try {
+        let bytes: Uint8Array;
+        let contentType: string = typeof a.content_type === "string" ? a.content_type : "application/octet-stream";
+        if (typeof a.url === "string" && a.url.trim().length > 0) {
+          const resp = await fetch(a.url);
+          if (!resp.ok) throw new Error(`URL retornou ${resp.status}`);
+          const buf = await resp.arrayBuffer();
+          if (buf.byteLength > MAX_BYTES) throw new Error("arquivo excede 10 MB");
+          bytes = new Uint8Array(buf);
+          if (!a.content_type) {
+            contentType = resp.headers.get("content-type")?.split(";")[0] || contentType;
+          }
+        } else {
+          const b64 = (a.data_base64 as string).replace(/^data:[^;]+;base64,/, "");
+          const bin = atob(b64);
+          if (bin.length > MAX_BYTES) throw new Error("arquivo excede 10 MB");
+          bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        }
+        const safeName = fileName.replace(/[^\w.\-]+/g, "_");
+        const path = `${deal.id}/${crypto.randomUUID()}-${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("deal-attachments")
+          .upload(path, bytes, { contentType, upsert: false });
+        if (upErr) throw new Error(upErr.message);
+        const { error: insErr } = await supabase.from("deal_attachments").insert({
+          deal_id: deal.id,
+          user_id: chosen,
+          file_path: path,
+          file_name: fileName,
+        });
+        if (insErr) throw new Error(insErr.message);
+        attachmentsUploaded++;
+      } catch (e) {
+        attachmentsWarnings.push(`${fileName}: ${(e as Error).message}`);
+      }
+    }
+
+    const combinedWarning = [
+      duplicateWarning,
+      items.length > 0
+        ? `Anexos: ${attachmentsUploaded}/${items.length} enviados${attachmentsWarnings.length ? ` — falhas: ${attachmentsWarnings.join("; ")}` : ""}`
+        : null,
+    ].filter(Boolean).join(" | ") || null;
+
     await writeLog({
       status: duplicateWarning ? "duplicate" : "success",
       http_status: 200,
@@ -353,7 +434,7 @@ Deno.serve(async (req) => {
       phone: maskedPhone,
       deal_id: deal.id,
       assigned_to: chosen,
-      warning: duplicateWarning,
+      warning: combinedWarning,
       ip,
       user_agent: userAgent,
       raw_body: body,
@@ -365,6 +446,8 @@ Deno.serve(async (req) => {
       deal_number: deal.deal_number,
       assigned_to: chosen,
       ...(duplicateWarning ? { warning: duplicateWarning } : {}),
+      ...(items.length > 0 ? { attachments_uploaded: attachmentsUploaded } : {}),
+      ...(attachmentsWarnings.length > 0 ? { attachments_warnings: attachmentsWarnings } : {}),
     });
   } catch (err) {
     console.error("Unexpected error:", err);

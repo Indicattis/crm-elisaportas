@@ -1,24 +1,72 @@
-## Problema
+# Anexos na integração externa
 
-A integração externa envia o telefone com código do país Brasil (`55`) na frente — por exemplo `5554996097462` (13 dígitos). A função `create-deal-external` apenas tira os caracteres não numéricos e corta os 11 primeiros dígitos, gerando `55549960974` → `(55) 54996-0974`, em vez do correto `(54) 9 9609-7462`.
+## Formato do body
 
-## Correção
+Adicionar campo opcional `attachments` (array) no POST `/create-deal-external`. Cada item pode ser enviado de duas formas:
 
-Ajustar `maskPhoneBR` (ou normalizar antes de mascarar) em `supabase/functions/create-deal-external/index.ts` para remover o código de país `55` quando o número chega com 12 ou 13 dígitos começando por `55`. A lógica:
+**1. Por URL pública (recomendado — mais leve):**
+```json
+{
+  "title": "João",
+  "phone": "5554996097462",
+  "observation": "...",
+  "attachments": [
+    { "file_name": "orcamento.pdf", "url": "https://exemplo.com/arquivo.pdf" }
+  ]
+}
+```
 
-1. Remover não-dígitos.
-2. Se tiver 12 ou 13 dígitos e começar com `55`, remover esse prefixo.
-3. Cortar para no máximo 11 dígitos.
-4. Aplicar a máscara `(XX) XXXXX-XXXX` como hoje.
+**2. Por conteúdo base64 (para arquivos gerados pelo parceiro):**
+```json
+{
+  "attachments": [
+    {
+      "file_name": "foto.jpg",
+      "content_type": "image/jpeg",
+      "data_base64": "iVBORw0KGgoAAAANSUhEUg..."
+    }
+  ]
+}
+```
 
-Aplicar a mesma normalização ao `phoneDigits` usado para detectar duplicidade, e usar o telefone normalizado também na busca por duplicata (assim números já gravados errados continuam batendo via fallback de `slice(-8)`, que já existe).
+## Regras
+
+- `attachments`: opcional, array com até **10 itens**.
+- `file_name`: obrigatório, 1–255 chars, extensão preservada.
+- Cada item precisa ter **ou** `url` **ou** `data_base64` (não os dois).
+- Tamanho máximo por arquivo: **10 MB** (limite do payload da edge function ≈ 20 MB total, então base64 grande estoura rápido — para arquivos grandes usar `url`).
+- Content-type detectado pela extensão do `file_name` se não vier explícito.
+- Se qualquer anexo falhar (URL 404, base64 inválido, > 10 MB), a negociação **ainda é criada**, e o retorno inclui `attachments_warnings: [...]` listando os erros. Não abortar o card por causa de anexo.
+
+## Implementação (`supabase/functions/create-deal-external/index.ts`)
+
+1. Validar `attachments` no bloco de validação (tipo array, tamanho, campos obrigatórios).
+2. Após inserir o deal com sucesso, para cada anexo:
+   - Se `url`: `fetch(url)` → obter bytes + content-type.
+   - Se `data_base64`: decodificar (`Uint8Array.from(atob(...), c => c.charCodeAt(0))`).
+   - Fazer upload em `storage.from("deal-attachments").upload(path, bytes, { contentType })` com path `${deal.id}/${crypto.randomUUID()}-${file_name}`.
+   - Inserir linha em `deal_attachments` com `user_id = chosen` (o vendedor sorteado no round-robin).
+3. Acumular sucessos/erros e devolver na resposta:
+   ```json
+   {
+     "success": true,
+     "deal_id": "...",
+     "attachments_uploaded": 2,
+     "attachments_warnings": ["foto.jpg: URL retornou 404"]
+   }
+   ```
+4. Registrar no `external_integration_logs` (campo `warning` já existe) o total de anexos enviados/falhos.
+
+## Documentação
+
+Atualizar `supabase/functions/create-deal-external/README.md`:
+- Nova seção "Anexos" com os dois formatos.
+- Exemplos `curl` para cada caso.
+- Limites (10 arquivos, 10 MB cada, preferir URL para arquivos grandes).
 
 ## Validação
 
-1. Redeploy da função `create-deal-external`.
-2. Teste via `curl_edge_functions` com payload `{"title":"Teste","phone":"5554996097462"}` e confirmar no log `external_integration_logs` que `phone` foi salvo como `(54) 99609-7462`.
-3. Testar também com `phone` já no formato nacional (`54996097462`) para garantir que não quebrou.
-
-## Observação
-
-Os registros antigos já gravados errados não serão corrigidos automaticamente — se quiser, posso rodar um update em lote depois, mas isso fica fora desta correção.
+1. Redeploy `create-deal-external`.
+2. Teste 1: payload com 1 anexo por URL pública (imagem qualquer) → conferir card criado + anexo listado no `DealDetailView`.
+3. Teste 2: payload com 1 anexo base64 pequeno → mesmo check.
+4. Teste 3: URL quebrada → deal criado, `attachments_warnings` presente.
