@@ -32,8 +32,35 @@ A chave é entregue por canal seguro (secret `HUNT_INTEGRATION` no backend). Nã
 | Campo       | Tipo   | Obrigatório | Regras |
 |-------------|--------|-------------|--------|
 | title       | string | sim         | 1–255 caracteres |
-| phone       | string | sim         | mínimo 4 dígitos; aceita com ou sem máscara, é normalizado para `(XX) XXXXX-XXXX` |
-| observation | string | não         | até 5000 caracteres; salvo no campo de observações da negociação |
+| phone       | string | sim         | mínimo 4 dígitos; aceita com ou sem máscara e com/sem código do país `55`, é normalizado para `(XX) XXXXX-XXXX` |
+| observation | string | não         | até 5000 caracteres; salvo no campo de observações |
+| attachments | array  | não         | até 10 itens; ver seção abaixo |
+
+## Anexos
+
+O campo `attachments` aceita um array de até **10 arquivos**, cada um enviado por **URL pública** (recomendado) ou por **conteúdo base64**.
+
+Cada item precisa ter `file_name` e **ou** `url` **ou** `data_base64` (nunca os dois). Tamanho máximo por arquivo: **10 MB**.
+
+**Por URL pública:**
+```json
+{
+  "file_name": "orcamento.pdf",
+  "url": "https://exemplo.com/arquivo.pdf"
+}
+```
+
+**Por base64:**
+```json
+{
+  "file_name": "foto.jpg",
+  "content_type": "image/jpeg",
+  "data_base64": "iVBORw0KGgoAAAANSUhEUg..."
+}
+```
+
+Se um anexo falhar (URL 404, base64 inválido, > 10 MB), a **negociação ainda é criada** e a resposta traz `attachments_warnings` listando as falhas. Prefira `url` para arquivos maiores — base64 infla o payload em ~33%.
+
 
 Campos preenchidos automaticamente pela integração:
 - `funnel_id`: fixo no funil de orçamentos
