@@ -78,11 +78,13 @@ Campos preenchidos automaticamente pela integração:
   "deal_id": "uuid",
   "deal_number": 1234,
   "assigned_to": "uuid-do-vendedor",
-  "warning": "Telefone já cadastrado na negociação ..." // opcional
+  "warning": "Telefone já cadastrado na negociação ...", // opcional
+  "attachments_uploaded": 2,                              // opcional
+  "attachments_warnings": ["foto.jpg: URL retornou 404"]  // opcional
 }
 ```
 
-O campo `warning` aparece apenas quando o telefone já existe em outra negociação — o card é criado mesmo assim.
+O campo `warning` aparece quando o telefone já existe em outra negociação. `attachments_uploaded` / `attachments_warnings` aparecem quando `attachments` é enviado. O card é criado mesmo com anexos que falharam.
 
 ## Erros
 
