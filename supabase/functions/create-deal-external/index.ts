@@ -217,6 +217,35 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "observation deve ter no máximo 5000 caracteres" }, 400);
     }
 
+    // Validate attachments (optional)
+    const attachmentsInput = body?.attachments;
+    if (attachmentsInput !== undefined && attachmentsInput !== null) {
+      if (!Array.isArray(attachmentsInput)) {
+        await writeLog({
+          status: "error", http_status: 400, title, phone,
+          error_message: "attachments deve ser um array",
+          ip, user_agent: userAgent, raw_body: body,
+        });
+        return jsonResponse({ error: "attachments deve ser um array" }, 400);
+      }
+      if (attachmentsInput.length > 10) {
+        return jsonResponse({ error: "attachments: máximo 10 itens" }, 400);
+      }
+      for (const [i, a] of attachmentsInput.entries()) {
+        if (!a || typeof a !== "object") {
+          return jsonResponse({ error: `attachments[${i}]: item inválido` }, 400);
+        }
+        if (typeof a.file_name !== "string" || a.file_name.trim().length === 0 || a.file_name.length > 255) {
+          return jsonResponse({ error: `attachments[${i}].file_name é obrigatório (1-255 chars)` }, 400);
+        }
+        const hasUrl = typeof a.url === "string" && a.url.trim().length > 0;
+        const hasData = typeof a.data_base64 === "string" && a.data_base64.trim().length > 0;
+        if (hasUrl === hasData) {
+          return jsonResponse({ error: `attachments[${i}]: informe apenas 'url' OU 'data_base64'` }, 400);
+        }
+      }
+    }
+
     const cleanTitle = title.trim();
     const maskedPhone = maskPhoneBR(phone);
     const phoneDigits = normalizePhoneDigitsBR(phone);
