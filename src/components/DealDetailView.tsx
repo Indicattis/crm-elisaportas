@@ -18,7 +18,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RefreshCw, RotateCw, ImagePlus, Loader2, Lock } from "lucide-react";
+import { Flame, User, UserMinus, DollarSign, Calendar as CalendarIcon, Clock, Send, CheckCircle2, Trash2, Plus, X, XCircle, Phone, Mail, MapPin, ClipboardList, MessageSquare, PhoneCall, CheckSquare, Square, AlertTriangle, ArrowRightLeft, History, Repeat, Archive, ArchiveRestore, RotateCw, ImagePlus, Loader2, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -125,7 +125,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [dealTasks, setDealTasks] = useState<DealTask[]>([]);
   const [taskStages, setTaskStages] = useState<TaskStage[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [reloadingTasks, setReloadingTasks] = useState(false);
+  
   
   const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<DealHistoryEvent[]>([]);
@@ -422,19 +422,6 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
       toast({ title: "Erro ao criar tarefa", description: err.message, variant: "destructive" });
     } finally {
       setCreatingTask(false);
-    }
-  };
-  const handleReloadTasks = async () => {
-    if (!deal || reloadingTasks) return;
-    setReloadingTasks(true);
-    try {
-      await supabase.rpc("recreate_deal_tasks", { _deal_id: deal.id });
-      await fetchDealTasks(deal.id);
-      toast({ title: "Tarefas recarregadas" });
-    } catch (err: any) {
-      toast({ title: "Erro ao recarregar", description: err.message, variant: "destructive" });
-    } finally {
-      setReloadingTasks(false);
     }
   };
 
@@ -1338,16 +1325,6 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
               <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
                   {dealTasks.filter(t => t.completed).length}/{dealTasks.length}
                 </span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={handleReloadTasks}
-                  disabled={reloadingTasks}
-                  title="Recarregar tarefas automáticas"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${reloadingTasks ? "animate-spin" : ""}`} />
-                </Button>
                 <Button
                   size="icon"
                   variant="ghost"
