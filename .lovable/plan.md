@@ -1,32 +1,21 @@
-## Bolas de status para contatos (persistentes)
+## Objetivo
+Quando um card muda de coluna, as tarefas antigas devem ser **totalmente removidas** (pendentes + concluídas). Se a nova coluna tiver `task_group_id`, as tarefas do novo grupo são criadas; se não tiver, o card fica sem tarefas.
 
-### 1. Configuração da coluna (`/crm-config`)
-Em `FunnelColumnList.tsx`, no bloco `currentType === "contacts"`, adicionar os mesmos controles hoje usados em colunas de negociações:
-- Checkbox **"Bolas coloridas"** — grava em `funnel_columns.has_daily_color`.
-- Seleção de cores permitidas (Vermelho / Amarelo / Verde) — grava em `funnel_columns.daily_colors`.
+Também limpar o estado atual do banco para refletir essa regra.
 
-Reaproveitando os campos existentes evita nova migração de schema em `funnel_columns`.
+## Mudanças
 
-### 2. Persistência da cor por contato
-Criar tabela `contact_colors` (persistente, sem data):
-- `contact_id` (FK → contacts, unique)
-- `color` (text: red/yellow/green)
-- `updated_by`, `updated_at`
+### 1. Migração no banco
+- Atualizar a função `handle_deal_tasks_on_status_change` (trigger em `deals`) para:
+  - Deletar **todas** as `deal_tasks` do deal ao mudar de coluna (remover o filtro `completed = false`).
+  - Fluxo restante inalterado: se nova coluna tem `task_group_id`, cria as tarefas do grupo; se não, encerra.
+- Atualizar `recreate_deal_tasks(_deal_id)` da mesma forma (deletar tudo antes de recriar), para manter consistência com o botão "Recarregar tarefas automáticas".
+- Limpeza pontual: deletar todas as `deal_tasks` de deals cuja coluna atual (`funnel_columns.name = deals.status` e mesmo funil) tenha `task_group_id IS NULL` ou não exista.
+- Para deals cuja coluna atual tem `task_group_id`, mas cujas tarefas pertencem a um template de outro grupo (mismatch causado por movimentações antigas antes desta regra): deletar essas tarefas "órfãs" e recriar via `recreate_deal_tasks` para cada deal afetado.
 
-Com RLS liberando leitura/escrita para membros do funil da coluna do contato (mesmo padrão de `contacts`), e GRANTs para `authenticated` + `service_role`.
+### 2. Frontend
+- Nenhuma alteração de UI necessária. `KanbanBoard` já recarrega tarefas ao mover cards; apenas o comportamento no banco muda.
 
-Diferente de `deal_daily_color`, **não** haverá coluna `date` — a cor selecionada permanece indefinidamente até o usuário trocar.
-
-### 3. UI do card de contato (`ContactsColumn.tsx`)
-- Buscar as cores de todos os contatos da coluna junto com `fetchContacts`.
-- Renderizar a bolinha no card do contato quando `funnel_columns.has_daily_color !== false`, respeitando as cores permitidas em `daily_colors`.
-- Clique na bolinha cicla entre as cores permitidas e faz upsert em `contact_colors` (atualização otimista). Cor padrão inicial = primeira das permitidas (ex.: "red").
-- Sem reset diário: o valor gravado é sempre o mesmo até troca manual.
-
-### 4. Passagem de props
-`KanbanBoard.tsx` já passa `column` para `ContactsColumn`; adicionar `hasDailyColor` e `allowedDailyColors` derivados de `column.has_daily_color` / `column.daily_colors`.
-
-### Detalhes técnicos
-- Migração: `CREATE TABLE public.contact_colors` + GRANTs + RLS + policies (SELECT/INSERT/UPDATE/DELETE para authenticated conforme acesso à `contacts` correspondente) + trigger `update_updated_at_column`.
-- Índice único em `contact_id` para permitir `upsert onConflict: contact_id`.
-- Nenhuma alteração em `deal_daily_color` nem no comportamento das colunas de negociações.
+## Observações
+- Tarefas concluídas serão perdidas (inclusive histórico visual de progresso). É o comportamento pedido.
+- Não afeta colunas do tipo `contacts` (não têm deals).
