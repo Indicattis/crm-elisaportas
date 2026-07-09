@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
+import { ContactsColumn } from "./ContactsColumn";
 import { DealDialog } from "./DealDialog";
 import { EntryRequirementsModal } from "./EntryRequirementsModal";
 import { DealCard } from "./DealCard";
@@ -276,7 +277,10 @@ export function KanbanBoard() {
 
   // Ensure selectedTab is valid for current columns
   useEffect(() => {
-    const valid = columns.filter((c) => !(c as any).is_notice).map((c) => c.name);
+    const valid = columns.filter((c) => {
+      const t = (c as any).column_type || ((c as any).is_notice ? "notice" : "deals");
+      return t === "deals";
+    }).map((c) => c.name);
     if (valid.length === 0) return;
     if (!selectedTab || !valid.includes(selectedTab)) {
       setSelectedTab(valid[0]);
@@ -820,7 +824,7 @@ export function KanbanBoard() {
         >
           {viewMode === "tabs" && (
             <div className="px-6 pt-3 flex gap-2 overflow-x-auto">
-              {columns.filter((c) => !(c as any).is_notice).map((column) => {
+              {columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts")).map((column) => {
                 const count = deals.filter((d) => d.status === column.name).filter(filterBySeller).filter(filterByLocation).length;
                 const active = selectedTab === column.name;
                 return (
@@ -847,8 +851,11 @@ export function KanbanBoard() {
             onMouseUp={handleGrabMouseUp}
             onMouseLeave={handleGrabMouseLeave}
           >
-            {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && c.name === selectedTab) : columns).map((column) => {
-              if ((column as any).is_notice) {
+            {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts") && c.name === selectedTab) : columns).map((column) => {
+              const colType: "deals" | "notice" | "contacts" =
+                (column as any).column_type || ((column as any).is_notice ? "notice" : "deals");
+
+              if (colType === "notice") {
                 return (
                   <KanbanColumn
                     key={column.id}
@@ -862,6 +869,19 @@ export function KanbanBoard() {
                   />
                 );
               }
+
+              if (colType === "contacts") {
+                return (
+                  <ContactsColumn
+                    key={column.id}
+                    status={column.name}
+                    color={column.color}
+                    columnId={column.id}
+                    funnelId={selectedFunnelId}
+                  />
+                );
+              }
+
 
               const isDraggingAcrossColumns = Boolean(
                 activeDeal && activeOverStatus && activeOverStatus !== activeDeal.status

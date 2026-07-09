@@ -162,6 +162,66 @@ export type Database = {
           },
         ]
       }
+      contacts: {
+        Row: {
+          city: string | null
+          column_id: string
+          created_at: string
+          funnel_id: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          position: number
+          state: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          column_id: string
+          created_at?: string
+          funnel_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          position?: number
+          state?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          column_id?: string
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          position?: number
+          state?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_attachments: {
         Row: {
           created_at: string
@@ -398,6 +458,7 @@ export type Database = {
           assigned_to: string | null
           city: string | null
           client_id: string | null
+          contact_id: string | null
           created_at: string
           deal_number: number | null
           email: string | null
@@ -422,6 +483,7 @@ export type Database = {
           assigned_to?: string | null
           city?: string | null
           client_id?: string | null
+          contact_id?: string | null
           created_at?: string
           deal_number?: number | null
           email?: string | null
@@ -446,6 +508,7 @@ export type Database = {
           assigned_to?: string | null
           city?: string | null
           client_id?: string | null
+          contact_id?: string | null
           created_at?: string
           deal_number?: number | null
           email?: string | null
@@ -464,6 +527,13 @@ export type Database = {
           value?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deals_funnel_id_fkey"
             columns: ["funnel_id"]
@@ -528,6 +598,7 @@ export type Database = {
         Row: {
           allowed_actions: string[]
           color: string
+          column_type: Database["public"]["Enums"]["column_type"]
           created_at: string
           daily_colors: string[]
           funnel_id: string
@@ -544,6 +615,7 @@ export type Database = {
         Insert: {
           allowed_actions?: string[]
           color?: string
+          column_type?: Database["public"]["Enums"]["column_type"]
           created_at?: string
           daily_colors?: string[]
           funnel_id: string
@@ -560,6 +632,7 @@ export type Database = {
         Update: {
           allowed_actions?: string[]
           color?: string
+          column_type?: Database["public"]["Enums"]["column_type"]
           created_at?: string
           daily_colors?: string[]
           funnel_id?: string
@@ -1023,6 +1096,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "vendedor"
+      column_type: "deals" | "notice" | "contacts"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1151,6 +1225,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "vendedor"],
+      column_type: ["deals", "notice", "contacts"],
     },
   },
 } as const

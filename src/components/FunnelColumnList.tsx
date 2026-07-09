@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings, ShieldCheck, Lock } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ClipboardList, ArrowUpDown, Shield, AlertTriangle, Circle, Settings, ShieldCheck, Lock, Users, LayoutGrid } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -191,6 +191,14 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
+  const handleUpdateColumnType = async (colId: string, columnType: "deals" | "notice" | "contacts") => {
+    await supabase
+      .from("funnel_columns")
+      .update({ column_type: columnType, is_notice: columnType === "notice" } as any)
+      .eq("id", colId);
+    onChanged();
+  };
+
   const handleUpdateNoticeText = async (colId: string, text: string) => {
     await supabase.from("funnel_columns").update({ notice_text: text } as any).eq("id", colId);
     onChanged();
@@ -360,20 +368,38 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
             <SheetTitle>Configurações — {editingColumn?.name}</SheetTitle>
           </SheetHeader>
 
-          {editingColumn && (
-            <div className="space-y-6 mt-6">
-              {/* Coluna de aviso */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={(editingColumn as any).is_notice || false}
-                    onCheckedChange={(v) => handleUpdateIsNotice(editingColumn.id, !!v)}
-                  />
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm font-medium">Coluna de aviso</span>
-                </label>
+          {editingColumn && (() => {
+            const currentType: "deals" | "notice" | "contacts" =
+              (editingColumn as any).column_type
+              || ((editingColumn as any).is_notice ? "notice" : "deals");
 
-                {(editingColumn as any).is_notice && (
+            return (
+            <div className="space-y-6 mt-6">
+              {/* Tipo da coluna */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <LayoutGrid className="h-4 w-4" /> Tipo da coluna
+                </label>
+                <Select
+                  value={currentType}
+                  onValueChange={(v) => handleUpdateColumnType(editingColumn.id, v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deals">Coluna de negociações</SelectItem>
+                    <SelectItem value="notice">Coluna de aviso</SelectItem>
+                    <SelectItem value="contacts">Coluna de contatos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {currentType === "notice" && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" /> Texto do aviso
+                  </label>
                   <Textarea
                     placeholder="Texto do aviso..."
                     defaultValue={(editingColumn as any).notice_text || ""}
@@ -384,11 +410,18 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                       }
                     }}
                   />
-                )}
-              </div>
+                </div>
+              )}
 
-              {!(editingColumn as any).is_notice && (
+              {currentType === "contacts" && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Nesta coluna você cadastra contatos e gera negociações a partir deles.
+                </p>
+              )}
+              {currentType === "deals" && (
                 <>
+
                   {/* Bolas coloridas */}
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
@@ -507,7 +540,8 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
