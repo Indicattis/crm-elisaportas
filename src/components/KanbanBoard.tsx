@@ -207,6 +207,18 @@ export function KanbanBoard() {
     }
   }, [selectedFunnelId]);
 
+  const fetchTracks = useCallback(async () => {
+    if (!selectedFunnelId) return;
+    const { data } = await supabase
+      .from("funnel_tracks" as any)
+      .select("*")
+      .eq("funnel_id", selectedFunnelId)
+      .order("row_index");
+    setTracks((data as any) || []);
+  }, [selectedFunnelId]);
+
+
+
   const fetchDeals = useCallback(async () => {
     if (!selectedFunnelId) return [];
     const { data, error } = await supabase
