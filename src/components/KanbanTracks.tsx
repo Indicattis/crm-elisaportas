@@ -64,9 +64,8 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     if (!rowEl) return;
     const compute = () => {
       const next: Record<string, { left: number; width: number }> = {};
-      const children = Array.from(rowEl.children) as HTMLElement[];
-      columns.forEach((c, i) => {
-        const el = children[i];
+      columns.forEach((c) => {
+        const el = rowEl.querySelector<HTMLElement>(`[data-column-id="${c.id}"]`);
         if (!el) return;
         next[c.id] = { left: el.offsetLeft, width: el.offsetWidth };
       });
@@ -83,6 +82,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
       window.removeEventListener("resize", compute);
     };
   }, [columns, columnsRowRef]);
+
 
   const posById = useMemo(() => {
     const m: Record<string, number> = {};
