@@ -32,6 +32,7 @@ interface KanbanColumnProps {
   channelIconMap?: Record<string, string>;
   dealStageMap?: Record<string, { name: string; color: string }>;
   taskProgressMap?: Record<string, { completed: number; total: number }>;
+  startOfDayCount?: number;
   showDropSpacer?: boolean;
   isNotice?: boolean;
   noticeText?: string;
