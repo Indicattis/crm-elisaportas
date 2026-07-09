@@ -864,12 +864,24 @@ export function KanbanBoard() {
           )}
           <div
             ref={scrollContainerRef}
-            className={`flex gap-4 overflow-x-auto p-6 pb-8 ${viewMode === "tabs" ? "h-[calc(100vh-170px)]" : "h-[calc(100vh-120px)]"} ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
+            className={`overflow-x-auto p-6 pb-8 ${viewMode === "tabs" ? "h-[calc(100vh-170px)]" : "h-[calc(100vh-120px)]"} ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
             onMouseDown={handleGrabMouseDown}
             onMouseMove={handleGrabMouseMove}
             onMouseUp={handleGrabMouseUp}
             onMouseLeave={handleGrabMouseLeave}
           >
+          <div className="flex flex-col gap-2 min-w-max">
+          {viewMode !== "tabs" && (
+            <KanbanTracks
+              columns={columns.filter((c) => !(c as any).is_notice)}
+              tracks={tracks}
+              funnelId={selectedFunnelId}
+              isAdmin={isAdmin}
+              columnsRowRef={columnsRowRef}
+              onChanged={fetchTracks}
+            />
+          )}
+          <div ref={columnsRowRef} className="flex gap-4">
             {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts") && c.name === selectedTab) : columns).map((column) => {
               const colType: "deals" | "notice" | "contacts" =
                 (column as any).column_type || ((column as any).is_notice ? "notice" : "deals");
