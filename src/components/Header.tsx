@@ -30,7 +30,6 @@ export function Header() {
   };
 
   const allNavItems = [
-    { path: "/dashboard", label: "Dashboard", icon: PieChart },
     { path: "/", label: "Kanban", icon: LayoutDashboard },
     
     { path: "/relatorios", label: "Relatórios", icon: FileText },
