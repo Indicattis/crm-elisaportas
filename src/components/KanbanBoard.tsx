@@ -424,6 +424,57 @@ export function KanbanBoard() {
     setDailyColorsMap(map);
   }, []);
 
+  const captureAndFetchDailySnapshots = useCallback(async (funnelId: string, currentDeals: Deal[]) => {
+    const today = new Date().toISOString().slice(0, 10);
+    // Group current deals by (column, seller)
+    const groups = new Map<string, { column_name: string; seller_id: string | null; count: number }>();
+    for (const d of currentDeals) {
+      const key = `${d.status}::${d.assigned_to ?? "null"}`;
+      const g = groups.get(key) || { column_name: d.status, seller_id: (d.assigned_to as string | null) ?? null, count: 0 };
+      g.count++;
+      groups.set(key, g);
+    }
+
+    // Existing snapshots for today
+    const { data: existing } = await supabase
+      .from("column_daily_snapshots" as any)
+      .select("column_name, seller_id, count")
+      .eq("funnel_id", funnelId)
+      .eq("date", today);
+
+    const existingSet = new Set(
+      (existing || []).map((r: any) => `${r.column_name}::${r.seller_id ?? "null"}`)
+    );
+
+    const toInsert = [...groups.values()]
+      .filter((g) => !existingSet.has(`${g.column_name}::${g.seller_id ?? "null"}`))
+      .map((g) => ({
+        funnel_id: funnelId,
+        column_name: g.column_name,
+        seller_id: g.seller_id,
+        count: g.count,
+        date: today,
+      }));
+
+    if (toInsert.length > 0) {
+      await supabase.from("column_daily_snapshots" as any).insert(toInsert);
+    }
+
+    const { data: allRows } = await supabase
+      .from("column_daily_snapshots" as any)
+      .select("column_name, seller_id, count")
+      .eq("funnel_id", funnelId)
+      .eq("date", today);
+
+    const map: Record<string, Record<string, number>> = {};
+    (allRows || []).forEach((r: any) => {
+      const s = r.seller_id ?? "unassigned";
+      if (!map[r.column_name]) map[r.column_name] = {};
+      map[r.column_name][s] = r.count;
+    });
+    setStartOfDayMap(map);
+  }, []);
+
 
   // BLOCK 1: Load core data, then unblock UI; tasks/colors load in background
   useEffect(() => {
