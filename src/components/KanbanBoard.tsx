@@ -688,24 +688,6 @@ export function KanbanBoard() {
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {funnels.length === 0 && loading ? (
-            <Skeleton className="h-10 w-56" />
-          ) : funnels.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhum funil disponível</p>
-          ) : (
-            <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Selecionar funil" />
-              </SelectTrigger>
-              <SelectContent>
-                {funnels.map((funnel) => (
-                  <SelectItem key={funnel.id} value={funnel.id}>
-                    {funnel.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
