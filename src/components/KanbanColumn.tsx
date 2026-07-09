@@ -32,6 +32,7 @@ interface KanbanColumnProps {
   channelIconMap?: Record<string, string>;
   dealStageMap?: Record<string, { name: string; color: string }>;
   taskProgressMap?: Record<string, { completed: number; total: number }>;
+  startOfDayCount?: number;
   showDropSpacer?: boolean;
   isNotice?: boolean;
   noticeText?: string;
@@ -75,6 +76,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   channelIconMap = {},
   dealStageMap = {},
   taskProgressMap = {},
+  startOfDayCount,
   showDropSpacer = false,
   isNotice = false,
   noticeText = "",
@@ -181,6 +183,15 @@ export const KanbanColumn = memo(function KanbanColumn({
             >
               {deals.length}
             </span>
+            {typeof startOfDayCount === "number" && (
+              <span
+                className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/80 shrink-0"
+                style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
+                title="Cards no início do dia"
+              >
+                {startOfDayCount}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

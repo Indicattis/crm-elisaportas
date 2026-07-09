@@ -100,6 +100,36 @@ export type Database = {
           },
         ]
       }
+      column_daily_snapshots: {
+        Row: {
+          column_name: string
+          count: number
+          created_at: string
+          date: string
+          funnel_id: string
+          id: string
+          seller_id: string | null
+        }
+        Insert: {
+          column_name: string
+          count?: number
+          created_at?: string
+          date?: string
+          funnel_id: string
+          id?: string
+          seller_id?: string | null
+        }
+        Update: {
+          column_name?: string
+          count?: number
+          created_at?: string
+          date?: string
+          funnel_id?: string
+          id?: string
+          seller_id?: string | null
+        }
+        Relationships: []
+      }
       column_entry_requirements: {
         Row: {
           column_id: string
