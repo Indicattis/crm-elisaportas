@@ -886,8 +886,13 @@ export function KanbanBoard() {
               const colType: "deals" | "notice" | "contacts" =
                 (column as any).column_type || ((column as any).is_notice ? "notice" : "deals");
 
+              const wrap = (node: React.ReactNode) => (
+                <div key={column.id} data-column-id={column.id} className="flex">{node}</div>
+              );
+
               if (colType === "notice") {
-                return (
+                return wrap(
+
                   <KanbanColumn
                     key={column.id}
                     status={column.name}
