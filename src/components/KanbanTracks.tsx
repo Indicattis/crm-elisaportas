@@ -303,7 +303,9 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
                 backgroundColor: t.color,
                 color: hexContrast(t.color),
                 cursor: isAdmin ? "pointer" : "default",
+                transition: "left 150ms ease-out, width 150ms ease-out, background-color 150ms ease-out",
               }}
+
               title={t.label}
               onClick={() => openEdit(t)}
             >
