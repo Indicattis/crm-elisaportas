@@ -518,7 +518,16 @@ export function KanbanBoard() {
         Promise.all([
           fetchTasksData(fetchedDeals).catch((e) => console.error("fetchTasksData failed", e)),
           fetchDailyColors(fetchedDeals).catch((e) => console.error("fetchDailyColors failed", e)),
+          captureAndFetchDailySnapshots(selectedFunnelId, fetchedDeals).catch((e) => console.error("dailySnapshots failed", e)),
         ]);
+      } catch (e) {
+        console.error("KanbanBoard initial load failed", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAll();
+  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags, captureAndFetchDailySnapshots]);
       } catch (e) {
         console.error("KanbanBoard initial load failed", e);
       } finally {
