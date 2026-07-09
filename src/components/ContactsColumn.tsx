@@ -30,7 +30,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function ContactsColumn({ status, color, columnId, funnelId }: Props) {
+export function ContactsColumn({ status, color, columnId, funnelId, collapsed = false, onToggleCollapse }: Props) {
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
