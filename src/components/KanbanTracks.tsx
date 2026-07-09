@@ -58,6 +58,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
   const [drag, setDrag] = useState<DragState>(null);
   const dragRef = useRef<DragState>(null);
   const suppressClickRef = useRef(false);
+  const [optimistic, setOptimistic] = useState<Record<string, { start_column_id: string; end_column_id: string }>>({});
   const { toast } = useToast();
 
 
