@@ -878,12 +878,15 @@ export function KanbanBoard() {
                     color={column.color}
                     columnId={column.id}
                     funnelId={selectedFunnelId}
+                    hasDailyColor={(column as any).has_daily_color !== false}
+                    allowedDailyColors={(column as any).daily_colors ?? ["red", "yellow", "green"]}
                     collapsed={collapsedColumns.has(column.name)}
                     onToggleCollapse={() => toggleColumnCollapse(column.name)}
                   />
 
                 );
               }
+
 
 
               const isDraggingAcrossColumns = Boolean(
