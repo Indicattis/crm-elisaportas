@@ -528,14 +528,6 @@ export function KanbanBoard() {
     };
     loadAll();
   }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags, captureAndFetchDailySnapshots]);
-      } catch (e) {
-        console.error("KanbanBoard initial load failed", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadAll();
-  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags]);
 
   // Helper to refresh deals + dependent data after mutations
   const refreshDeals = useCallback(async () => {
