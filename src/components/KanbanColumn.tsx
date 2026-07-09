@@ -255,8 +255,8 @@ export const KanbanColumn = memo(function KanbanColumn({
           }}
         >
           <h3
-            className="text-sm font-bold truncate px-1 py-1 text-white"
-            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)" }}
+            className="text-sm font-bold truncate px-1 py-1 text-white sticky top-0 z-10 -mx-3 -mt-3 px-4 pt-3 pb-2"
+            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)", backgroundColor: columnBg }}
           >
             {status}
           </h3>
