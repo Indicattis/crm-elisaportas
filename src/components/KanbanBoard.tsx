@@ -276,7 +276,10 @@ export function KanbanBoard() {
 
   // Ensure selectedTab is valid for current columns
   useEffect(() => {
-    const valid = columns.filter((c) => !(c as any).is_notice).map((c) => c.name);
+    const valid = columns.filter((c) => {
+      const t = (c as any).column_type || ((c as any).is_notice ? "notice" : "deals");
+      return t === "deals";
+    }).map((c) => c.name);
     if (valid.length === 0) return;
     if (!selectedTab || !valid.includes(selectedTab)) {
       setSelectedTab(valid[0]);
