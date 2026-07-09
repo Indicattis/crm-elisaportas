@@ -907,6 +907,16 @@ export function KanbanBoard() {
                   return pA - pB;
                 });
 
+              const snapshotForColumn = startOfDayMap[column.name] || {};
+              let startOfDayCount = 0;
+              if (selectedSellerId === "all") {
+                startOfDayCount = Object.values(snapshotForColumn).reduce((a, b) => a + b, 0);
+              } else if (selectedSellerId === "unassigned") {
+                startOfDayCount = snapshotForColumn["unassigned"] || 0;
+              } else {
+                startOfDayCount = snapshotForColumn[selectedSellerId] || 0;
+              }
+
               return (
                 <KanbanColumn
                   key={column.id}
