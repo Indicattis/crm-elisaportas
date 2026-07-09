@@ -76,6 +76,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   channelIconMap = {},
   dealStageMap = {},
   taskProgressMap = {},
+  startOfDayCount,
   showDropSpacer = false,
   isNotice = false,
   noticeText = "",
