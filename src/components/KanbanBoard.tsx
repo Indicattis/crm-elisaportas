@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanColumn } from "./KanbanColumn";
+import { ContactsColumn } from "./ContactsColumn";
 import { DealDialog } from "./DealDialog";
 import { EntryRequirementsModal } from "./EntryRequirementsModal";
 import { DealCard } from "./DealCard";
