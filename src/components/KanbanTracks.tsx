@@ -64,14 +64,17 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     if (!rowEl) return;
     const compute = () => {
       const next: Record<string, { left: number; width: number }> = {};
+      const rowRect = rowEl.getBoundingClientRect();
       columns.forEach((c) => {
         const el = rowEl.querySelector<HTMLElement>(`[data-column-id="${c.id}"]`);
         if (!el) return;
-        next[c.id] = { left: el.offsetLeft, width: el.offsetWidth };
+        const r = el.getBoundingClientRect();
+        next[c.id] = { left: r.left - rowRect.left, width: r.width };
       });
       setRects(next);
       setTotalWidth(rowEl.scrollWidth);
     };
+
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(rowEl);
