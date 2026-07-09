@@ -550,7 +550,7 @@ export function KanbanBoard() {
       }
     };
     loadAll();
-  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags, captureAndFetchDailySnapshots]);
+  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchTracks, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags, captureAndFetchDailySnapshots]);
 
   // Helper to refresh deals + dependent data after mutations
   const refreshDeals = useCallback(async () => {
