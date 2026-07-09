@@ -29,7 +29,7 @@ interface Props {
   onChanged: () => void;
 }
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 52;
 const ROW_GAP = 0;
 
 
