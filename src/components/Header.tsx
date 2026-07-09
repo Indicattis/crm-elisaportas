@@ -31,7 +31,7 @@ export function Header() {
 
   const allNavItems = [
     { path: "/", label: "Kanban", icon: LayoutDashboard },
-    
+    { path: "/vendas", label: "Vendas", icon: DollarSign },
     { path: "/relatorios", label: "Relatórios", icon: FileText },
     { path: "/results", label: "Resultados", icon: BarChart3 },
     { path: "/crm-config", label: "Configurações", icon: Settings, adminOnly: true },
