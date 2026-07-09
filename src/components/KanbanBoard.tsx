@@ -886,11 +886,16 @@ export function KanbanBoard() {
               const colType: "deals" | "notice" | "contacts" =
                 (column as any).column_type || ((column as any).is_notice ? "notice" : "deals");
 
+              const wrap = (node: React.ReactNode) => (
+                <div key={column.id} data-column-id={column.id} className="flex">{node}</div>
+              );
+
               if (colType === "notice") {
-                return (
+                return wrap(
+
                   <KanbanColumn
-                    key={column.id}
                     status={column.name}
+
                     color={column.color}
                     deals={[]}
                     isNotice
@@ -902,9 +907,8 @@ export function KanbanBoard() {
               }
 
               if (colType === "contacts") {
-                return (
+                return wrap(
                   <ContactsColumn
-                    key={column.id}
                     status={column.name}
                     color={column.color}
                     columnId={column.id}
@@ -914,9 +918,9 @@ export function KanbanBoard() {
                     collapsed={collapsedColumns.has(column.name)}
                     onToggleCollapse={() => toggleColumnCollapse(column.name)}
                   />
-
                 );
               }
+
 
 
 
@@ -974,9 +978,8 @@ export function KanbanBoard() {
                 startOfDayCount = snapshotForColumn[selectedSellerId] || 0;
               }
 
-              return (
+              return wrap(
                 <KanbanColumn
-                  key={column.id}
                   status={column.name}
                   color={column.color}
                   deals={columnDeals}
@@ -1006,6 +1009,7 @@ export function KanbanBoard() {
                   onEditDeal={handleViewDeal}
                 />
               );
+
             })}
           </div>
           </div>

@@ -29,8 +29,9 @@ interface Props {
   onChanged: () => void;
 }
 
-const ROW_HEIGHT = 30;
-const ROW_GAP = 4;
+const ROW_HEIGHT = 44;
+const ROW_GAP = 0;
+
 
 function hexContrast(hex: string): string {
   try {
@@ -63,9 +64,8 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     if (!rowEl) return;
     const compute = () => {
       const next: Record<string, { left: number; width: number }> = {};
-      const children = Array.from(rowEl.children) as HTMLElement[];
-      columns.forEach((c, i) => {
-        const el = children[i];
+      columns.forEach((c) => {
+        const el = rowEl.querySelector<HTMLElement>(`[data-column-id="${c.id}"]`);
         if (!el) return;
         next[c.id] = { left: el.offsetLeft, width: el.offsetWidth };
       });
@@ -82,6 +82,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
       window.removeEventListener("resize", compute);
     };
   }, [columns, columnsRowRef]);
+
 
   const posById = useMemo(() => {
     const m: Record<string, number> = {};
@@ -235,8 +236,8 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     setDialogOpen(true);
   };
 
-  const maxRow = tracks.reduce((m, t) => Math.max(m, t.row_index), -1);
-  const rowsCount = maxRow + 1 + (isAdmin ? 1 : 0);
+  const hasTracks = tracks.length > 0;
+  const rowsCount = hasTracks || isAdmin ? 1 : 0;
 
   if (columns.length === 0) return null;
 
@@ -247,6 +248,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     }
     return t;
   });
+
 
   return (
     <>
@@ -284,7 +286,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
               style={{
                 left: style.left,
                 width: style.width,
-                top: t.row_index * (ROW_HEIGHT + ROW_GAP),
+                top: 0,
                 height: ROW_HEIGHT,
                 backgroundColor: t.color,
                 color: hexContrast(t.color),
