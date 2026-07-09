@@ -878,7 +878,10 @@ export function KanbanBoard() {
                     color={column.color}
                     columnId={column.id}
                     funnelId={selectedFunnelId}
+                    collapsed={collapsedColumns.has(column.name)}
+                    onToggleCollapse={() => toggleColumnCollapse(column.name)}
                   />
+
                 );
               }
 
