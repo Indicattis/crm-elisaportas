@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, RefObject } from "react";
 import { Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { TrackEditDialog, TrackEditPayload } from "./TrackEditDialog";
 
 export interface FunnelTrack {
@@ -19,7 +21,7 @@ interface Column {
 }
 
 interface Props {
-  columns: Column[]; // ordered as displayed
+  columns: Column[];
   tracks: FunnelTrack[];
   funnelId: string;
   isAdmin: boolean;
@@ -42,14 +44,19 @@ function hexContrast(hex: string): string {
   }
 }
 
+type DragState =
+  | { mode: "create"; row: number; anchorColId: string; currentColId: string }
+  | { mode: "resize"; trackId: string; edge: "left" | "right"; row: number; startColId: string; endColId: string }
+  | null;
+
 export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef, onChanged }: Props) {
   const [rects, setRects] = useState<Record<string, { left: number; width: number }>>({});
   const [totalWidth, setTotalWidth] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TrackEditPayload | null>(null);
-  const [dragSelection, setDragSelection] = useState<{ row: number; startColId: string; endColId: string } | null>(null);
-  const dragging = useRef<{ row: number; startColId: string } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<DragState>(null);
+  const dragRef = useRef<DragState>(null);
+  const { toast } = useToast();
 
   useLayoutEffect(() => {
     const rowEl = columnsRowRef.current;
@@ -76,14 +83,13 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     };
   }, [columns, columnsRowRef]);
 
-
   const posById = useMemo(() => {
     const m: Record<string, number> = {};
     columns.forEach((c, i) => (m[c.id] = i));
     return m;
   }, [columns]);
 
-  const getTrackStyle = (startId: string, endId: string) => {
+  const getStyleFromIds = (startId: string, endId: string) => {
     const sIdx = posById[startId];
     const eIdx = posById[endId];
     if (sIdx === undefined || eIdx === undefined) return null;
@@ -94,11 +100,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     return { left: a.left, width: b.left + b.width - a.left };
   };
 
-  const maxRow = tracks.reduce((m, t) => Math.max(m, t.row_index), -1);
-  const rowsCount = maxRow + 1 + (isAdmin ? 1 : 0);
-
   const findColAtX = (x: number): string | null => {
-    // x relative to columnsRow
     let best: { id: string; dist: number } | null = null;
     for (const [id, r] of Object.entries(rects)) {
       if (x >= r.left && x <= r.left + r.width) return id;
@@ -109,7 +111,85 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     return best?.id ?? null;
   };
 
-  const handlePointerDown = (e: React.PointerEvent, row: number) => {
+  // Global pointer handling for smoother drags (works even if pointer leaves element)
+  useEffect(() => {
+    if (!drag) return;
+    const handleMove = (ev: PointerEvent) => {
+      const rowEl = columnsRowRef.current;
+      if (!rowEl) return;
+      const rect = rowEl.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const colId = findColAtX(x);
+      if (!colId) return;
+      const current = dragRef.current;
+      if (!current) return;
+      if (current.mode === "create") {
+        if (current.currentColId !== colId) {
+          const next = { ...current, currentColId: colId };
+          dragRef.current = next;
+          setDrag(next);
+        }
+      } else {
+        // resize
+        if (current.edge === "left" && current.startColId !== colId) {
+          const next = { ...current, startColId: colId };
+          dragRef.current = next;
+          setDrag(next);
+        } else if (current.edge === "right" && current.endColId !== colId) {
+          const next = { ...current, endColId: colId };
+          dragRef.current = next;
+          setDrag(next);
+        }
+      }
+    };
+    const handleUp = async () => {
+      const current = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (!current) return;
+      if (current.mode === "create") {
+        const sIdx = posById[current.anchorColId];
+        const eIdx = posById[current.currentColId];
+        const [start, end] = sIdx <= eIdx
+          ? [current.anchorColId, current.currentColId]
+          : [current.currentColId, current.anchorColId];
+        setEditing({
+          funnel_id: funnelId,
+          start_column_id: start,
+          end_column_id: end,
+          color: "#3b82f6",
+          label: "",
+          row_index: current.row,
+        });
+        setDialogOpen(true);
+      } else {
+        // resize: normalize and persist
+        const sIdx = posById[current.startColId];
+        const eIdx = posById[current.endColId];
+        const [start, end] = sIdx <= eIdx
+          ? [current.startColId, current.endColId]
+          : [current.endColId, current.startColId];
+        const { error } = await supabase
+          .from("funnel_tracks" as any)
+          .update({ start_column_id: start, end_column_id: end })
+          .eq("id", current.trackId);
+        if (error) {
+          toast({ title: "Erro ao redimensionar", description: error.message, variant: "destructive" });
+        }
+        onChanged();
+      }
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+    };
+  }, [drag, columnsRowRef, posById, funnelId, onChanged, toast]);
+
+  const startCreate = (e: React.PointerEvent, row: number) => {
     if (!isAdmin) return;
     if ((e.target as HTMLElement).closest("[data-track-item]")) return;
     const rowEl = columnsRowRef.current;
@@ -118,45 +198,31 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     const x = e.clientX - rect.left;
     const colId = findColAtX(x);
     if (!colId) return;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    dragging.current = { row, startColId: colId };
-    setDragSelection({ row, startColId: colId, endColId: colId });
+    e.preventDefault();
+    const next: DragState = { mode: "create", row, anchorColId: colId, currentColId: colId };
+    dragRef.current = next;
+    setDrag(next);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const rowEl = columnsRowRef.current;
-    if (!rowEl) return;
-    const rect = rowEl.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const colId = findColAtX(x);
-    if (!colId) return;
-    setDragSelection((prev) => (prev ? { ...prev, endColId: colId } : prev));
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const sel = dragSelection;
-    dragging.current = null;
-    setDragSelection(null);
-    if (!sel) return;
-    // Normalize
-    const sIdx = posById[sel.startColId];
-    const eIdx = posById[sel.endColId];
-    const [start, end] = sIdx <= eIdx ? [sel.startColId, sel.endColId] : [sel.endColId, sel.startColId];
-    setEditing({
-      funnel_id: funnelId,
-      start_column_id: start,
-      end_column_id: end,
-      color: "#3b82f6",
-      label: "",
-      row_index: sel.row,
-    });
-    setDialogOpen(true);
+  const startResize = (e: React.PointerEvent, t: FunnelTrack, edge: "left" | "right") => {
+    if (!isAdmin) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const next: DragState = {
+      mode: "resize",
+      trackId: t.id,
+      edge,
+      row: t.row_index,
+      startColId: t.start_column_id,
+      endColId: t.end_column_id,
+    };
+    dragRef.current = next;
+    setDrag(next);
   };
 
   const openEdit = (t: FunnelTrack) => {
     if (!isAdmin) return;
+    if (drag) return;
     setEditing({
       id: t.id,
       funnel_id: t.funnel_id,
@@ -169,12 +235,22 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     setDialogOpen(true);
   };
 
+  const maxRow = tracks.reduce((m, t) => Math.max(m, t.row_index), -1);
+  const rowsCount = maxRow + 1 + (isAdmin ? 1 : 0);
+
   if (columns.length === 0) return null;
+
+  // Build live-view of tracks (apply in-progress resize)
+  const displayTracks = tracks.map((t) => {
+    if (drag && drag.mode === "resize" && drag.trackId === t.id) {
+      return { ...t, start_column_id: drag.startColId, end_column_id: drag.endColId };
+    }
+    return t;
+  });
 
   return (
     <>
       <div
-        ref={containerRef}
         className="relative"
         style={{
           width: totalWidth || undefined,
@@ -186,9 +262,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
             key={`row-${row}`}
             className={`absolute left-0 right-0 ${isAdmin ? "cursor-crosshair" : ""}`}
             style={{ top: row * (ROW_HEIGHT + ROW_GAP), height: ROW_HEIGHT }}
-            onPointerDown={(e) => handlePointerDown(e, row)}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
+            onPointerDown={(e) => startCreate(e, row)}
           >
             {isAdmin && row === rowsCount - 1 && (
               <div className="pointer-events-none flex h-full items-center justify-center text-[10px] uppercase tracking-wide text-muted-foreground/50">
@@ -198,17 +272,15 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
           </div>
         ))}
 
-        {tracks.map((t) => {
-          const style = getTrackStyle(t.start_column_id, t.end_column_id);
+        {displayTracks.map((t) => {
+          const style = getStyleFromIds(t.start_column_id, t.end_column_id);
           if (!style) return null;
+          const isResizing = drag && drag.mode === "resize" && drag.trackId === t.id;
           return (
-            <button
+            <div
               key={t.id}
               data-track-item
-              type="button"
-              onClick={() => openEdit(t)}
-              disabled={!isAdmin}
-              className="absolute rounded-md shadow-sm flex items-center justify-center px-2 text-xs font-semibold truncate transition-all hover:brightness-95"
+              className={`group absolute rounded-md shadow-sm flex items-center justify-center px-2 text-xs font-semibold transition-[background-color] hover:brightness-95 ${isResizing ? "ring-2 ring-primary" : ""}`}
               style={{
                 left: style.left,
                 width: style.width,
@@ -219,14 +291,31 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
                 cursor: isAdmin ? "pointer" : "default",
               }}
               title={t.label}
+              onClick={() => openEdit(t)}
             >
-              <span className="truncate">{t.label || "(sem texto)"}</span>
-            </button>
+              {isAdmin && (
+                <div
+                  onPointerDown={(e) => startResize(e, t, "left")}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 top-0 h-full w-2 cursor-ew-resize rounded-l-md bg-black/0 hover:bg-black/20 group-hover:bg-black/10"
+                  title="Arraste para redimensionar"
+                />
+              )}
+              <span className="truncate pointer-events-none px-2">{t.label || "(sem texto)"}</span>
+              {isAdmin && (
+                <div
+                  onPointerDown={(e) => startResize(e, t, "right")}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-black/0 hover:bg-black/20 group-hover:bg-black/10"
+                  title="Arraste para redimensionar"
+                />
+              )}
+            </div>
           );
         })}
 
-        {dragSelection && (() => {
-          const style = getTrackStyle(dragSelection.startColId, dragSelection.endColId);
+        {drag && drag.mode === "create" && (() => {
+          const style = getStyleFromIds(drag.anchorColId, drag.currentColId);
           if (!style) return null;
           return (
             <div
@@ -234,7 +323,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
               style={{
                 left: style.left,
                 width: style.width,
-                top: dragSelection.row * (ROW_HEIGHT + ROW_GAP),
+                top: drag.row * (ROW_HEIGHT + ROW_GAP),
                 height: ROW_HEIGHT,
               }}
             />
