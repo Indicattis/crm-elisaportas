@@ -368,20 +368,38 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
             <SheetTitle>Configurações — {editingColumn?.name}</SheetTitle>
           </SheetHeader>
 
-          {editingColumn && (
-            <div className="space-y-6 mt-6">
-              {/* Coluna de aviso */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={(editingColumn as any).is_notice || false}
-                    onCheckedChange={(v) => handleUpdateIsNotice(editingColumn.id, !!v)}
-                  />
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm font-medium">Coluna de aviso</span>
-                </label>
+          {editingColumn && (() => {
+            const currentType: "deals" | "notice" | "contacts" =
+              (editingColumn as any).column_type
+              || ((editingColumn as any).is_notice ? "notice" : "deals");
 
-                {(editingColumn as any).is_notice && (
+            return (
+            <div className="space-y-6 mt-6">
+              {/* Tipo da coluna */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <LayoutGrid className="h-4 w-4" /> Tipo da coluna
+                </label>
+                <Select
+                  value={currentType}
+                  onValueChange={(v) => handleUpdateColumnType(editingColumn.id, v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deals">Coluna de negociações</SelectItem>
+                    <SelectItem value="notice">Coluna de aviso</SelectItem>
+                    <SelectItem value="contacts">Coluna de contatos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {currentType === "notice" && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" /> Texto do aviso
+                  </label>
                   <Textarea
                     placeholder="Texto do aviso..."
                     defaultValue={(editingColumn as any).notice_text || ""}
@@ -392,10 +410,15 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                       }
                     }}
                   />
-                )}
-              </div>
+                </div>
+              )}
 
-              {!(editingColumn as any).is_notice && (
+              {currentType === "contacts" && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Nesta coluna você cadastra contatos e gera negociações a partir deles.
+                </p>
+              )}
                 <>
                   {/* Bolas coloridas */}
                   <label className="flex items-center gap-2 cursor-pointer">
