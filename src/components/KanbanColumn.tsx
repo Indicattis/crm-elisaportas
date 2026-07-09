@@ -175,14 +175,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             pointerEvents: collapsed ? "none" : "auto",
           }}
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <span
-              className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
-              style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
-              title="Total de cards"
-            >
-              {deals.length}
-            </span>
+          <div className="flex items-center gap-1.5 min-w-0">
             {typeof startOfDayCount === "number" && (
               <span
                 className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/80 shrink-0"
@@ -192,6 +185,16 @@ export const KanbanColumn = memo(function KanbanColumn({
                 {startOfDayCount}
               </span>
             )}
+            <span className="text-[10px] font-bold text-white/60 shrink-0">
+              ---&gt;
+            </span>
+            <span
+              className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
+              style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+              title="Total de cards"
+            >
+              {deals.length}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
