@@ -246,46 +246,51 @@ export const KanbanColumn = memo(function KanbanColumn({
           </span>
         </div>
 
-        {/* Expanded body: cards */}
+        {/* Expanded body: column title + cards */}
         <div
-          className="flex flex-1 flex-col gap-2 p-3 min-h-[100px] overflow-y-auto transition-opacity duration-300 ease-in-out"
+          className="flex flex-1 flex-col min-h-[100px] overflow-hidden transition-opacity duration-300 ease-in-out"
           style={{
             opacity: collapsed ? 0 : 1,
             pointerEvents: collapsed ? "none" : "auto",
           }}
         >
           <h3
-            className="text-sm font-bold truncate text-white sticky top-0 z-20 -mx-3 -mt-3 px-4 pt-3 pb-2 shadow-sm"
-            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)", backgroundColor: columnBg || "hsl(var(--card))" }}
+            className="relative z-30 mx-3 mt-3 mb-2 shrink-0 rounded-lg px-3 py-2 text-sm font-bold truncate text-white shadow-sm"
+            style={{
+              textShadow: "0 1px 2px rgba(0,0,0,0.35)",
+              backgroundColor: headerBg || columnBg || "hsl(var(--card))",
+            }}
           >
             {status}
           </h3>
 
-          <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
-            {deals.map((deal) => (
-              <DealCard
-                key={deal.id}
-                deal={deal}
-                tags={dealTagsMap[deal.id]}
-                allTags={allTags}
-                assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
-                hasOverdueTasks={overdueDeals.has(deal.id)}
-                dailyColor={hasDailyColor ? (dailyColorsMap[deal.id] || "red") : undefined}
-                allowedDailyColors={allowedDailyColors}
-                nextTaskDeadline={nextTaskMap[deal.id]}
-                channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
-                currentStage={dealStageMap[deal.id]}
-                taskProgress={taskProgressMap[deal.id]}
-                onTagsChanged={onTagsChanged}
-                onCapture={onCapture}
-                onColorChange={onColorChange}
-                onClick={() => onEditDeal(deal)}
-              />
-            ))}
-            {showDropSpacer ? (
-              <div className="min-h-[88px] rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 pointer-events-none" />
-            ) : null}
-          </SortableContext>
+          <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3 min-h-0">
+            <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
+              {deals.map((deal) => (
+                <DealCard
+                  key={deal.id}
+                  deal={deal}
+                  tags={dealTagsMap[deal.id]}
+                  allTags={allTags}
+                  assignedProfile={deal.assigned_to ? profilesMap[deal.assigned_to] : null}
+                  hasOverdueTasks={overdueDeals.has(deal.id)}
+                  dailyColor={hasDailyColor ? (dailyColorsMap[deal.id] || "red") : undefined}
+                  allowedDailyColors={allowedDailyColors}
+                  nextTaskDeadline={nextTaskMap[deal.id]}
+                  channelIconKey={deal.acquisition_channel ? channelIconMap[deal.acquisition_channel] : undefined}
+                  currentStage={dealStageMap[deal.id]}
+                  taskProgress={taskProgressMap[deal.id]}
+                  onTagsChanged={onTagsChanged}
+                  onCapture={onCapture}
+                  onColorChange={onColorChange}
+                  onClick={() => onEditDeal(deal)}
+                />
+              ))}
+              {showDropSpacer ? (
+                <div className="min-h-[88px] rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 pointer-events-none" />
+              ) : null}
+            </SortableContext>
+          </div>
         </div>
       </div>
     </div>
