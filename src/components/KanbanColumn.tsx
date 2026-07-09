@@ -176,10 +176,10 @@ export const KanbanColumn = memo(function KanbanColumn({
           }}
         >
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-sm font-bold text-white truncate">{status}</h3>
             <span
               className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
               style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+              title="Total de cards"
             >
               {deals.length}
             </span>
@@ -251,6 +251,12 @@ export const KanbanColumn = memo(function KanbanColumn({
             pointerEvents: collapsed ? "none" : "auto",
           }}
         >
+          <h3
+            className="text-sm font-bold truncate px-0.5"
+            style={{ color: color ? (isDark ? "rgba(255,255,255,0.95)" : darkenHex(color, 0.55)) : undefined }}
+          >
+            {status}
+          </h3>
           <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
             {deals.map((deal) => (
               <DealCard
