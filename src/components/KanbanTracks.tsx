@@ -286,7 +286,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
               style={{
                 left: style.left,
                 width: style.width,
-                top: t.row_index * (ROW_HEIGHT + ROW_GAP),
+                top: 0,
                 height: ROW_HEIGHT,
                 backgroundColor: t.color,
                 color: hexContrast(t.color),
