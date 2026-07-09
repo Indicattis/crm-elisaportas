@@ -101,6 +101,9 @@ export function KanbanBoard() {
   const [startOfDayMap, setStartOfDayMap] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
+  const { role } = useUserRole();
+  const isAdmin = role === "admin";
+  const [tracks, setTracks] = useState<FunnelTrack[]>([]);
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "tabs">(sessionFilters.viewMode || "kanban");
   const [selectedTab, setSelectedTab] = useState<string>(sessionFilters.selectedTab || "");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
