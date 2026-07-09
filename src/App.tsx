@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
 import Results from "./pages/Results";
+import Sales from "./pages/Sales";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import DealDetail from "./pages/DealDetail";
