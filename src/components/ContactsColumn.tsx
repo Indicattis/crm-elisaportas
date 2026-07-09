@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Phone, MapPin, ShoppingBag, Pencil } from "lucide-react";
+import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactDialog, type ContactRecord } from "@/components/ContactDialog";
 import { CreateDealFromContactDialog } from "@/components/CreateDealFromContactDialog";
@@ -10,8 +10,11 @@ interface Props {
   color?: string;
   columnId: string;
   funnelId: string;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   onChanged?: () => void;
 }
+
 
 function darkenHex(hex: string, amount: number): string {
   if (!hex?.startsWith("#") || hex.length !== 7) return hex;
