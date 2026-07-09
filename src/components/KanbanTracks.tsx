@@ -256,11 +256,6 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     setDialogOpen(true);
   };
 
-  const hasTracks = tracks.length > 0;
-  const rowsCount = hasTracks || isAdmin ? 1 : 0;
-
-  if (columns.length === 0) return null;
-
   // Clear optimistic overrides once parent tracks match
   useEffect(() => {
     setOptimistic((prev) => {
@@ -276,6 +271,11 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
       return changed ? next : prev;
     });
   }, [tracks]);
+
+  const hasTracks = tracks.length > 0;
+  const rowsCount = hasTracks || isAdmin ? 1 : 0;
+
+  if (columns.length === 0) return null;
 
   // Build live-view of tracks (apply in-progress resize or optimistic post-resize)
   const displayTracks = tracks.map((t) => {
