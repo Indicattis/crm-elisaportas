@@ -10,10 +10,16 @@ interface Props {
   color?: string;
   columnId: string;
   funnelId: string;
+  hasDailyColor?: boolean;
+  allowedDailyColors?: string[];
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onChanged?: () => void;
 }
+
+const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
+const COLOR_ORDER = ["red", "yellow", "green"] as const;
+
 
 
 function darkenHex(hex: string, amount: number): string {
