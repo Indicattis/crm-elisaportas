@@ -255,8 +255,8 @@ export const KanbanColumn = memo(function KanbanColumn({
           }}
         >
           <h3
-            className="text-sm font-bold truncate px-0.5"
-            style={{ color: color ? (isDark ? "rgba(255,255,255,0.95)" : darkenHex(color, 0.55)) : undefined }}
+            className="text-sm font-bold truncate px-1 py-1 text-foreground"
+            style={color ? { color: isDark ? "rgba(255,255,255,0.95)" : darkenHex(color, 0.6) } : undefined}
           >
             {status}
           </h3>
