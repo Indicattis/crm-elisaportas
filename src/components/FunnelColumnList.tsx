@@ -540,7 +540,8 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
