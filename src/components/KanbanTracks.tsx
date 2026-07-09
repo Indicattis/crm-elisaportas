@@ -153,6 +153,11 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
       dragRef.current = null;
       setDrag(null);
       if (!current) return;
+      if (current.mode === "resize") {
+        suppressClickRef.current = true;
+        setTimeout(() => { suppressClickRef.current = false; }, 300);
+      }
+
       if (current.mode === "create") {
         const sIdx = posById[current.anchorColId];
         const eIdx = posById[current.currentColId];
