@@ -907,9 +907,8 @@ export function KanbanBoard() {
               }
 
               if (colType === "contacts") {
-                return (
+                return wrap(
                   <ContactsColumn
-                    key={column.id}
                     status={column.name}
                     color={column.color}
                     columnId={column.id}
@@ -919,9 +918,9 @@ export function KanbanBoard() {
                     collapsed={collapsedColumns.has(column.name)}
                     onToggleCollapse={() => toggleColumnCollapse(column.name)}
                   />
-
                 );
               }
+
 
 
 
