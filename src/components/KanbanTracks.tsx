@@ -261,11 +261,29 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
 
   if (columns.length === 0) return null;
 
-  // Build live-view of tracks (apply in-progress resize)
+  // Clear optimistic overrides once parent tracks match
+  useEffect(() => {
+    setOptimistic((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const t of tracks) {
+        const o = next[t.id];
+        if (o && o.start_column_id === t.start_column_id && o.end_column_id === t.end_column_id) {
+          delete next[t.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [tracks]);
+
+  // Build live-view of tracks (apply in-progress resize or optimistic post-resize)
   const displayTracks = tracks.map((t) => {
     if (drag && drag.mode === "resize" && drag.trackId === t.id) {
       return { ...t, start_column_id: drag.startColId, end_column_id: drag.endColId };
     }
+    const o = optimistic[t.id];
+    if (o) return { ...t, start_column_id: o.start_column_id, end_column_id: o.end_column_id };
     return t;
   });
 
