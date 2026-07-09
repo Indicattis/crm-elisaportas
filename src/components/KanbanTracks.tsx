@@ -29,8 +29,9 @@ interface Props {
   onChanged: () => void;
 }
 
-const ROW_HEIGHT = 30;
-const ROW_GAP = 4;
+const ROW_HEIGHT = 44;
+const ROW_GAP = 0;
+
 
 function hexContrast(hex: string): string {
   try {
