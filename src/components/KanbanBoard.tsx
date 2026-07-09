@@ -30,6 +30,8 @@ import { StateCitySelect } from "./StateCitySelect";
 import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
 import { KanbanLoading } from "./KanbanLoading";
+import { KanbanTracks, type FunnelTrack } from "./KanbanTracks";
+import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
