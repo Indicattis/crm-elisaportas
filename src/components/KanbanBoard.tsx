@@ -932,6 +932,7 @@ export function KanbanBoard() {
                   channelIconMap={channelIconMap}
                   dealStageMap={dealStageMap}
                   taskProgressMap={taskProgressMap}
+                  startOfDayCount={startOfDayCount}
                   hasDailyColor={(column as any).has_daily_color !== false}
                   allowedDailyColors={(column as any).daily_colors as string[] | undefined}
                   showDropSpacer={Boolean(
