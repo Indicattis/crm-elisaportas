@@ -64,10 +64,10 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
     setContacts(list);
     if (list.length) {
       const ids = list.map((c) => c.id);
-      const { data: deals } = await supabase
-        .from("deals")
-        .select("contact_id, value")
-        .in("contact_id", ids);
+      const [{ data: deals }, { data: colorRows }] = await Promise.all([
+        supabase.from("deals").select("contact_id, value").in("contact_id", ids),
+        supabase.from("contact_colors" as any).select("contact_id, color").in("contact_id", ids),
+      ]);
       const acc: Record<string, { count: number; total: number }> = {};
       (deals || []).forEach((d: any) => {
         const k = d.contact_id as string;
@@ -76,17 +76,41 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
         acc[k].total += Number(d.value) || 0;
       });
       setStats(acc);
+      const cmap: Record<string, string> = {};
+      (colorRows || []).forEach((r: any) => { cmap[r.contact_id] = r.color; });
+      setColors(cmap);
     } else {
       setStats({});
+      setColors({});
     }
   };
 
   useEffect(() => { fetchContacts(); }, [columnId]);
 
+  const allowed = useMemo(
+    () => (allowedDailyColors && allowedDailyColors.length > 0
+      ? COLOR_ORDER.filter((c) => allowedDailyColors.includes(c))
+      : [...COLOR_ORDER]),
+    [allowedDailyColors]
+  );
+
+  const handleCycleColor = async (contactId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const current = colors[contactId] || allowed[0];
+    const idx = allowed.indexOf(current as any);
+    const next = allowed[(idx + 1) % allowed.length];
+    setColors((prev) => ({ ...prev, [contactId]: next }));
+    const { data: userData } = await supabase.auth.getUser();
+    await supabase
+      .from("contact_colors" as any)
+      .upsert({ contact_id: contactId, color: next, updated_by: userData.user?.id }, { onConflict: "contact_id" });
+  };
+
   const headerBg = color ? (isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)) : undefined;
   const columnBg = color ? (isDark ? hexToRgba(color, 0.2) : color) : "hsl(var(--muted) / 0.3)";
 
   const totalOrders = useMemo(() => Object.values(stats).reduce((a, b) => a + b.count, 0), [stats]);
+
 
   return (
     <>
