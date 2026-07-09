@@ -30,6 +30,8 @@ import { StateCitySelect } from "./StateCitySelect";
 import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
 import { KanbanLoading } from "./KanbanLoading";
+import { KanbanTracks, type FunnelTrack } from "./KanbanTracks";
+import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
@@ -99,6 +101,9 @@ export function KanbanBoard() {
   const [startOfDayMap, setStartOfDayMap] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
+  const { role } = useUserRole();
+  const isAdmin = role === "admin";
+  const [tracks, setTracks] = useState<FunnelTrack[]>([]);
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "tabs">(sessionFilters.viewMode || "kanban");
   const [selectedTab, setSelectedTab] = useState<string>(sessionFilters.selectedTab || "");
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
@@ -138,6 +143,7 @@ export function KanbanBoard() {
   }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const columnsRowRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
   const grabStartX = useRef(0);
   const grabScrollLeft = useRef(0);
@@ -200,6 +206,18 @@ export function KanbanBoard() {
       setEntryRequirements(map);
     }
   }, [selectedFunnelId]);
+
+  const fetchTracks = useCallback(async () => {
+    if (!selectedFunnelId) return;
+    const { data } = await supabase
+      .from("funnel_tracks" as any)
+      .select("*")
+      .eq("funnel_id", selectedFunnelId)
+      .order("row_index");
+    setTracks((data as any) || []);
+  }, [selectedFunnelId]);
+
+
 
   const fetchDeals = useCallback(async () => {
     if (!selectedFunnelId) return [];
@@ -497,6 +515,7 @@ export function KanbanBoard() {
           fetchFunnelMembers(),
           fetchAllTags(),
           fetchChannels(),
+          fetchTracks(),
         ]);
 
         if (!fetchedDeals || fetchedDeals.length === 0) {
@@ -531,7 +550,7 @@ export function KanbanBoard() {
       }
     };
     loadAll();
-  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags, captureAndFetchDailySnapshots]);
+  }, [selectedFunnelId, funnels.length, fetchColumns, fetchDeals, fetchFunnelMembers, fetchAllTags, fetchChannels, fetchTracks, fetchProfiles, fetchTasksData, fetchDailyColors, fetchDealTags, captureAndFetchDailySnapshots]);
 
   // Helper to refresh deals + dependent data after mutations
   const refreshDeals = useCallback(async () => {
@@ -845,12 +864,24 @@ export function KanbanBoard() {
           )}
           <div
             ref={scrollContainerRef}
-            className={`flex gap-4 overflow-x-auto p-6 pb-8 ${viewMode === "tabs" ? "h-[calc(100vh-170px)]" : "h-[calc(100vh-120px)]"} ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
+            className={`overflow-x-auto p-6 pb-8 ${viewMode === "tabs" ? "h-[calc(100vh-170px)]" : "h-[calc(100vh-120px)]"} ${isGrabbing ? "cursor-grabbing select-none" : "cursor-grab"}`}
             onMouseDown={handleGrabMouseDown}
             onMouseMove={handleGrabMouseMove}
             onMouseUp={handleGrabMouseUp}
             onMouseLeave={handleGrabMouseLeave}
           >
+          <div className="flex flex-col gap-2 min-w-max">
+          {viewMode !== "tabs" && (
+            <KanbanTracks
+              columns={columns.filter((c) => !(c as any).is_notice)}
+              tracks={tracks}
+              funnelId={selectedFunnelId}
+              isAdmin={isAdmin}
+              columnsRowRef={columnsRowRef}
+              onChanged={fetchTracks}
+            />
+          )}
+          <div ref={columnsRowRef} className="flex gap-4">
             {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts") && c.name === selectedTab) : columns).map((column) => {
               const colType: "deals" | "notice" | "contacts" =
                 (column as any).column_type || ((column as any).is_notice ? "notice" : "deals");
@@ -976,6 +1007,8 @@ export function KanbanBoard() {
                 />
               );
             })}
+          </div>
+          </div>
           </div>
 
           <DragOverlay>

@@ -727,6 +727,64 @@ export type Database = {
           },
         ]
       }
+      funnel_tracks: {
+        Row: {
+          color: string
+          created_at: string
+          end_column_id: string
+          funnel_id: string
+          id: string
+          label: string
+          row_index: number
+          start_column_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          end_column_id: string
+          funnel_id: string
+          id?: string
+          label?: string
+          row_index?: number
+          start_column_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          end_column_id?: string
+          funnel_id?: string
+          id?: string
+          label?: string
+          row_index?: number
+          start_column_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_tracks_end_column_id_fkey"
+            columns: ["end_column_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_tracks_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_tracks_start_column_id_fkey"
+            columns: ["start_column_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnels: {
         Row: {
           created_at: string
