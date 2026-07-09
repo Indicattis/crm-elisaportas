@@ -515,6 +515,7 @@ export function KanbanBoard() {
           fetchFunnelMembers(),
           fetchAllTags(),
           fetchChannels(),
+          fetchTracks(),
         ]);
 
         if (!fetchedDeals || fetchedDeals.length === 0) {
