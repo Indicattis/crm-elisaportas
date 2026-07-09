@@ -56,9 +56,11 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     if (!rowEl) return;
     const compute = () => {
       const next: Record<string, { left: number; width: number }> = {};
-      rowEl.querySelectorAll<HTMLElement>("[data-track-col]").forEach((el) => {
-        const id = el.dataset.trackCol!;
-        next[id] = { left: el.offsetLeft, width: el.offsetWidth };
+      const children = Array.from(rowEl.children) as HTMLElement[];
+      columns.forEach((c, i) => {
+        const el = children[i];
+        if (!el) return;
+        next[c.id] = { left: el.offsetLeft, width: el.offsetWidth };
       });
       setRects(next);
       setTotalWidth(rowEl.scrollWidth);
@@ -66,13 +68,14 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(rowEl);
-    rowEl.querySelectorAll<HTMLElement>("[data-track-col]").forEach((el) => ro.observe(el));
+    Array.from(rowEl.children).forEach((el) => ro.observe(el as Element));
     window.addEventListener("resize", compute);
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", compute);
     };
   }, [columns, columnsRowRef]);
+
 
   const posById = useMemo(() => {
     const m: Record<string, number> = {};
