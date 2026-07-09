@@ -218,9 +218,11 @@ export function ContactsColumn({ status, color, columnId, funnelId, collapsed = 
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       </div>
+
 
       <ContactDialog
         open={dialogOpen}
