@@ -57,7 +57,9 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
   const [editing, setEditing] = useState<TrackEditPayload | null>(null);
   const [drag, setDrag] = useState<DragState>(null);
   const dragRef = useRef<DragState>(null);
+  const suppressClickRef = useRef(false);
   const { toast } = useToast();
+
 
   useLayoutEffect(() => {
     const rowEl = columnsRowRef.current;
