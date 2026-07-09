@@ -236,8 +236,8 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     setDialogOpen(true);
   };
 
-  const maxRow = tracks.reduce((m, t) => Math.max(m, t.row_index), -1);
-  const rowsCount = maxRow + 1 + (isAdmin ? 1 : 0);
+  const hasTracks = tracks.length > 0;
+  const rowsCount = hasTracks || isAdmin ? 1 : 0;
 
   if (columns.length === 0) return null;
 
@@ -248,6 +248,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     }
     return t;
   });
+
 
   return (
     <>
