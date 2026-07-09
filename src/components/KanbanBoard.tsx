@@ -1008,6 +1008,8 @@ export function KanbanBoard() {
               );
             })}
           </div>
+          </div>
+          </div>
 
           <DragOverlay>
             {activeDeal ? <DealCard deal={activeDeal} tags={dealTagsMap[activeDeal.id]} onClick={() => {}} /> : null}
