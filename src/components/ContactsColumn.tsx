@@ -10,10 +10,16 @@ interface Props {
   color?: string;
   columnId: string;
   funnelId: string;
+  hasDailyColor?: boolean;
+  allowedDailyColors?: string[];
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onChanged?: () => void;
 }
+
+const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
+const COLOR_ORDER = ["red", "yellow", "green"] as const;
+
 
 
 function darkenHex(hex: string, amount: number): string {
@@ -30,9 +36,11 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function ContactsColumn({ status, color, columnId, funnelId, collapsed = false, onToggleCollapse }: Props) {
+export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColor = true, allowedDailyColors, collapsed = false, onToggleCollapse }: Props) {
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
+  const [colors, setColors] = useState<Record<string, string>>({});
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ContactRecord | null>(null);
   const [dealForContact, setDealForContact] = useState<ContactRecord | null>(null);
@@ -56,10 +64,10 @@ export function ContactsColumn({ status, color, columnId, funnelId, collapsed = 
     setContacts(list);
     if (list.length) {
       const ids = list.map((c) => c.id);
-      const { data: deals } = await supabase
-        .from("deals")
-        .select("contact_id, value")
-        .in("contact_id", ids);
+      const [{ data: deals }, { data: colorRows }] = await Promise.all([
+        supabase.from("deals").select("contact_id, value").in("contact_id", ids),
+        supabase.from("contact_colors" as any).select("contact_id, color").in("contact_id", ids),
+      ]);
       const acc: Record<string, { count: number; total: number }> = {};
       (deals || []).forEach((d: any) => {
         const k = d.contact_id as string;
@@ -68,17 +76,41 @@ export function ContactsColumn({ status, color, columnId, funnelId, collapsed = 
         acc[k].total += Number(d.value) || 0;
       });
       setStats(acc);
+      const cmap: Record<string, string> = {};
+      (colorRows || []).forEach((r: any) => { cmap[r.contact_id] = r.color; });
+      setColors(cmap);
     } else {
       setStats({});
+      setColors({});
     }
   };
 
   useEffect(() => { fetchContacts(); }, [columnId]);
 
+  const allowed = useMemo(
+    () => (allowedDailyColors && allowedDailyColors.length > 0
+      ? COLOR_ORDER.filter((c) => allowedDailyColors.includes(c))
+      : [...COLOR_ORDER]),
+    [allowedDailyColors]
+  );
+
+  const handleCycleColor = async (contactId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const current = colors[contactId] || allowed[0];
+    const idx = allowed.indexOf(current as any);
+    const next = allowed[(idx + 1) % allowed.length];
+    setColors((prev) => ({ ...prev, [contactId]: next }));
+    const { data: userData } = await supabase.auth.getUser();
+    await supabase
+      .from("contact_colors" as any)
+      .upsert({ contact_id: contactId, color: next, updated_by: userData.user?.id }, { onConflict: "contact_id" });
+  };
+
   const headerBg = color ? (isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)) : undefined;
   const columnBg = color ? (isDark ? hexToRgba(color, 0.2) : color) : "hsl(var(--muted) / 0.3)";
 
   const totalOrders = useMemo(() => Object.values(stats).reduce((a, b) => a + b.count, 0), [stats]);
+
 
   return (
     <>
@@ -187,7 +219,25 @@ export function ContactsColumn({ status, color, columnId, funnelId, collapsed = 
               return (
                 <div key={c.id} className="rounded-lg bg-card/95 backdrop-blur-sm p-3 shadow-sm space-y-1.5">
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-sm font-semibold text-foreground truncate">{c.name}</h4>
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      {hasDailyColor && allowed.length > 0 && (() => {
+                        const current = colors[c.id] || allowed[0];
+                        const effective = allowed.includes(current as any) ? current : allowed[0];
+                        return (
+                          <button
+                            type="button"
+                            className="shrink-0 h-3 w-3 rounded-full transition-all"
+                            style={{
+                              backgroundColor: COLOR_HEX[effective],
+                              boxShadow: `0 0 8px ${COLOR_HEX[effective]}`,
+                            }}
+                            onClick={(e) => handleCycleColor(c.id, e)}
+                            title="Alterar cor"
+                          />
+                        );
+                      })()}
+                      <h4 className="text-sm font-semibold text-foreground truncate">{c.name}</h4>
+                    </div>
                     <button
                       className="text-muted-foreground hover:text-foreground shrink-0"
                       onClick={() => { setEditing(c); setDialogOpen(true); }}
@@ -196,6 +246,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, collapsed = 
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                   </div>
+
                   {c.phone && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Phone className="h-3 w-3" /> {c.phone}

@@ -419,9 +419,8 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                   Nesta coluna você cadastra contatos e gera negociações a partir deles.
                 </p>
               )}
-              {currentType === "deals" && (
+              {(currentType === "deals" || currentType === "contacts") && (
                 <>
-
                   {/* Bolas coloridas */}
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
@@ -453,7 +452,6 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                                   const next = v
                                     ? Array.from(new Set([...current, o.key]))
                                     : current.filter((c) => c !== o.key);
-                                  // preserve canonical order
                                   const ordered = ["red", "yellow", "green"].filter((k) => next.includes(k));
                                   if (ordered.length === 0) return;
                                   handleUpdateDailyColors(editingColumn.id, ordered);
@@ -467,6 +465,12 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                       </div>
                     );
                   })()}
+                </>
+              )}
+
+              {currentType === "deals" && (
+                <>
+
 
                   {/* Grupo de tarefas */}
                   <div className="space-y-2">
