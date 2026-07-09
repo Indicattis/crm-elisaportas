@@ -234,7 +234,9 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
   const openEdit = (t: FunnelTrack) => {
     if (!isAdmin) return;
     if (drag) return;
+    if (suppressClickRef.current) return;
     setEditing({
+
       id: t.id,
       funnel_id: t.funnel_id,
       start_column_id: t.start_column_id,
