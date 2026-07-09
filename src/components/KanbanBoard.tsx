@@ -143,6 +143,7 @@ export function KanbanBoard() {
   }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const columnsRowRef = useRef<HTMLDivElement>(null);
   const [isGrabbing, setIsGrabbing] = useState(false);
   const grabStartX = useRef(0);
   const grabScrollLeft = useRef(0);
