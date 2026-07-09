@@ -824,7 +824,7 @@ export function KanbanBoard() {
         >
           {viewMode === "tabs" && (
             <div className="px-6 pt-3 flex gap-2 overflow-x-auto">
-              {columns.filter((c) => !(c as any).is_notice).map((column) => {
+              {columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts")).map((column) => {
                 const count = deals.filter((d) => d.status === column.name).filter(filterBySeller).filter(filterByLocation).length;
                 const active = selectedTab === column.name;
                 return (
