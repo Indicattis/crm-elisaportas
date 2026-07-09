@@ -978,9 +978,8 @@ export function KanbanBoard() {
                 startOfDayCount = snapshotForColumn[selectedSellerId] || 0;
               }
 
-              return (
+              return wrap(
                 <KanbanColumn
-                  key={column.id}
                   status={column.name}
                   color={column.color}
                   deals={columnDeals}
@@ -1010,6 +1009,7 @@ export function KanbanBoard() {
                   onEditDeal={handleViewDeal}
                 />
               );
+
             })}
           </div>
           </div>
