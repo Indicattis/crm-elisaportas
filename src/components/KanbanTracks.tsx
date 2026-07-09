@@ -57,7 +57,9 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
   const [editing, setEditing] = useState<TrackEditPayload | null>(null);
   const [drag, setDrag] = useState<DragState>(null);
   const dragRef = useRef<DragState>(null);
+  const suppressClickRef = useRef(false);
   const { toast } = useToast();
+
 
   useLayoutEffect(() => {
     const rowEl = columnsRowRef.current;
@@ -151,6 +153,11 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
       dragRef.current = null;
       setDrag(null);
       if (!current) return;
+      if (current.mode === "resize") {
+        suppressClickRef.current = true;
+        setTimeout(() => { suppressClickRef.current = false; }, 300);
+      }
+
       if (current.mode === "create") {
         const sIdx = posById[current.anchorColId];
         const eIdx = posById[current.currentColId];
@@ -227,7 +234,9 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
   const openEdit = (t: FunnelTrack) => {
     if (!isAdmin) return;
     if (drag) return;
+    if (suppressClickRef.current) return;
     setEditing({
+
       id: t.id,
       funnel_id: t.funnel_id,
       start_column_id: t.start_column_id,
@@ -285,7 +294,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
             <div
               key={t.id}
               data-track-item
-              className={`group absolute rounded-md shadow-sm flex items-center justify-center px-2 text-xs font-semibold transition-[background-color] hover:brightness-95 ${isResizing ? "ring-2 ring-primary" : ""}`}
+              className={`group absolute rounded-md shadow-sm flex items-center justify-center px-2 text-xs font-semibold hover:brightness-95 ${isResizing ? "ring-2 ring-primary" : ""}`}
               style={{
                 left: style.left,
                 width: style.width,
@@ -294,7 +303,9 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
                 backgroundColor: t.color,
                 color: hexContrast(t.color),
                 cursor: isAdmin ? "pointer" : "default",
+                transition: "left 150ms ease-out, width 150ms ease-out, background-color 150ms ease-out",
               }}
+
               title={t.label}
               onClick={() => openEdit(t)}
             >
