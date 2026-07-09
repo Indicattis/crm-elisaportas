@@ -851,8 +851,11 @@ export function KanbanBoard() {
             onMouseUp={handleGrabMouseUp}
             onMouseLeave={handleGrabMouseLeave}
           >
-            {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && c.name === selectedTab) : columns).map((column) => {
-              if ((column as any).is_notice) {
+            {(viewMode === "tabs" ? columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts") && c.name === selectedTab) : columns).map((column) => {
+              const colType: "deals" | "notice" | "contacts" =
+                (column as any).column_type || ((column as any).is_notice ? "notice" : "deals");
+
+              if (colType === "notice") {
                 return (
                   <KanbanColumn
                     key={column.id}
@@ -866,6 +869,19 @@ export function KanbanBoard() {
                   />
                 );
               }
+
+              if (colType === "contacts") {
+                return (
+                  <ContactsColumn
+                    key={column.id}
+                    status={column.name}
+                    color={column.color}
+                    columnId={column.id}
+                    funnelId={selectedFunnelId}
+                  />
+                );
+              }
+
 
               const isDraggingAcrossColumns = Boolean(
                 activeDeal && activeOverStatus && activeOverStatus !== activeDeal.status
