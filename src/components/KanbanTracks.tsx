@@ -29,7 +29,7 @@ interface Props {
   onChanged: () => void;
 }
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 52;
 const ROW_GAP = 0;
 
 
@@ -320,7 +320,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
             <div
               key={t.id}
               data-track-item
-              className={`group absolute rounded-md shadow-sm flex items-center justify-center px-2 text-xs font-semibold hover:brightness-95 ${isResizing ? "ring-2 ring-primary" : ""}`}
+              className={`group absolute rounded-md shadow-sm flex items-center justify-center px-2 text-sm font-semibold hover:brightness-95 ${isResizing ? "ring-2 ring-primary" : ""}`}
               style={{
                 left: style.left,
                 width: style.width,
