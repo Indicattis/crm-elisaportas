@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Phone, MapPin, ShoppingBag, Pencil } from "lucide-react";
+import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactDialog, type ContactRecord } from "@/components/ContactDialog";
 import { CreateDealFromContactDialog } from "@/components/CreateDealFromContactDialog";
@@ -10,8 +10,11 @@ interface Props {
   color?: string;
   columnId: string;
   funnelId: string;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   onChanged?: () => void;
 }
+
 
 function darkenHex(hex: string, amount: number): string {
   if (!hex?.startsWith("#") || hex.length !== 7) return hex;
@@ -27,7 +30,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function ContactsColumn({ status, color, columnId, funnelId }: Props) {
+export function ContactsColumn({ status, color, columnId, funnelId, collapsed = false, onToggleCollapse }: Props) {
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -80,48 +83,106 @@ export function ContactsColumn({ status, color, columnId, funnelId }: Props) {
   return (
     <>
       <div
-        className="flex flex-shrink-0 flex-col rounded-2xl overflow-hidden h-full"
-        style={{ backgroundColor: columnBg, width: 320, minWidth: 320 }}
+        className="flex flex-shrink-0 flex-col rounded-2xl overflow-hidden h-full transition-all duration-300 ease-in-out"
+        style={{
+          backgroundColor: columnBg,
+          width: collapsed ? 48 : 320,
+          minWidth: collapsed ? 48 : 320,
+        }}
       >
-        <div className="flex items-center h-[50px] max-h-[50px] px-3" style={{ backgroundColor: headerBg }}>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span
-              className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
-              style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
-              title="Total de contatos"
-            >
-              {contacts.length}
-            </span>
-            <span className="text-[10px] font-bold text-white/60 ml-1">contatos</span>
+        <div
+          className="flex items-center h-[50px] max-h-[50px] cursor-pointer overflow-hidden"
+          style={{ backgroundColor: headerBg }}
+          onClick={onToggleCollapse}
+        >
+          <div
+            className="flex flex-col items-center justify-center transition-all duration-300 ease-in-out overflow-hidden"
+            style={{
+              width: collapsed ? 48 : 0,
+              minWidth: collapsed ? 48 : 0,
+              opacity: collapsed ? 1 : 0,
+            }}
+          >
+            <ChevronRight className="h-4 w-4 text-white/80 shrink-0" />
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs font-semibold text-white/85" title="Pedidos gerados">
-              {totalOrders} pedidos
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15"
-              onClick={() => { setEditing(null); setDialogOpen(true); }}
-              title="Novo contato"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
+
+          <div
+            className="flex items-center justify-between flex-1 px-3 transition-all duration-300 ease-in-out"
+            style={{
+              opacity: collapsed ? 0 : 1,
+              pointerEvents: collapsed ? "none" : "auto",
+            }}
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span
+                className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+                title="Total de contatos"
+              >
+                {contacts.length}
+              </span>
+              <span className="text-[10px] font-bold text-white/60 ml-1">contatos</span>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs font-semibold text-white/85" title="Pedidos gerados">
+                {totalOrders} pedidos
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15"
+                onClick={(e) => { e.stopPropagation(); setEditing(null); setDialogOpen(true); }}
+                title="Novo contato"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col min-h-[100px] overflow-hidden">
-          <h3
-            className="relative z-30 mx-3 mt-3 mb-2 shrink-0 rounded-lg px-3 py-2 text-sm font-bold truncate text-white shadow-sm"
-            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)", backgroundColor: headerBg || columnBg }}
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Collapsed body */}
+          <div
+            className="absolute inset-0 flex flex-col items-center pt-3 transition-opacity duration-300 ease-in-out"
+            style={{
+              opacity: collapsed ? 1 : 0,
+              pointerEvents: collapsed ? "auto" : "none",
+            }}
           >
-            {status}
-          </h3>
-          <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3 min-h-0">
-            {contacts.length === 0 && (
-              <p className="text-xs text-white/70 text-center mt-4">Nenhum contato cadastrado.</p>
-            )}
-            {contacts.map((c) => {
+            <span
+              className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/90 shrink-0 mb-2"
+              style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+            >
+              {contacts.length}
+            </span>
+            <span
+              className="text-xs font-bold text-white"
+              style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+            >
+              {status}
+            </span>
+          </div>
+
+          {/* Expanded body */}
+          <div
+            className="flex flex-1 flex-col min-h-[100px] overflow-hidden transition-opacity duration-300 ease-in-out"
+            style={{
+              opacity: collapsed ? 0 : 1,
+              pointerEvents: collapsed ? "none" : "auto",
+            }}
+          >
+            <h3
+              className="relative z-30 mx-3 mt-3 mb-2 shrink-0 rounded-lg px-3 py-2 text-sm font-bold truncate text-white shadow-sm"
+              style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)", backgroundColor: headerBg || columnBg }}
+            >
+              {status}
+            </h3>
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3 min-h-0">
+              {contacts.length === 0 && (
+                <p className="text-xs text-white/70 text-center mt-4">Nenhum contato cadastrado.</p>
+              )}
+              {contacts.map((c) => {
+
               const s = stats[c.id] || { count: 0, total: 0 };
               return (
                 <div key={c.id} className="rounded-lg bg-card/95 backdrop-blur-sm p-3 shadow-sm space-y-1.5">
@@ -157,9 +218,11 @@ export function ContactsColumn({ status, color, columnId, funnelId }: Props) {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       </div>
+
 
       <ContactDialog
         open={dialogOpen}
