@@ -183,6 +183,15 @@ export const KanbanColumn = memo(function KanbanColumn({
             >
               {deals.length}
             </span>
+            {typeof startOfDayCount === "number" && (
+              <span
+                className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/80 shrink-0"
+                style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
+                title="Cards no início do dia"
+              >
+                {startOfDayCount}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
