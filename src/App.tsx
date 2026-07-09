@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
 import Results from "./pages/Results";
+import Sales from "./pages/Sales";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import DealDetail from "./pages/DealDetail";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/results" element={<Results />} />
           <Route path="/relatorios" element={<Reports />} />
+          <Route path="/vendas" element={<Sales />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/deal/:id" element={<DealDetail />} />
