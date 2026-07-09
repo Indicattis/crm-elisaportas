@@ -95,6 +95,7 @@ export function KanbanBoard() {
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
   const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
   const [taskProgressMap, setTaskProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
+  const [startOfDayMap, setStartOfDayMap] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
   const { user: authUser } = useAuth();
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "tabs">(sessionFilters.viewMode || "kanban");
