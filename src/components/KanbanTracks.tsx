@@ -58,6 +58,7 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
   const [drag, setDrag] = useState<DragState>(null);
   const dragRef = useRef<DragState>(null);
   const suppressClickRef = useRef(false);
+  const [optimistic, setOptimistic] = useState<Record<string, { start_column_id: string; end_column_id: string }>>({});
   const { toast } = useToast();
 
 
@@ -180,11 +181,18 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
         const [start, end] = sIdx <= eIdx
           ? [current.startColId, current.endColId]
           : [current.endColId, current.startColId];
+        // Optimistic: keep the new size until parent props catch up
+        setOptimistic((prev) => ({ ...prev, [current.trackId]: { start_column_id: start, end_column_id: end } }));
         const { error } = await supabase
           .from("funnel_tracks" as any)
           .update({ start_column_id: start, end_column_id: end })
           .eq("id", current.trackId);
         if (error) {
+          setOptimistic((prev) => {
+            const next = { ...prev };
+            delete next[current.trackId];
+            return next;
+          });
           toast({ title: "Erro ao redimensionar", description: error.message, variant: "destructive" });
         }
         onChanged();
@@ -248,16 +256,34 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
     setDialogOpen(true);
   };
 
+  // Clear optimistic overrides once parent tracks match
+  useEffect(() => {
+    setOptimistic((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const t of tracks) {
+        const o = next[t.id];
+        if (o && o.start_column_id === t.start_column_id && o.end_column_id === t.end_column_id) {
+          delete next[t.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [tracks]);
+
   const hasTracks = tracks.length > 0;
   const rowsCount = hasTracks || isAdmin ? 1 : 0;
 
   if (columns.length === 0) return null;
 
-  // Build live-view of tracks (apply in-progress resize)
+  // Build live-view of tracks (apply in-progress resize or optimistic post-resize)
   const displayTracks = tracks.map((t) => {
     if (drag && drag.mode === "resize" && drag.trackId === t.id) {
       return { ...t, start_column_id: drag.startColId, end_column_id: drag.endColId };
     }
+    const o = optimistic[t.id];
+    if (o) return { ...t, start_column_id: o.start_column_id, end_column_id: o.end_column_id };
     return t;
   });
 
