@@ -894,8 +894,8 @@ export function KanbanBoard() {
                 return wrap(
 
                   <KanbanColumn
-                    key={column.id}
                     status={column.name}
+
                     color={column.color}
                     deals={[]}
                     isNotice
