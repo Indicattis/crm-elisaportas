@@ -181,11 +181,18 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
         const [start, end] = sIdx <= eIdx
           ? [current.startColId, current.endColId]
           : [current.endColId, current.startColId];
+        // Optimistic: keep the new size until parent props catch up
+        setOptimistic((prev) => ({ ...prev, [current.trackId]: { start_column_id: start, end_column_id: end } }));
         const { error } = await supabase
           .from("funnel_tracks" as any)
           .update({ start_column_id: start, end_column_id: end })
           .eq("id", current.trackId);
         if (error) {
+          setOptimistic((prev) => {
+            const next = { ...prev };
+            delete next[current.trackId];
+            return next;
+          });
           toast({ title: "Erro ao redimensionar", description: error.message, variant: "destructive" });
         }
         onChanged();
