@@ -191,6 +191,14 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
+  const handleUpdateColumnType = async (colId: string, columnType: "deals" | "notice" | "contacts") => {
+    await supabase
+      .from("funnel_columns")
+      .update({ column_type: columnType, is_notice: columnType === "notice" } as any)
+      .eq("id", colId);
+    onChanged();
+  };
+
   const handleUpdateNoticeText = async (colId: string, text: string) => {
     await supabase.from("funnel_columns").update({ notice_text: text } as any).eq("id", colId);
     onChanged();
