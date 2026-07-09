@@ -419,7 +419,9 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                   Nesta coluna você cadastra contatos e gera negociações a partir deles.
                 </p>
               )}
+              {currentType === "deals" && (
                 <>
+
                   {/* Bolas coloridas */}
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
