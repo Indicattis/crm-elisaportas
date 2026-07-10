@@ -87,6 +87,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       {/* Row 1: Status indicators + Title + Avatar */}
       <div className="flex items-start justify-between gap-1.5">
