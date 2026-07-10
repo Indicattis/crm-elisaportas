@@ -39,6 +39,7 @@ interface DealCardProps {
   onColorChange?: (dealId: string, newColor: string) => void;
   taskProgress?: { completed: number; total: number } | null;
   onClick: () => void;
+  onDoubleClick?: () => void;
 }
 
 function hexToRgb(hex: string) {
