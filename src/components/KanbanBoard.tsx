@@ -169,7 +169,7 @@ export function KanbanBoard() {
   const handleGrabMouseLeave = () => setIsGrabbing(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { delay: 0, tolerance: 5 } })
   );
 
   const fetchFunnels = useCallback(async () => {
