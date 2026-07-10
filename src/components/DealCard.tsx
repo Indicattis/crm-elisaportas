@@ -54,6 +54,20 @@ const COLOR_ORDER = ["red", "yellow", "green"] as const;
 
 export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, onTagsChanged, onCapture, onColorChange, onClick, onDoubleClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const clickTimerRef = (useState<{ t: ReturnType<typeof setTimeout> | null }>(() => ({ t: null }))[0]);
+  const handleClick = () => {
+    if (!onDoubleClick) { onClick(); return; }
+    if (clickTimerRef.t) {
+      clearTimeout(clickTimerRef.t);
+      clickTimerRef.t = null;
+      onDoubleClick();
+      return;
+    }
+    clickTimerRef.t = setTimeout(() => {
+      clickTimerRef.t = null;
+      onClick();
+    }, 250);
+  };
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
   });
@@ -86,8 +100,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       className="group cursor-pointer rounded-xl px-3 py-2.5 space-y-1.5 hover:shadow-sm transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
+      onClick={handleClick}
     >
       {/* Row 1: Status indicators + Title + Avatar */}
       <div className="flex items-start justify-between gap-1.5">
