@@ -216,9 +216,9 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
               return (
                 <Badge
                   variant="outline"
-                  className={`text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border ${allDone ? "text-destructive border-destructive" : "text-foreground border-foreground/40"}`}
+                  className={`text-[9px] px-1.5 py-0 h-4 gap-1 font-medium border ${allDone ? "text-green-600 border-green-600" : "text-foreground border-foreground/40"}`}
                 >
-                  {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: allDone ? "hsl(var(--destructive))" : currentStage.color }} />}
+                  {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: allDone ? "#22c55e" : currentStage.color }} />}
                   <span>{currentStage?.name ?? "Etapas"}</span>
                   {taskProgress && taskProgress.total > 0 && (
                     <>
