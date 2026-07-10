@@ -100,8 +100,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       className="group cursor-pointer rounded-xl px-3 py-2.5 space-y-1.5 hover:shadow-sm transition-shadow border border-border/40 bg-background select-none touch-none [&_*]:select-none [&_img]:pointer-events-none"
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
+      onClick={handleClick}
     >
       {/* Row 1: Status indicators + Title + Avatar */}
       <div className="flex items-start justify-between gap-1.5">
