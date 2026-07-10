@@ -94,7 +94,11 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
             const allowed = (allowedDailyColors && allowedDailyColors.length > 0)
               ? COLOR_ORDER.filter((c) => allowedDailyColors.includes(c))
               : [...COLOR_ORDER];
-            const effective = allowed.includes((dailyColor || "red") as any) ? (dailyColor || "red") : allowed[0];
+            const current = (dailyColor || "red") as typeof COLOR_ORDER[number];
+            // Preserve green/yellow across column moves even if destination column restricts them
+            const effective = allowed.includes(current) || current === "green" || current === "yellow"
+              ? current
+              : allowed[0];
             return (
               <span
                 className="shrink-0 h-3 w-3 rounded-full transition-all"

@@ -1,32 +1,17 @@
-## Nova aba "Vendas"
+## Objetivo
+Ao mover um card entre colunas, preservar a bola colorida quando ela estiver **verde** ou **amarela**. Vermelho continua seguindo as regras da coluna de destino.
 
-Adicionar uma página dedicada em `/vendas` acessível pelo header, listando todas as negociações concluídas como Vendidas de todos os funis, no mesmo formato tabular usado em `/results`.
+## Causa atual
+A cor diária fica salva por dia na tabela `deal_daily_color` e não é apagada ao trocar de coluna. Mas em `src/components/DealCard.tsx`, quando a cor salva não está na lista `daily_colors` permitida da nova coluna, o componente faz fallback para a primeira cor permitida — normalmente vermelho — dando a impressão de reset.
 
-### Alterações
+## Mudança
+Alterar apenas a lógica de fallback em `src/components/DealCard.tsx`:
 
-1. **`src/components/Header.tsx`**
-   - Adicionar item `{ path: "/vendas", label: "Vendas", icon: DollarSign }` em `allNavItems`, posicionado antes de "Relatórios".
+- Se a cor efetiva do card for `green` ou `yellow`, exibir sempre essa cor, mesmo que a coluna atual não a inclua em `daily_colors`.
+- Se for `red` (ou indefinida), manter o comportamento atual (respeita `allowedDailyColors` e cai para a primeira permitida).
 
-2. **`src/pages/Sales.tsx`** (novo)
-   - Página inspirada em `/results` (mesma paleta glassmorphism e tabela shadcn).
-   - Consulta: `deals` com `status = 'Vendido'` e `archived = false`, sem filtro de funil (todos os funis).
-   - Filtros no topo:
-     - Busca por nome/telefone.
-     - Período (date range, padrão: mês atual, usando `updated_at`).
-     - Vendedor (dropdown com todos os vendedores; para role `vendedor`, trava no próprio id).
-     - Funil (opcional, "Todos" por padrão).
-   - Tabela com colunas: **Nome, Valor, Vendedor, Funil, Canal, Data (updated_at)**.
-   - Rodapé com **total de vendas** (contagem) e **valor total** somado.
-   - Paginação `PAGE_SIZE = 10` reutilizando o componente `Pagination`.
-   - Clique na linha navega para `/deal/:id`.
-   - Carrega em paralelo: funis, vendedores (via `profiles` + filtro por role `vendedor` no `user_roles`), e deals.
+Nenhuma alteração em banco, triggers ou lógica de drag-and-drop — a cor já persiste, o ajuste é somente na renderização.
 
-3. **`src/App.tsx`**
-   - Registrar `<Route path="/vendas" element={<Sales />} />` dentro do `AppLayout` protegido.
-
-### Detalhes técnicos
-- Reutilizar `profilesMap` para exibir nome do vendedor a partir de `assigned_to`.
-- Reutilizar `funnels` para exibir o nome do funil a partir de `funnel_id`.
-- Formatar valor em BRL com `Intl.NumberFormat`.
-- Nenhuma migração de banco necessária; RLS existente em `deals` já cobre a leitura.
-- Sem alterações em lógica de negócio existente.
+## Fora do escopo
+- Não alterar como a cor é definida (tarefa concluída → verde continua igual).
+- Não mudar a configuração de `daily_colors` por coluna em `/crm-config`.
