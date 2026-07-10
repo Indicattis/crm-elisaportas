@@ -284,6 +284,7 @@ export const KanbanColumn = memo(function KanbanColumn({
                   onCapture={onCapture}
                   onColorChange={onColorChange}
                   onClick={() => onEditDeal(deal)}
+                  onDoubleClick={() => onEditDeal(deal)}
                 />
               ))}
               {showDropSpacer ? (

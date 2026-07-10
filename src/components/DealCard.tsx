@@ -39,6 +39,7 @@ interface DealCardProps {
   onColorChange?: (dealId: string, newColor: string) => void;
   taskProgress?: { completed: number; total: number } | null;
   onClick: () => void;
+  onDoubleClick?: () => void;
 }
 
 function hexToRgb(hex: string) {
@@ -51,7 +52,7 @@ function hexToRgb(hex: string) {
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 const COLOR_ORDER = ["red", "yellow", "green"] as const;
 
-export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, onTagsChanged, onCapture, onColorChange, onClick, onDoubleClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -86,6 +87,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       {/* Row 1: Status indicators + Title + Avatar */}
       <div className="flex items-start justify-between gap-1.5">
