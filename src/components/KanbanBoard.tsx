@@ -664,9 +664,12 @@ export function KanbanBoard() {
     const deal = deals.find((item) => item.id === dealId);
     if (!deal || deal.status === newStatus) return;
 
-    // Check entry requirements for target column
+    // Check entry requirements for target column (skip when moving backwards)
     const targetColumn = columns.find((c) => c.name === newStatus);
-    if (targetColumn) {
+    const currentColumn = columns.find((c) => c.name === deal.status);
+    const isBackwardMove =
+      !!targetColumn && !!currentColumn && targetColumn.position <= currentColumn.position;
+    if (targetColumn && !isBackwardMove) {
       const reqs = entryRequirements[targetColumn.id] || [];
       if (reqs.length > 0) {
         // Check which fields are missing
