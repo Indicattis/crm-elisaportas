@@ -408,19 +408,26 @@ export function KanbanBoard() {
     if (allStageIds.length > 0) {
       const { data: stages } = await supabase
         .from("task_group_stages")
-        .select("id, name, color, position")
+        .select("id, name, color, position, group_id, task_groups!inner(schedule_mode)")
         .in("id", allStageIds);
 
       if (stages) {
         const stageById = new Map(stages.map((s: any) => [s.id, s]));
-        const stageMap: Record<string, { name: string; color: string }> = {};
+        const stageMap: Record<string, { name: string; color: string; isRecurring?: boolean }> = {};
         for (const [dealId, stageIdSet] of Object.entries(dealStageIds)) {
           let best: any = null;
           for (const sid of stageIdSet) {
             const s = stageById.get(sid);
             if (s && (!best || s.position < best.position)) best = s;
           }
-          if (best) stageMap[dealId] = { name: best.name, color: best.color };
+          if (best) {
+            const groupMode = (best.task_groups as any)?.schedule_mode ?? (best as any).schedule_mode;
+            stageMap[dealId] = {
+              name: best.name,
+              color: best.color,
+              isRecurring: groupMode === "recurring_days",
+            };
+          }
         }
         setDealStageMap(stageMap);
       }
