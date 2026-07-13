@@ -223,6 +223,23 @@ export default function SalesPlanning() {
             </div>
           </PopoverContent>
         </Popover>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2" disabled={visibleSellers.length === 0}>
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportPdf}>
+              <FileText className="h-4 w-4 mr-2" /> Baixar PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportXlsx}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" /> Baixar Excel
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {loading ? (
