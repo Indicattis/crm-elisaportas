@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Target, Users, Check, X } from "lucide-react";
+import { Target, Users, Check, X, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { PlanningColumn } from "@/components/planning/PlanningColumn";
@@ -9,6 +9,13 @@ import { PlanningFooter } from "@/components/planning/PlanningFooter";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportPlanningToPdf, exportPlanningToXlsx } from "@/lib/planning-export";
 
 export type Temperature = "hot" | "warm";
 
@@ -32,6 +39,22 @@ export default function SalesPlanning() {
   const [clients, setClients] = useState<PlanningClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
+  const [currentRevenue, setCurrentRevenue] = useState<number>(0);
+  const [revenueRowId, setRevenueRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("company_revenue")
+        .select("id, value")
+        .eq("singleton", true)
+        .maybeSingle();
+      if (data) {
+        setRevenueRowId(data.id);
+        setCurrentRevenue(Number(data.value) || 0);
+      }
+    })();
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -119,6 +142,33 @@ export default function SalesPlanning() {
   const toggleSeller = (id: string) =>
     setSelectedSellers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  const buildExportPayload = () => ({
+    sellers: visibleSellers,
+    clients: clients.filter((c) => visibleIds.has(c.seller_id)),
+    hotSum,
+    warmSum,
+    currentRevenue,
+    filterLabel: selectedSellers.length === 0 ? "Todos" : visibleSellers.map((s) => s.name).join(", "),
+  });
+
+  const handleExportPdf = () => {
+    try {
+      exportPlanningToPdf(buildExportPayload());
+      toast.success("PDF gerado");
+    } catch (e: any) {
+      toast.error("Erro ao gerar PDF", { description: e?.message });
+    }
+  };
+
+  const handleExportXlsx = () => {
+    try {
+      exportPlanningToXlsx(buildExportPayload());
+      toast.success("Excel gerado");
+    } catch (e: any) {
+      toast.error("Erro ao gerar Excel", { description: e?.message });
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-6 pb-32">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -173,6 +223,23 @@ export default function SalesPlanning() {
             </div>
           </PopoverContent>
         </Popover>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2" disabled={visibleSellers.length === 0}>
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportPdf}>
+              <FileText className="h-4 w-4 mr-2" /> Baixar PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportXlsx}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" /> Baixar Excel
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {loading ? (
@@ -199,7 +266,14 @@ export default function SalesPlanning() {
         </div>
       )}
 
-      <PlanningFooter hot={hotSum} warm={warmSum} />
+      <PlanningFooter
+        hot={hotSum}
+        warm={warmSum}
+        current={currentRevenue}
+        onCurrentChange={setCurrentRevenue}
+        rowId={revenueRowId}
+        onRowIdChange={setRevenueRowId}
+      />
     </div>
   );
 }
