@@ -170,7 +170,7 @@ export default function SalesPlanning() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 space-y-6 pb-32">
+    <div className="min-h-screen p-4 md:p-8 space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="glass rounded-xl p-3">
