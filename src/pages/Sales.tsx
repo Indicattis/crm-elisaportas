@@ -30,6 +30,23 @@ const PAGE_SIZE = 10;
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
+const ACCENTS = [
+  "#22c55e", // green
+  "#3b82f6", // blue
+  "#f59e0b", // amber
+  "#ec4899", // pink
+  "#8b5cf6", // violet
+  "#06b6d4", // cyan
+  "#ef4444", // red
+  "#14b8a6", // teal
+];
+
+const accentFor = (key: string) => {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return ACCENTS[h % ACCENTS.length];
+};
+
 export default function Sales() {
   const navigate = useNavigate();
   const { role } = useUserRole();
