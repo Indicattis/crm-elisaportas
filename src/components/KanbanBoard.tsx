@@ -749,6 +749,22 @@ export function KanbanBoard() {
     refreshDeals();
   }, [authUser, deals, toast]);
 
+  const handleQuickSell = useCallback(async (dealId: string) => {
+    const statuses = columns.map((c) => c.name);
+    if (statuses.length === 0) return;
+    const lastStatus = statuses[statuses.length - 1];
+    // Optimistic: remove from board immediately
+    setDeals((prev) => prev.filter((d) => d.id !== dealId));
+    const { error } = await supabase.from("deals").update({ status: lastStatus }).eq("id", dealId);
+    if (error) {
+      toast({ title: "Erro ao marcar como vendida", description: error.message, variant: "destructive" });
+      refreshDeals();
+      return;
+    }
+    toast({ title: "Negociação marcada como vendida!" });
+  }, [columns, toast]);
+
+
   const handleTagToggle = useCallback(async (dealId: string, tagId: string, checked: boolean) => {
     if (checked) {
       const { error } = await supabase.from("deal_tags").insert({ deal_id: dealId, tag_id: tagId });
@@ -1015,6 +1031,8 @@ export function KanbanBoard() {
                   startOfDayCount={startOfDayCount}
                   hasDailyColor={(column as any).has_daily_color !== false}
                   allowedDailyColors={(column as any).daily_colors as string[] | undefined}
+                  showSellButton={!!(column as any).show_sell_button}
+                  onQuickSell={handleQuickSell}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}

@@ -1,17 +1,37 @@
-## Diagnóstico
+## Objetivo
 
-Ao criar uma negociação a partir de um contato, o `CreateDealFromContactDialog` chama `onCreated` que atualmente aciona apenas `fetchContacts()` dentro do `ContactsColumn`. Ou seja, apenas a lista de contatos é recarregada — o Kanban (deals) não é notificado, então o novo card não aparece na coluna de destino até um refresh manual da página.
+Em `/crm-config`, dentro das configurações de cada coluna do funil, adicionar a opção "Botão de vender no card":
+- **Não** (padrão): comportamento atual, sem botão no card.
+- **Sim**: cada card daquela coluna passa a mostrar um botão de "Vender" que, ao ser clicado, marca a negociação como vendida imediatamente (aparece em `/vendas`), sem precisar abrir o card.
 
-Além disso, o `ContactsColumn` já expõe um prop `onChanged?` no seu tipo, mas ele não está sendo passado pelo `KanbanBoard` e não é chamado após criar a negociação.
+## Passos
 
-## Correção
+### 1. Banco de dados
+- Adicionar coluna `show_sell_button boolean NOT NULL DEFAULT false` em `public.funnel_columns`.
 
-1. **`src/components/ContactsColumn.tsx`**
-   - No `CreateDealFromContactDialog`, alterar `onCreated` para além de `fetchContacts()`, disparar `props.onChanged?.()` avisando o Kanban que houve mudança.
+### 2. Configuração (/crm-config)
+- Em `src/components/FunnelColumnList.tsx`, dentro do Sheet de configurações da coluna (bloco "deals"/"contacts"), adicionar um toggle "Botão de vender no card" com ícone verde (ex.: `CheckCircle2`).
+- Novo handler `handleUpdateShowSellButton(colId, boolean)` que grava `show_sell_button` na coluna.
 
-2. **`src/components/KanbanBoard.tsx`**
-   - Onde `<ContactsColumn ... />` é renderizado (linha ~914), passar `onChanged={fetchDeals}` (ou o refetcher equivalente já usado para recarregar os cards do Kanban) para que a nova negociação apareça imediatamente na coluna correspondente.
+### 3. Kanban
+- `src/components/KanbanBoard.tsx`: já carrega `funnel_columns`; propagar um mapa `showSellButtonMap: Record<columnName, boolean>` para as colunas.
+- Passar a flag para `KanbanColumn` → `DealCard`. Criar handler `handleQuickSell(dealId)` que:
+  - Descobre a última coluna do funil (mesma lógica de `handleMarkAsSold` já existente em `DealDetailView`: `statuses[statuses.length - 1]`).
+  - Faz `update` em `deals` setando `status` para essa última coluna.
+  - Atualiza otimista/refetch para o card sumir da coluna atual.
+  - Toast "Negociação marcada como vendida!".
 
-## Resultado esperado
+### 4. Card
+- `src/components/DealCard.tsx`: quando `showSellButton === true`, renderizar um botão compacto verde ("Vender", ícone `CheckCircle2`) numa nova linha discreta no final do card. `onClick` chama `onQuickSell(deal.id)` com `stopPropagation` para não abrir o card nem iniciar drag.
 
-Após clicar em "Criar negociação" no card do contato e confirmar, o novo card passa a aparecer na coluna do funil escolhido sem precisar recarregar a página.
+### 5. Detalhes técnicos
+- A rota `/vendas` já filtra `status = "Vendido"`, mantendo compatibilidade com o comportamento existente do botão "Vendido" já presente em `DealDetailView`.
+- Nenhuma alteração de RLS: usa a mesma política de `UPDATE` da tabela `deals` já existente.
+- Nenhum arquivo auto-gerado é tocado.
+
+## Arquivos afetados
+- Migração SQL (nova coluna).
+- `src/components/FunnelColumnList.tsx`
+- `src/components/KanbanBoard.tsx`
+- `src/components/KanbanColumn.tsx`
+- `src/components/DealCard.tsx`

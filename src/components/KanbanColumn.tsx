@@ -38,6 +38,7 @@ interface KanbanColumnProps {
   noticeText?: string;
   hasDailyColor?: boolean;
   allowedDailyColors?: string[];
+  showSellButton?: boolean;
   isCreatedAtSort?: boolean;
   onToggleSort?: () => void;
   collapsed?: boolean;
@@ -45,6 +46,7 @@ interface KanbanColumnProps {
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
+  onQuickSell?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: Deal) => void;
 }
@@ -82,6 +84,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   noticeText = "",
   hasDailyColor = true,
   allowedDailyColors,
+  showSellButton = false,
   isCreatedAtSort = false,
   onToggleSort,
   collapsed = false,
@@ -89,6 +92,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   onTagsChanged,
   onCapture,
   onColorChange,
+  onQuickSell,
   onAddDeal,
   onEditDeal,
 }: KanbanColumnProps) {
@@ -283,6 +287,8 @@ export const KanbanColumn = memo(function KanbanColumn({
                   onTagsChanged={onTagsChanged}
                   onCapture={onCapture}
                   onColorChange={onColorChange}
+                  showSellButton={showSellButton}
+                  onQuickSell={onQuickSell}
                   onClick={() => onEditDeal(deal)}
                 />
               ))}

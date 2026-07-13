@@ -643,6 +643,7 @@ export type Database = {
           name: string
           notice_text: string | null
           position: number
+          show_sell_button: boolean
           sort_order: string
           task_group_id: string | null
           user_id: string
@@ -660,6 +661,7 @@ export type Database = {
           name: string
           notice_text?: string | null
           position?: number
+          show_sell_button?: boolean
           sort_order?: string
           task_group_id?: string | null
           user_id: string
@@ -677,6 +679,7 @@ export type Database = {
           name?: string
           notice_text?: string | null
           position?: number
+          show_sell_button?: boolean
           sort_order?: string
           task_group_id?: string | null
           user_id?: string

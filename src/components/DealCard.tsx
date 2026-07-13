@@ -1,7 +1,7 @@
 import { useState, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, MapPin, CalendarClock } from "lucide-react";
+import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, MapPin, CalendarClock, CheckCircle2 } from "lucide-react";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +34,11 @@ interface DealCardProps {
   nextTaskDeadline?: string;
   channelIconKey?: string;
   currentStage?: { name: string; color: string; isRecurring?: boolean };
+  showSellButton?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
+  onQuickSell?: (dealId: string) => void;
   taskProgress?: { completed: number; total: number } | null;
   onClick: () => void;
 }
@@ -51,7 +53,7 @@ function hexToRgb(hex: string) {
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 const COLOR_ORDER = ["red", "yellow", "green"] as const;
 
-export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, onTagsChanged, onCapture, onColorChange, onClick }: DealCardProps) {
+export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, showSellButton, onTagsChanged, onCapture, onColorChange, onQuickSell, onClick }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
@@ -262,6 +264,21 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
             <DollarSign className="h-3 w-3" />
             R$ {Number(deal.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
+        </div>
+      )}
+
+      {/* Sell button */}
+      {showSellButton && (
+        <div className="flex justify-end pt-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onQuickSell?.(deal.id); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold px-2 py-1 transition-colors"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            Vender
+          </button>
         </div>
       )}
     </div>
