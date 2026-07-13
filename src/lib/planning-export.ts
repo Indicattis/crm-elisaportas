@@ -34,88 +34,113 @@ export interface ExportPayload {
 }
 
 export function exportPlanningToPdf(data: ExportPayload) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const marginX = 40;
-  let y = 48;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 32;
+  const marginTop = 40;
+  let y = marginTop;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.text("Planejamento de Vendas", marginX, y);
-  y += 20;
+  y += 16;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(110);
   doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, marginX, y);
-  y += 14;
+  y += 11;
   doc.text(`Vendedores: ${data.filterLabel}`, marginX, y);
-  y += 18;
+  y += 14;
   doc.setTextColor(0);
 
-  for (const seller of data.sellers) {
-    const list = sortClients(data.clients.filter((c) => c.seller_id === seller.id));
-    const subtotal = list.reduce((a, c) => a + (Number(c.value) || 0), 0);
+  const tableTop = y;
 
-    if (y > 720) {
+  // Layout: one column per seller, side by side
+  const sellers = data.sellers;
+  const maxColsPerPage = 5;
+  const pages: typeof sellers[] = [];
+  for (let i = 0; i < sellers.length; i += maxColsPerPage) {
+    pages.push(sellers.slice(i, i + maxColsPerPage));
+  }
+  if (pages.length === 0) pages.push([]);
+
+  pages.forEach((pageSellers, pageIdx) => {
+    if (pageIdx > 0) {
       doc.addPage();
-      y = 48;
     }
+    const startY = pageIdx === 0 ? tableTop : marginTop;
+    const availableW = pageWidth - marginX * 2;
+    const gap = 8;
+    const colCount = Math.max(pageSellers.length, 1);
+    const colWidth = (availableW - gap * (colCount - 1)) / colCount;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(seller.name, marginX, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(90);
-    doc.text(
-      `${list.length} ${list.length === 1 ? "cliente" : "clientes"}  •  Subtotal ${fmtBRL(subtotal)}`,
-      marginX,
-      y + 13,
-    );
-    doc.setTextColor(0);
-    y += 22;
+    let maxBottom = startY;
 
-    if (list.length === 0) {
-      doc.setFontSize(9);
-      doc.setTextColor(140);
-      doc.text("Sem clientes cadastrados", marginX, y + 4);
+    pageSellers.forEach((seller, idx) => {
+      const list = sortClients(data.clients.filter((c) => c.seller_id === seller.id));
+      const subtotal = list.reduce((a, c) => a + (Number(c.value) || 0), 0);
+      const x = marginX + idx * (colWidth + gap);
+
+      // Header block
+      doc.setFillColor(30, 41, 59);
+      doc.rect(x, startY, colWidth, 32, "F");
+      doc.setTextColor(255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(seller.name, x + 6, startY + 13, { maxWidth: colWidth - 12 });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(
+        `${list.length} ${list.length === 1 ? "cliente" : "clientes"} • ${fmtBRL(subtotal)}`,
+        x + 6,
+        startY + 26,
+        { maxWidth: colWidth - 12 },
+      );
       doc.setTextColor(0);
-      y += 24;
-      continue;
-    }
 
-    autoTable(doc, {
-      startY: y,
-      margin: { left: marginX, right: marginX },
-      head: [["Cliente", "Temperatura", "Valor"]],
-      body: list.map((c) => [c.name, tempLabel(c.temperature), fmtBRL(Number(c.value) || 0)]),
-      styles: { fontSize: 10, cellPadding: 5 },
-      headStyles: { fillColor: [30, 41, 59], textColor: 255 },
-      columnStyles: {
-        1: { cellWidth: 90 },
-        2: { cellWidth: 110, halign: "right" },
-      },
-      didParseCell: (hook) => {
-        if (hook.section === "body" && hook.column.index === 1) {
-          if (hook.cell.raw === "Quente") hook.cell.styles.textColor = [220, 38, 38];
-          else if (hook.cell.raw === "Morno") hook.cell.styles.textColor = [217, 119, 6];
-        }
-      },
+      const body = list.map((c) => [
+        c.name,
+        tempLabel(c.temperature),
+        fmtBRL(Number(c.value) || 0),
+      ]);
+
+      autoTable(doc, {
+        startY: startY + 32,
+        margin: { left: x, right: pageWidth - x - colWidth },
+        tableWidth: colWidth,
+        head: [["Cliente", "Temp.", "Valor"]],
+        body: body.length ? body : [["Sem clientes", "", ""]],
+        styles: { fontSize: 8, cellPadding: 3, overflow: "linebreak" },
+        headStyles: { fillColor: [51, 65, 85], textColor: 255, fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: colWidth - 90 },
+          1: { cellWidth: 42 },
+          2: { cellWidth: 48, halign: "right" },
+        },
+        didParseCell: (hook) => {
+          if (hook.section === "body" && hook.column.index === 1) {
+            if (hook.cell.raw === "Quente") hook.cell.styles.textColor = [220, 38, 38];
+            else if (hook.cell.raw === "Morno") hook.cell.styles.textColor = [217, 119, 6];
+            else hook.cell.styles.textColor = [140, 140, 140];
+          }
+        },
+      });
+
+      // @ts-expect-error autoTable adds lastAutoTable
+      const finalY = doc.lastAutoTable.finalY as number;
+      if (finalY > maxBottom) maxBottom = finalY;
     });
 
-    // @ts-expect-error autoTable adds lastAutoTable
-    y = doc.lastAutoTable.finalY + 20;
-  }
+    y = maxBottom;
+  });
 
-  if (y > 680) {
-    doc.addPage();
-    y = 48;
-  }
-
+  // Totals table on new page
+  doc.addPage();
   const total = data.hotSum + data.warmSum + data.currentRevenue;
   autoTable(doc, {
-    startY: y,
+    startY: marginTop,
     margin: { left: marginX, right: marginX },
     head: [["Índice", "Valor"]],
     body: [
@@ -126,7 +151,7 @@ export function exportPlanningToPdf(data: ExportPayload) {
     ],
     styles: { fontSize: 11, cellPadding: 6 },
     headStyles: { fillColor: [16, 185, 129], textColor: 255 },
-    columnStyles: { 1: { halign: "right", cellWidth: 160 } },
+    columnStyles: { 1: { halign: "right", cellWidth: 200 } },
     didParseCell: (hook) => {
       if (hook.section === "body" && hook.row.index === 3) {
         hook.cell.styles.fontStyle = "bold";
@@ -140,7 +165,7 @@ export function exportPlanningToPdf(data: ExportPayload) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(140);
-    doc.text(`Página ${i} de ${total_pages}`, pageWidth - marginX, doc.internal.pageSize.getHeight() - 20, {
+    doc.text(`Página ${i} de ${total_pages}`, pageWidth - marginX, pageHeight - 20, {
       align: "right",
     });
   }
