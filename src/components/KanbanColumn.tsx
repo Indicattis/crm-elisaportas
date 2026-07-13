@@ -84,6 +84,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   noticeText = "",
   hasDailyColor = true,
   allowedDailyColors,
+  showSellButton = false,
   isCreatedAtSort = false,
   onToggleSort,
   collapsed = false,
@@ -91,6 +92,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   onTagsChanged,
   onCapture,
   onColorChange,
+  onQuickSell,
   onAddDeal,
   onEditDeal,
 }: KanbanColumnProps) {
