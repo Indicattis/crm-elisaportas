@@ -421,7 +421,8 @@ export function KanbanBoard() {
             if (s && (!best || s.position < best.position)) best = s;
           }
           if (best) {
-            const groupMode = (best.task_groups as any)?.schedule_mode ?? (best as any).schedule_mode;
+            const groupData = (best as any).task_groups;
+            const groupMode = Array.isArray(groupData) ? groupData[0]?.schedule_mode : groupData?.schedule_mode;
             stageMap[dealId] = {
               name: best.name,
               color: best.color,
