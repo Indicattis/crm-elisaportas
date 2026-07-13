@@ -213,6 +213,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
           {(currentStage || (taskProgress && taskProgress.total > 0)) && (
             (() => {
               const allDone = taskProgress && taskProgress.total > 0 && taskProgress.completed === taskProgress.total;
+              const showProgress = !currentStage?.isRecurring && taskProgress && taskProgress.total > 0;
               return (
                 <Badge
                   variant="outline"
@@ -220,7 +221,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
                 >
                   {currentStage && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: allDone ? "#22c55e" : currentStage.color }} />}
                   <span>{currentStage?.name ?? "Etapas"}</span>
-                  {taskProgress && taskProgress.total > 0 && (
+                  {showProgress && (
                     <>
                       <span className="opacity-50">·</span>
                       <span>{taskProgress.completed}/{taskProgress.total}</span>
