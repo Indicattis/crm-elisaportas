@@ -67,9 +67,11 @@ export function PlanningColumn({ seller, clients, onAdd, onComplete }: PlanningC
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-transparent to-background/30">
 
         {sorted.length === 0 ? (
-          <div className="text-center text-xs text-muted-foreground py-8 border border-dashed border-border/50 rounded-xl">
-            Nenhum cliente ainda
+          <div className="text-center text-xs text-muted-foreground py-10 border-2 border-dashed border-border/50 rounded-2xl bg-background/40">
+            <div className="opacity-60">Nenhum cliente ainda</div>
+            <div className="mt-1 text-[10px] opacity-50">Clique em + para adicionar</div>
           </div>
+
         ) : (
           sorted.map((c) => (
             <PlanningClientCard key={c.id} client={c} onComplete={onComplete} />
