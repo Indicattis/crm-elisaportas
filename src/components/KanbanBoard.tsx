@@ -96,7 +96,7 @@ export function KanbanBoard() {
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
-  const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
+  const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string; isRecurring?: boolean }>>({});
   const [taskProgressMap, setTaskProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
   const [startOfDayMap, setStartOfDayMap] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
