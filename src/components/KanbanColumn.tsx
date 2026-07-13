@@ -38,6 +38,7 @@ interface KanbanColumnProps {
   noticeText?: string;
   hasDailyColor?: boolean;
   allowedDailyColors?: string[];
+  showSellButton?: boolean;
   isCreatedAtSort?: boolean;
   onToggleSort?: () => void;
   collapsed?: boolean;
@@ -45,6 +46,7 @@ interface KanbanColumnProps {
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
+  onQuickSell?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
   onEditDeal: (deal: Deal) => void;
 }
