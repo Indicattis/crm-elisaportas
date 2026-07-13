@@ -1,37 +1,80 @@
-## Objetivo
+# Planejamento de Vendas — Kanban por Vendedor
 
-Em `/crm-config`, dentro das configurações de cada coluna do funil, adicionar a opção "Botão de vender no card":
-- **Não** (padrão): comportamento atual, sem botão no card.
-- **Sim**: cada card daquela coluna passa a mostrar um botão de "Vender" que, ao ser clicado, marca a negociação como vendida imediatamente (aparece em `/vendas`), sem precisar abrir o card.
+Nova página tipo kanban onde cada coluna é um vendedor e cada card é um cliente em prospecção com nome, valor e temperatura (Quente/Morno). Cards se auto-ordenam por temperatura e são eliminados ao serem marcados como concluídos.
 
-## Passos
+## Rota e navegação
 
-### 1. Banco de dados
-- Adicionar coluna `show_sell_button boolean NOT NULL DEFAULT false` em `public.funnel_columns`.
+- Rota: `/planejamento`
+- Item no `Header.tsx`: **Planejamento** (ícone `Target` do lucide)
+- Acessível a qualquer usuário autenticado
 
-### 2. Configuração (/crm-config)
-- Em `src/components/FunnelColumnList.tsx`, dentro do Sheet de configurações da coluna (bloco "deals"/"contacts"), adicionar um toggle "Botão de vender no card" com ícone verde (ex.: `CheckCircle2`).
-- Novo handler `handleUpdateShowSellButton(colId, boolean)` que grava `show_sell_button` na coluna.
+## Banco de dados
 
-### 3. Kanban
-- `src/components/KanbanBoard.tsx`: já carrega `funnel_columns`; propagar um mapa `showSellButtonMap: Record<columnName, boolean>` para as colunas.
-- Passar a flag para `KanbanColumn` → `DealCard`. Criar handler `handleQuickSell(dealId)` que:
-  - Descobre a última coluna do funil (mesma lógica de `handleMarkAsSold` já existente em `DealDetailView`: `statuses[statuses.length - 1]`).
-  - Faz `update` em `deals` setando `status` para essa última coluna.
-  - Atualiza otimista/refetch para o card sumir da coluna atual.
-  - Toast "Negociação marcada como vendida!".
+Nova tabela `sales_planning_clients`:
 
-### 4. Card
-- `src/components/DealCard.tsx`: quando `showSellButton === true`, renderizar um botão compacto verde ("Vender", ícone `CheckCircle2`) numa nova linha discreta no final do card. `onClick` chama `onQuickSell(deal.id)` com `stopPropagation` para não abrir o card nem iniciar drag.
+- `seller_id` — vendedor dono da coluna
+- `name` — nome do cliente
+- `value` — valor estimado (numeric)
+- `temperature` — enum `hot` | `warm`
+- `created_by` — quem cadastrou
+- padrões: id, created_at, updated_at
 
-### 5. Detalhes técnicos
-- A rota `/vendas` já filtra `status = "Vendido"`, mantendo compatibilidade com o comportamento existente do botão "Vendido" já presente em `DealDetailView`.
-- Nenhuma alteração de RLS: usa a mesma política de `UPDATE` da tabela `deals` já existente.
-- Nenhum arquivo auto-gerado é tocado.
+Regras de acesso (RLS): qualquer usuário autenticado pode ler, criar, atualizar e deletar registros (conforme escolha do usuário). GRANTs para `authenticated` e `service_role`. Enum novo `sales_temperature` com valores `hot` e `warm`.
 
-## Arquivos afetados
-- Migração SQL (nova coluna).
-- `src/components/FunnelColumnList.tsx`
-- `src/components/KanbanBoard.tsx`
-- `src/components/KanbanColumn.tsx`
-- `src/components/DealCard.tsx`
+Ao marcar o checkbox de concluído, o registro é **deletado** (some para sempre).
+
+## Layout da página
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│  Planejamento de Vendas                                        │
+│  Prospecção ativa por vendedor                                 │
+├───────────────────────────────────────────────────────────────┤
+│ ┌─Vendedor A──┐ ┌─Vendedor B──┐ ┌─Vendedor C──┐  ...           │
+│ │ + adicionar │ │ + adicionar │ │ + adicionar │                │
+│ │             │ │             │ │             │                │
+│ │ 🔴 Cliente X│ │ 🔴 Cliente Y│ │ 🟠 Cliente Z│                │
+│ │ R$ 12.000   │ │ R$  8.500   │ │ R$  4.200   │                │
+│ │ ☐ concluir  │ │ ☐ concluir  │ │ ☐ concluir  │                │
+│ │             │ │             │ │             │                │
+│ │ 🟠 Cliente W│ │ 🟠 …        │ │ 🔴 …        │                │
+│ └─────────────┘ └─────────────┘ └─────────────┘                │
+└───────────────────────────────────────────────────────────────┘
+```
+
+Colunas listam **todos** os usuários com role `vendedor`, alinhado ao padrão das outras telas (Kanban, Vendas, Delegar). Ordenação dentro da coluna: **Quente** antes de **Morno**, depois por maior valor, depois por mais recentes.
+
+## Card (linha de cliente)
+
+- Bolinha de temperatura à esquerda: vermelho para Quente, âmbar para Morno
+- Nome do cliente em destaque
+- Valor formatado em BRL abaixo
+- Checkbox à direita — ao marcar, remove o card com pequena animação e faz o delete no banco
+- Estilo consistente com o resto do CRM (glass, bordas arredondadas, relevo)
+
+## Adicionar cliente
+
+Botão `+ Adicionar` no topo da coluna abre um popover/dialog com:
+
+- Nome (texto obrigatório)
+- Valor (input numérico R$)
+- Temperatura (toggle Quente / Morno, padrão Quente)
+
+O `seller_id` já vem definido pela coluna. O `created_by` é o usuário autenticado.
+
+## Interações
+
+- Sem drag-and-drop entre colunas nesta primeira versão (o vendedor da coluna define o dono)
+- Update otimista ao concluir e ao adicionar
+- Toast de confirmação nas ações
+- Loading skeletons na primeira carga
+
+## Arquivos
+
+- `src/pages/SalesPlanning.tsx` — página principal com fetch, colunas e estado
+- `src/components/planning/PlanningColumn.tsx` — coluna de um vendedor
+- `src/components/planning/PlanningClientCard.tsx` — card de cliente com checkbox
+- `src/components/planning/AddPlanningClientDialog.tsx` — form de criação
+- `src/App.tsx` — registrar rota `/planejamento`
+- `src/components/Header.tsx` — item de navegação
+- Migração para criar enum, tabela, GRANTs, RLS e trigger de `updated_at`
