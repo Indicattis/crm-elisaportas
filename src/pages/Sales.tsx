@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,7 +15,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Search, CalendarIcon, DollarSign } from "lucide-react";
+import { Search, CalendarIcon, DollarSign, User, Radio, Filter, ChevronRight } from "lucide-react";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -30,6 +29,23 @@ const PAGE_SIZE = 10;
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
+
+const ACCENTS = [
+  "#22c55e", // green
+  "#3b82f6", // blue
+  "#f59e0b", // amber
+  "#ec4899", // pink
+  "#8b5cf6", // violet
+  "#06b6d4", // cyan
+  "#ef4444", // red
+  "#14b8a6", // teal
+];
+
+const accentFor = (key: string) => {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return ACCENTS[h % ACCENTS.length];
+};
 
 export default function Sales() {
   const navigate = useNavigate();
@@ -243,51 +259,85 @@ export default function Sales() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Vendedor</TableHead>
-                <TableHead>Funil</TableHead>
-                <TableHead>Canal</TableHead>
-                <TableHead>Data</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : pageDeals.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Nenhuma venda encontrada no período.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pageDeals.map((d) => (
-                  <TableRow
-                    key={d.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/deal/${d.id}`)}
-                  >
-                    <TableCell className="font-medium">{d.title}</TableCell>
-                    <TableCell className="text-success font-semibold">{fmtBRL(d.value || 0)}</TableCell>
-                    <TableCell>{d.assigned_to ? profilesMap[d.assigned_to] || "—" : "—"}</TableCell>
-                    <TableCell>{d.funnel_id ? funnelMap[d.funnel_id] || "—" : "—"}</TableCell>
-                    <TableCell>{d.acquisition_channel || "—"}</TableCell>
-                    <TableCell>{format(new Date(d.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+        <div className="space-y-2.5">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-[76px] w-full rounded-2xl" />
+            ))
+          ) : pageDeals.length === 0 ? (
+            <div className="text-center text-muted-foreground py-12 rounded-2xl border border-dashed border-border/60">
+              Nenhuma venda encontrada no período.
+            </div>
+          ) : (
+            pageDeals.map((d, idx) => {
+              const accent = accentFor(d.funnel_id || d.acquisition_channel || d.id);
+              const globalIdx = (page - 1) * PAGE_SIZE + idx + 1;
+              return (
+                <div
+                  key={d.id}
+                  onClick={() => navigate(`/deal/${d.id}`)}
+                  className="group relative flex items-stretch gap-3 rounded-2xl bg-card/70 hover:bg-card border border-border/60 shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.12),0_1px_2px_-1px_hsl(var(--foreground)/0.08)] hover:shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.2),0_2px_6px_-2px_hsl(var(--foreground)/0.1)] hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden"
+                >
+                  {/* Colored accent bar */}
+                  <div
+                    className="w-1.5 shrink-0"
+                    style={{ backgroundColor: accent }}
+                    aria-hidden
+                  />
+
+                  {/* Index badge */}
+                  <div className="flex items-center pl-3 pr-1">
+                    <div
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold shadow-inner"
+                      style={{
+                        backgroundColor: `${accent}1F`,
+                        color: accent,
+                      }}
+                    >
+                      {String(globalIdx).padStart(2, "0")}
+                    </div>
+                  </div>
+
+                  {/* Main content */}
+                  <div className="flex-1 min-w-0 py-3 pr-3 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-sm md:text-base truncate">{d.title}</div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {d.assigned_to ? profilesMap[d.assigned_to] || "—" : "—"}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Filter className="h-3 w-3" />
+                          {d.funnel_id ? funnelMap[d.funnel_id] || "—" : "—"}
+                        </span>
+                        {d.acquisition_channel && (
+                          <span className="inline-flex items-center gap-1">
+                            <Radio className="h-3 w-3" />
+                            {d.acquisition_channel}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarIcon className="h-3 w-3" />
+                          {format(new Date(d.updated_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Valor</div>
+                        <div className="text-success font-bold text-sm md:text-base tabular-nums">
+                          {fmtBRL(d.value || 0)}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {totalPages > 1 && (
