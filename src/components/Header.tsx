@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, LayoutDashboard, Settings, Sun, Moon, User, BarChart3, PieChart, Download, FileText, DollarSign } from "lucide-react";
+import { LogOut, LayoutDashboard, Settings, Sun, Moon, User, BarChart3, PieChart, Download, FileText, DollarSign, Target } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
