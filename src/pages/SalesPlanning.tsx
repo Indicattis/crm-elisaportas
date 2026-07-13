@@ -39,6 +39,22 @@ export default function SalesPlanning() {
   const [clients, setClients] = useState<PlanningClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
+  const [currentRevenue, setCurrentRevenue] = useState<number>(0);
+  const [revenueRowId, setRevenueRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("company_revenue")
+        .select("id, value")
+        .eq("singleton", true)
+        .maybeSingle();
+      if (data) {
+        setRevenueRowId(data.id);
+        setCurrentRevenue(Number(data.value) || 0);
+      }
+    })();
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
