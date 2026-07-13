@@ -96,7 +96,7 @@ export function KanbanBoard() {
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
   const [channelPositionMap, setChannelPositionMap] = useState<Record<string, number>>({});
-  const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string }>>({});
+  const [dealStageMap, setDealStageMap] = useState<Record<string, { name: string; color: string; isRecurring?: boolean }>>({});
   const [taskProgressMap, setTaskProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
   const [startOfDayMap, setStartOfDayMap] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
@@ -408,19 +408,27 @@ export function KanbanBoard() {
     if (allStageIds.length > 0) {
       const { data: stages } = await supabase
         .from("task_group_stages")
-        .select("id, name, color, position")
+        .select("id, name, color, position, group_id, task_groups!inner(schedule_mode)")
         .in("id", allStageIds);
 
       if (stages) {
         const stageById = new Map(stages.map((s: any) => [s.id, s]));
-        const stageMap: Record<string, { name: string; color: string }> = {};
+        const stageMap: Record<string, { name: string; color: string; isRecurring?: boolean }> = {};
         for (const [dealId, stageIdSet] of Object.entries(dealStageIds)) {
           let best: any = null;
           for (const sid of stageIdSet) {
             const s = stageById.get(sid);
             if (s && (!best || s.position < best.position)) best = s;
           }
-          if (best) stageMap[dealId] = { name: best.name, color: best.color };
+          if (best) {
+            const groupData = (best as any).task_groups;
+            const groupMode = Array.isArray(groupData) ? groupData[0]?.schedule_mode : groupData?.schedule_mode;
+            stageMap[dealId] = {
+              name: best.name,
+              color: best.color,
+              isRecurring: groupMode === "recurring_days",
+            };
+          }
         }
         setDealStageMap(stageMap);
       }

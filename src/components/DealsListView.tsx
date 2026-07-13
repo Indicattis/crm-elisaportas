@@ -27,7 +27,7 @@ interface DealsListViewProps {
   columns: FunnelColumn[];
   dealTagsMap: Record<string, DealTag[]>;
   profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }>;
-  dealStageMap?: Record<string, { name: string; color: string }>;
+  dealStageMap?: Record<string, { name: string; color: string; isRecurring?: boolean }>;
   onEditDeal: (deal: Deal) => void;
   onCapture: (dealId: string) => void;
 }
