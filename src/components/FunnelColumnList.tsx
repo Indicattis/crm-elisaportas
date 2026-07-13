@@ -475,6 +475,17 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
               )}
 
               {currentType === "deals" && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={!!(editingColumn as any).show_sell_button}
+                    onCheckedChange={(v) => handleUpdateShowSellButton(editingColumn.id, !!v)}
+                  />
+                  <span className="text-sm font-medium">Botão de vender no card</span>
+                </label>
+              )}
+
+
+              {currentType === "deals" && (
                 <>
 
 
