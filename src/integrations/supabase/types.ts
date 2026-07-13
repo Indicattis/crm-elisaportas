@@ -162,6 +162,33 @@ export type Database = {
           },
         ]
       }
+      company_revenue: {
+        Row: {
+          created_at: string
+          id: string
+          singleton: boolean
+          updated_at: string
+          updated_by: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       contact_colors: {
         Row: {
           color: string
