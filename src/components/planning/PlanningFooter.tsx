@@ -37,7 +37,7 @@ export function PlanningFooter({ hot, warm, current, onCurrentChange, rowId, onR
     }
     setSaving(true);
     const prev = current;
-    setCurrent(parsed);
+    onCurrentChange(parsed);
     setIsEditing(false);
 
     let error;
@@ -53,11 +53,11 @@ export function PlanningFooter({ hot, warm, current, onCurrentChange, rowId, onR
         .select("id")
         .single();
       error = insErr;
-      if (data) setRowId(data.id);
+      if (data) onRowIdChange(data.id);
     }
     setSaving(false);
     if (error) {
-      setCurrent(prev);
+      onCurrentChange(prev);
       toast.error("Erro ao salvar", { description: error.message });
     } else {
       toast.success("Faturamento atualizado");
