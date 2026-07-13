@@ -245,7 +245,7 @@ export default function SalesPlanning() {
       {loading ? (
         <div className="flex gap-4 overflow-x-auto pb-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[420px] w-[300px] shrink-0 rounded-2xl" />
+            <Skeleton key={i} className="h-[520px] w-[380px] shrink-0 rounded-3xl" />
           ))}
         </div>
       ) : visibleSellers.length === 0 ? (
