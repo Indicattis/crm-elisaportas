@@ -1,0 +1,1 @@
+ALTER TABLE public.funnel_columns ADD COLUMN IF NOT EXISTS show_sell_button boolean NOT NULL DEFAULT false;
