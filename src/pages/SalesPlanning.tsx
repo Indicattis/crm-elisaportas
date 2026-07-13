@@ -142,6 +142,33 @@ export default function SalesPlanning() {
   const toggleSeller = (id: string) =>
     setSelectedSellers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  const buildExportPayload = () => ({
+    sellers: visibleSellers,
+    clients: clients.filter((c) => visibleIds.has(c.seller_id)),
+    hotSum,
+    warmSum,
+    currentRevenue,
+    filterLabel: selectedSellers.length === 0 ? "Todos" : visibleSellers.map((s) => s.name).join(", "),
+  });
+
+  const handleExportPdf = () => {
+    try {
+      exportPlanningToPdf(buildExportPayload());
+      toast.success("PDF gerado");
+    } catch (e: any) {
+      toast.error("Erro ao gerar PDF", { description: e?.message });
+    }
+  };
+
+  const handleExportXlsx = () => {
+    try {
+      exportPlanningToXlsx(buildExportPayload());
+      toast.success("Excel gerado");
+    } catch (e: any) {
+      toast.error("Erro ao gerar Excel", { description: e?.message });
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-6 pb-32">
       <div className="flex items-center justify-between gap-3 flex-wrap">
