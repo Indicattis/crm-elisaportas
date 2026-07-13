@@ -33,7 +33,7 @@ interface DealCardProps {
   allowedDailyColors?: string[];
   nextTaskDeadline?: string;
   channelIconKey?: string;
-  currentStage?: { name: string; color: string };
+  currentStage?: { name: string; color: string; isRecurring?: boolean };
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
