@@ -408,8 +408,18 @@ export function KanbanBoard() {
     if (allStageIds.length > 0) {
       const { data: stages } = await supabase
         .from("task_group_stages")
-        .select("id, name, color, position, group_id, task_groups!inner(schedule_mode)")
+        .select("id, name, color, position, group_id")
         .in("id", allStageIds);
+
+      const groupIds = [...new Set((stages ?? []).map((s: any) => s.group_id).filter(Boolean))];
+      const groupModeMap = new Map<string, string>();
+      if (groupIds.length > 0) {
+        const { data: groups } = await supabase
+          .from("task_groups")
+          .select("id, schedule_mode")
+          .in("id", groupIds as string[]);
+        for (const g of groups ?? []) groupModeMap.set((g as any).id, (g as any).schedule_mode);
+      }
 
       if (stages) {
         const stageById = new Map(stages.map((s: any) => [s.id, s]));
@@ -421,12 +431,10 @@ export function KanbanBoard() {
             if (s && (!best || s.position < best.position)) best = s;
           }
           if (best) {
-            const groupData = (best as any).task_groups;
-            const groupMode = Array.isArray(groupData) ? groupData[0]?.schedule_mode : groupData?.schedule_mode;
             stageMap[dealId] = {
               name: best.name,
               color: best.color,
-              isRecurring: groupMode === "recurring_days",
+              isRecurring: groupModeMap.get(best.group_id) === "recurring_days",
             };
           }
         }
