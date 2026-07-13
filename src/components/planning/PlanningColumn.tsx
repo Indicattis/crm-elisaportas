@@ -31,21 +31,31 @@ export function PlanningColumn({ seller, clients, onAdd, onComplete }: PlanningC
   const total = clients.reduce((acc, c) => acc + (c.value || 0), 0);
 
   return (
-    <div className="glass rounded-2xl w-[300px] shrink-0 flex flex-col max-h-[calc(100vh-180px)]">
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="font-semibold truncate">{seller.name}</div>
-            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-              <span>{clients.length} {clients.length === 1 ? "cliente" : "clientes"}</span>
-              <span className="text-muted-foreground/40">•</span>
-              <span className="text-success font-medium">{fmtBRL(total)}</span>
+    <div className="glass rounded-3xl w-[380px] shrink-0 flex flex-col max-h-[calc(100vh-180px)] border border-border/60 shadow-[0_8px_30px_-12px_hsl(var(--foreground)/0.18)] overflow-hidden">
+      <div className="relative p-5 border-b border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-sm shrink-0 ring-1 ring-primary/20">
+                {seller.name.trim().charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-base truncate leading-tight">{seller.name}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {clients.length} {clients.length === 1 ? "cliente" : "clientes"}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-background/50 border border-border/40 px-3 py-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total</span>
+              <span className="ml-auto text-sm font-bold text-success tabular-nums">{fmtBRL(total)}</span>
             </div>
           </div>
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0 shrink-0"
+            className="h-9 w-9 p-0 shrink-0 rounded-xl bg-background/60 hover:bg-primary hover:text-primary-foreground border border-border/50 transition-colors"
             onClick={() => setOpenAdd(true)}
             aria-label="Adicionar cliente"
           >
@@ -54,7 +64,8 @@ export function PlanningColumn({ seller, clients, onAdd, onComplete }: PlanningC
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-transparent to-background/30">
+
         {sorted.length === 0 ? (
           <div className="text-center text-xs text-muted-foreground py-8 border border-dashed border-border/50 rounded-xl">
             Nenhum cliente ainda
