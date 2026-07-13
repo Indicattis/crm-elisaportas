@@ -289,7 +289,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
           open={!!dealForContact}
           onOpenChange={(o) => { if (!o) setDealForContact(null); }}
           contact={dealForContact}
-          onCreated={fetchContacts}
+          onCreated={() => { fetchContacts(); onChanged?.(); }}
         />
       )}
     </>
