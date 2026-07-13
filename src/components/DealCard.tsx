@@ -34,9 +34,11 @@ interface DealCardProps {
   nextTaskDeadline?: string;
   channelIconKey?: string;
   currentStage?: { name: string; color: string; isRecurring?: boolean };
+  showSellButton?: boolean;
   onTagsChanged?: (dealId: string, tagId: string, checked: boolean) => void;
   onCapture?: (dealId: string) => void;
   onColorChange?: (dealId: string, newColor: string) => void;
+  onQuickSell?: (dealId: string) => void;
   taskProgress?: { completed: number; total: number } | null;
   onClick: () => void;
 }
