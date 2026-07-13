@@ -1,7 +1,7 @@
 import { useState, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, MapPin, CalendarClock } from "lucide-react";
+import { User, DollarSign, Calendar, Clock, Flame, Tag, UserPlus, MapPin, CalendarClock, CheckCircle2 } from "lucide-react";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import { Badge } from "@/components/ui/badge";
