@@ -18,7 +18,14 @@ interface PlanningFooterProps {
   onRowIdChange: (id: string) => void;
 }
 
-export function PlanningFooter({ hot, warm, current, onCurrentChange, rowId, onRowIdChange }: PlanningFooterProps) {
+export function PlanningFooter({
+  hot,
+  warm,
+  current,
+  onCurrentChange,
+  rowId,
+  onRowIdChange,
+}: PlanningFooterProps) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const isAdmin = role === "admin";
@@ -64,93 +71,94 @@ export function PlanningFooter({ hot, warm, current, onCurrentChange, rowId, onR
     }
   };
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-border/50 backdrop-blur-xl">
-      <div className="px-4 md:px-8 py-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricBlock
-            icon={<Flame className="h-4 w-4 text-red-500" />}
-            label="Projetado — Quente"
-            value={fmtBRL(hot)}
-            accent="from-red-500/10 to-transparent"
-            dot="bg-red-500"
-          />
-          <MetricBlock
-            icon={<Thermometer className="h-4 w-4 text-amber-500" />}
-            label="Projetado — Morno"
-            value={fmtBRL(warm)}
-            accent="from-amber-500/10 to-transparent"
-            dot="bg-amber-500"
-          />
-          <div className="rounded-xl border border-border/50 bg-gradient-to-r from-primary/10 to-transparent px-3 py-2">
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-wide">
-              <Building2 className="h-4 w-4 text-primary" />
-              Faturamento atual
-            </div>
-            {isAdmin && isEditing ? (
-              <Input
-                autoFocus
-                value={editing}
-                onChange={(e) => setEditing(e.target.value)}
-                onBlur={save}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") save();
-                  if (e.key === "Escape") setIsEditing(false);
-                }}
-                className="h-7 mt-1 text-sm font-semibold"
-                placeholder="0,00"
-              />
-            ) : (
-              <button
-                type="button"
-                disabled={!isAdmin}
-                onClick={() => {
-                  setEditing(String(current).replace(".", ","));
-                  setIsEditing(true);
-                }}
-                className={`mt-0.5 text-lg font-bold text-foreground text-left w-full ${isAdmin ? "hover:text-primary transition-colors cursor-pointer" : "cursor-default"}`}
-                title={isAdmin ? "Clique para editar" : ""}
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : fmtBRL(current)}
-              </button>
-            )}
-          </div>
-          <MetricBlock
-            icon={<Sigma className="h-4 w-4 text-emerald-500" />}
-            label="Total"
-            value={fmtBRL(total)}
-            accent="from-emerald-500/10 to-transparent"
-            dot="bg-emerald-500"
-            emphasize
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
+  const rows = [
+    {
+      key: "hot",
+      icon: <Flame className="h-4 w-4 text-red-500" />,
+      label: "Projetado — Quente",
+      value: fmtBRL(hot),
+      accent: "bg-red-500/5",
+      dot: "bg-red-500",
+    },
+    {
+      key: "warm",
+      icon: <Thermometer className="h-4 w-4 text-amber-500" />,
+      label: "Projetado — Morno",
+      value: fmtBRL(warm),
+      accent: "bg-amber-500/5",
+      dot: "bg-amber-500",
+    },
+  ];
 
-function MetricBlock({
-  icon,
-  label,
-  value,
-  accent,
-  emphasize,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  accent: string;
-  dot?: string;
-  emphasize?: boolean;
-}) {
   return (
-    <div className={`rounded-xl border border-border/50 bg-gradient-to-r ${accent} px-3 py-2`}>
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-wide">
-        {icon}
-        {label}
+    <div className="glass rounded-2xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Resumo financeiro
+        </h2>
       </div>
-      <div className={`mt-0.5 font-bold text-foreground ${emphasize ? "text-xl" : "text-lg"}`}>
-        {value}
+      <div className="divide-y divide-border/50">
+        {rows.map((r) => (
+          <div
+            key={r.key}
+            className={`flex items-center justify-between gap-4 px-4 py-3 ${r.accent}`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`h-2 w-2 rounded-full ${r.dot}`} />
+              {r.icon}
+              <span className="text-sm font-medium truncate">{r.label}</span>
+            </div>
+            <span className="text-base font-semibold tabular-nums">{r.value}</span>
+          </div>
+        ))}
+
+        <div className="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            <Building2 className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium truncate">Faturamento atual</span>
+          </div>
+          {isAdmin && isEditing ? (
+            <Input
+              autoFocus
+              value={editing}
+              onChange={(e) => setEditing(e.target.value)}
+              onBlur={save}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") save();
+                if (e.key === "Escape") setIsEditing(false);
+              }}
+              className="h-8 w-40 text-sm font-semibold text-right"
+              placeholder="0,00"
+            />
+          ) : (
+            <button
+              type="button"
+              disabled={!isAdmin}
+              onClick={() => {
+                setEditing(String(current).replace(".", ","));
+                setIsEditing(true);
+              }}
+              className={`text-base font-semibold tabular-nums ${
+                isAdmin ? "hover:text-primary transition-colors cursor-pointer" : "cursor-default"
+              }`}
+              title={isAdmin ? "Clique para editar" : ""}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : fmtBRL(current)}
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 px-4 py-3 bg-emerald-500/10">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <Sigma className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm font-semibold truncate">Total</span>
+          </div>
+          <span className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+            {fmtBRL(total)}
+          </span>
+        </div>
       </div>
     </div>
   );
