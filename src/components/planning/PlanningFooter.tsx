@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,31 +12,19 @@ const fmtBRL = (v: number) =>
 interface PlanningFooterProps {
   hot: number;
   warm: number;
+  current: number;
+  onCurrentChange: (v: number) => void;
+  rowId: string | null;
+  onRowIdChange: (id: string) => void;
 }
 
-export function PlanningFooter({ hot, warm }: PlanningFooterProps) {
+export function PlanningFooter({ hot, warm, current, onCurrentChange, rowId, onRowIdChange }: PlanningFooterProps) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const isAdmin = role === "admin";
-  const [current, setCurrent] = useState<number>(0);
   const [editing, setEditing] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [rowId, setRowId] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("company_revenue")
-        .select("id, value")
-        .eq("singleton", true)
-        .maybeSingle();
-      if (data) {
-        setRowId(data.id);
-        setCurrent(Number(data.value) || 0);
-      }
-    })();
-  }, []);
 
   const total = hot + warm + current;
 
