@@ -935,6 +935,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_planning_clients: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          seller_id: string
+          temperature: Database["public"]["Enums"]["sales_temperature"]
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          seller_id: string
+          temperature?: Database["public"]["Enums"]["sales_temperature"]
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          seller_id?: string
+          temperature?: Database["public"]["Enums"]["sales_temperature"]
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       shared_notes: {
         Row: {
           content: string
@@ -1193,6 +1226,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "vendedor"
       column_type: "deals" | "notice" | "contacts"
+      sales_temperature: "hot" | "warm"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1322,6 +1356,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "vendedor"],
       column_type: ["deals", "notice", "contacts"],
+      sales_temperature: ["hot", "warm"],
     },
   },
 } as const
