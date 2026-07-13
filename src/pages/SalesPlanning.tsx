@@ -249,7 +249,14 @@ export default function SalesPlanning() {
         </div>
       )}
 
-      <PlanningFooter hot={hotSum} warm={warmSum} />
+      <PlanningFooter
+        hot={hotSum}
+        warm={warmSum}
+        current={currentRevenue}
+        onCurrentChange={setCurrentRevenue}
+        rowId={revenueRowId}
+        onRowIdChange={setRevenueRowId}
+      />
     </div>
   );
 }
