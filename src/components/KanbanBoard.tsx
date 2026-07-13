@@ -920,6 +920,7 @@ export function KanbanBoard() {
                     allowedDailyColors={(column as any).daily_colors ?? ["red", "yellow", "green"]}
                     collapsed={collapsedColumns.has(column.name)}
                     onToggleCollapse={() => toggleColumnCollapse(column.name)}
+                    onChanged={fetchDeals}
                   />
                 );
               }
