@@ -287,6 +287,8 @@ export const KanbanColumn = memo(function KanbanColumn({
                   onTagsChanged={onTagsChanged}
                   onCapture={onCapture}
                   onColorChange={onColorChange}
+                  showSellButton={showSellButton}
+                  onQuickSell={onQuickSell}
                   onClick={() => onEditDeal(deal)}
                 />
               ))}
