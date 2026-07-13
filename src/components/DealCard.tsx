@@ -266,6 +266,21 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
           </span>
         </div>
       )}
+
+      {/* Sell button */}
+      {showSellButton && (
+        <div className="flex justify-end pt-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onQuickSell?.(deal.id); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold px-2 py-1 transition-colors"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            Vender
+          </button>
+        </div>
+      )}
     </div>
   );
 });
