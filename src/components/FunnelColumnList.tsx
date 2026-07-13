@@ -214,6 +214,12 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
     onChanged();
   };
 
+  const handleUpdateShowSellButton = async (colId: string, value: boolean) => {
+    await supabase.from("funnel_columns").update({ show_sell_button: value } as any).eq("id", colId);
+    onChanged();
+  };
+
+
   const handleAdd = async () => {
     if (!newName.trim()) return;
     if (!authUser) return;
