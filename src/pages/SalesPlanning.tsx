@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Target, Users, Check, X } from "lucide-react";
+import { Target, Users, Check, X, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { PlanningColumn } from "@/components/planning/PlanningColumn";
@@ -9,6 +9,13 @@ import { PlanningFooter } from "@/components/planning/PlanningFooter";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportPlanningToPdf, exportPlanningToXlsx } from "@/lib/planning-export";
 
 export type Temperature = "hot" | "warm";
 
