@@ -146,6 +146,21 @@ export default function Reports() {
     return Object.values(map).sort((a, b) => b.totalValue - a.totalValue);
   }, [filteredDeals]);
 
+  const contactColumnMap = useMemo(() => {
+    const m: Record<string, ContactColumn> = {};
+    contactColumns.forEach((c) => { m[c.id] = c; });
+    return m;
+  }, [contactColumns]);
+
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((c) => {
+      if (selectedContactColumn !== "all" && c.column_id !== selectedContactColumn) return false;
+      if (selectedFunnel !== "all" && c.funnel_id !== selectedFunnel) return false;
+      return true;
+    });
+  }, [contacts, selectedContactColumn, selectedFunnel]);
+
+
   const filtersLabel = () => {
     const parts: string[] = [];
     parts.push(`Período: ${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`);
