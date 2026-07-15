@@ -161,9 +161,9 @@ export default function Sales() {
   const pageDeals = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="min-h-screen p-4 md:p-8 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="glass rounded-xl p-3">
+    <div className="min-h-screen bg-muted/40 p-4 md:p-8 space-y-6">
+      <div className="glass rounded-2xl p-4 md:p-5 flex items-center gap-3 border border-border/60 shadow-sm">
+        <div className="rounded-xl p-3 bg-success/10 ring-1 ring-success/20">
           <DollarSign className="h-6 w-6 text-success" />
         </div>
         <div>
@@ -174,7 +174,8 @@ export default function Sales() {
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-4 md:p-6 space-y-4">
+      <div className="glass rounded-2xl p-4 md:p-6 space-y-4 border border-border/60 shadow-sm bg-card/80">
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -249,13 +250,13 @@ export default function Sales() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="glass rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">Total de vendas</div>
-            <div className="text-2xl font-bold">{filtered.length}</div>
+          <div className="rounded-xl p-4 bg-background/70 border border-border/60 ring-1 ring-primary/10">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Total de vendas</div>
+            <div className="text-2xl font-bold text-primary mt-1">{filtered.length}</div>
           </div>
-          <div className="glass rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">Valor total</div>
-            <div className="text-2xl font-bold text-success">{fmtBRL(totalValue)}</div>
+          <div className="rounded-xl p-4 bg-background/70 border border-border/60 ring-1 ring-success/15">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Valor total</div>
+            <div className="text-2xl font-bold text-success mt-1">{fmtBRL(totalValue)}</div>
           </div>
         </div>
 
