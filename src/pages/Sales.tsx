@@ -250,13 +250,13 @@ export default function Sales() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="glass rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">Total de vendas</div>
-            <div className="text-2xl font-bold">{filtered.length}</div>
+          <div className="rounded-xl p-4 bg-background/70 border border-border/60 ring-1 ring-primary/10">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Total de vendas</div>
+            <div className="text-2xl font-bold text-primary mt-1">{filtered.length}</div>
           </div>
-          <div className="glass rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">Valor total</div>
-            <div className="text-2xl font-bold text-success">{fmtBRL(totalValue)}</div>
+          <div className="rounded-xl p-4 bg-background/70 border border-border/60 ring-1 ring-success/15">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Valor total</div>
+            <div className="text-2xl font-bold text-success mt-1">{fmtBRL(totalValue)}</div>
           </div>
         </div>
 
