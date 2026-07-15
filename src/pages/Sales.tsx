@@ -319,40 +319,6 @@ export default function Sales() {
                             {d.acquisition_channel}
                           </span>
                         )}
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 hover:text-foreground hover:underline underline-offset-2 transition-colors"
-                              title="Alterar data de referência da venda"
-                            >
-                              <CalendarIcon className="h-3 w-3" />
-                              {format(new Date((d as any).sold_at || d.updated_at), "dd/MM/yy", { locale: ptBR })}
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className="w-auto p-0"
-                            align="start"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Calendar
-                              mode="single"
-                              selected={new Date((d as any).sold_at || d.updated_at)}
-                              onSelect={async (nd) => {
-                                if (!nd) return;
-                                const { error } = await supabase
-                                  .from("deals")
-                                  .update({ sold_at: nd.toISOString() } as any)
-                                  .eq("id", d.id);
-                                if (!error) fetchDeals();
-                              }}
-                              initialFocus
-                              locale={ptBR}
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
                       </div>
                     </div>
 
