@@ -127,6 +127,7 @@ export default function Reports() {
     if (selectedFunnel !== "all") parts.push(`Funil: ${funnels.find((f) => f.id === selectedFunnel)?.name}`);
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
+    if (selectedLossReason !== "all") parts.push(`Motivo da perda: ${selectedLossReason === "__none__" ? "Sem motivo" : selectedLossReason}`);
     return parts.join(" | ");
   };
 
