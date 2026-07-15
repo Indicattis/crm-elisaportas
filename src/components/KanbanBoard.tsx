@@ -110,6 +110,7 @@ export function KanbanBoard() {
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
   const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
   const [pendingMoveReqs, setPendingMoveReqs] = useState<{ field_name: string }[]>([]);
+  const [pendingSell, setPendingSell] = useState<{ deal: Deal; targetStatus: string; kind: "drag" | "quick" } | null>(null);
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem("kanban-collapsed-columns");
