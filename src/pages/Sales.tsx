@@ -111,9 +111,9 @@ export default function Sales() {
       .select("*")
       .eq("status", "Vendido")
       .eq("archived", false)
-      .gte("updated_at", fromISO)
-      .lte("updated_at", toISO)
-      .order("updated_at", { ascending: false });
+      .gte("sold_at", fromISO)
+      .lte("sold_at", toISO)
+      .order("sold_at", { ascending: false });
 
     if (selectedFunnelId !== "all") q = q.eq("funnel_id", selectedFunnelId);
     if (selectedSellerId !== "all") q = q.eq("assigned_to", selectedSellerId);
