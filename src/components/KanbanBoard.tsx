@@ -31,6 +31,7 @@ import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
 import { KanbanLoading } from "./KanbanLoading";
 import { KanbanTracks, type FunnelTrack } from "./KanbanTracks";
+import { SellDateDialog } from "./SellDateDialog";
 import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
