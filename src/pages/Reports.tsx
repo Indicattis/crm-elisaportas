@@ -150,7 +150,7 @@ export default function Reports() {
     if (activeTab === "period") {
       tableHtml = `
         <table>
-          <thead><tr><th>Nº</th><th>Título</th><th>Telefone</th><th>Valor</th><th>Status</th><th>Responsável</th><th>Atualizado em</th></tr></thead>
+          <thead><tr><th>Nº</th><th>Título</th><th>Telefone</th><th>Valor</th><th>Status</th><th>Motivo da perda</th><th>Responsável</th><th>Atualizado em</th></tr></thead>
           <tbody>
             ${filteredDeals.map((d) => `
               <tr>
@@ -159,6 +159,7 @@ export default function Reports() {
                 <td>${d.phone ? applyPhoneMask(d.phone) : "-"}</td>
                 <td>${fmt(d.value || 0)}</td>
                 <td>${d.status}</td>
+                <td>${(d as any).loss_reason || "-"}</td>
                 <td>${profiles[d.assigned_to || d.user_id] || "-"}</td>
                 <td>${format(new Date(d.updated_at), "dd/MM/yyyy")}</td>
               </tr>
