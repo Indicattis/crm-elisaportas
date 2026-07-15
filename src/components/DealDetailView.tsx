@@ -145,6 +145,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [archiveReason, setArchiveReason] = useState("");
   const [showDisqualifyDialog, setShowDisqualifyDialog] = useState(false);
   const [disqualifyReason, setDisqualifyReason] = useState("");
+  const [showSellDateDialog, setShowSellDateDialog] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [allowedActions, setAllowedActions] = useState<string[]>(["sold", "lost", "disqualified"]);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
