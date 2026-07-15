@@ -4,6 +4,7 @@ import { createNotification } from "@/lib/notifications";
 
 import { StateCitySelect } from "@/components/StateCitySelect";
 import { ReturnDateField } from "@/components/ReturnDateField";
+import { SellDateDialog } from "@/components/SellDateDialog";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -144,6 +145,7 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
   const [archiveReason, setArchiveReason] = useState("");
   const [showDisqualifyDialog, setShowDisqualifyDialog] = useState(false);
   const [disqualifyReason, setDisqualifyReason] = useState("");
+  const [showSellDateDialog, setShowSellDateDialog] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [allowedActions, setAllowedActions] = useState<string[]>(["sold", "lost", "disqualified"]);
   const dialogContentRef = useRef<HTMLDivElement | null>(null);
@@ -601,14 +603,23 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
     }
   };
 
-  const handleMarkAsSold = async () => {
+  const handleMarkAsSold = () => {
+    if (!deal || statuses.length === 0) return;
+    setShowSellDateDialog(true);
+  };
+
+  const confirmMarkAsSold = async (soldDate: Date) => {
     if (!deal || statuses.length === 0) return;
     const lastStatus = statuses[statuses.length - 1];
-    const { error } = await supabase.from("deals").update({ status: lastStatus }).eq("id", deal.id);
+    const { error } = await supabase
+      .from("deals")
+      .update({ status: lastStatus, sold_at: soldDate.toISOString() } as any)
+      .eq("id", deal.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Negociação marcada como vendida!" });
+      setShowSellDateDialog(false);
       onUpdated();
       onOpenChange(false);
     }
@@ -1847,6 +1858,13 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <SellDateDialog
+      open={showSellDateDialog}
+      onOpenChange={setShowSellDateDialog}
+      onConfirm={confirmMarkAsSold}
+      defaultDate={(deal as any)?.sold_at ? new Date((deal as any).sold_at) : new Date()}
+    />
     </>
   );
 }

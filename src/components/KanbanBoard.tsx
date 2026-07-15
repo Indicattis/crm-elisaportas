@@ -31,6 +31,7 @@ import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
 import { KanbanLoading } from "./KanbanLoading";
 import { KanbanTracks, type FunnelTrack } from "./KanbanTracks";
+import { SellDateDialog } from "./SellDateDialog";
 import { useUserRole } from "@/contexts/RoleContext";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -109,6 +110,7 @@ export function KanbanBoard() {
   const [entryRequirements, setEntryRequirements] = useState<Record<string, { field_name: string }[]>>({});
   const [pendingMove, setPendingMove] = useState<{ deal: Deal; targetStatus: string } | null>(null);
   const [pendingMoveReqs, setPendingMoveReqs] = useState<{ field_name: string }[]>([]);
+  const [pendingSell, setPendingSell] = useState<{ deal: Deal; targetStatus: string; kind: "drag" | "quick" } | null>(null);
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem("kanban-collapsed-columns");
@@ -628,13 +630,19 @@ export function KanbanBoard() {
     setActiveOverStatus(null);
   };
 
-  const executeDealMove = async (deal: Deal, newStatus: string) => {
+  const executeDealMove = async (deal: Deal, newStatus: string, extraUpdate: Record<string, any> = {}) => {
     const dealId = deal.id;
     const oldStatus = deal.status;
 
-    setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus } : item)));
+    // Intercept transitions into "Vendido" to require a reference date
+    if (newStatus === "Vendido" && oldStatus !== "Vendido" && !("sold_at" in extraUpdate)) {
+      setPendingSell({ deal, targetStatus: newStatus, kind: "drag" });
+      return;
+    }
 
-    const { error } = await supabase.from("deals").update({ status: newStatus }).eq("id", dealId);
+    setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus, ...extraUpdate } : item)));
+
+    const { error } = await supabase.from("deals").update({ status: newStatus, ...extraUpdate } as any).eq("id", dealId);
 
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
@@ -749,20 +757,36 @@ export function KanbanBoard() {
     refreshDeals();
   }, [authUser, deals, toast]);
 
-  const handleQuickSell = useCallback(async (dealId: string) => {
+  const handleQuickSell = useCallback((dealId: string) => {
     const statuses = columns.map((c) => c.name);
     if (statuses.length === 0) return;
     const lastStatus = statuses[statuses.length - 1];
-    // Optimistic: remove from board immediately
-    setDeals((prev) => prev.filter((d) => d.id !== dealId));
-    const { error } = await supabase.from("deals").update({ status: lastStatus }).eq("id", dealId);
-    if (error) {
-      toast({ title: "Erro ao marcar como vendida", description: error.message, variant: "destructive" });
-      refreshDeals();
-      return;
+    const deal = deals.find((d) => d.id === dealId);
+    if (!deal) return;
+    setPendingSell({ deal, targetStatus: lastStatus, kind: "quick" });
+  }, [columns, deals]);
+
+  const confirmPendingSell = async (soldDate: Date) => {
+    if (!pendingSell) return;
+    const { deal, targetStatus, kind } = pendingSell;
+    setPendingSell(null);
+    if (kind === "quick") {
+      setDeals((prev) => prev.filter((d) => d.id !== deal.id));
+      const { error } = await supabase
+        .from("deals")
+        .update({ status: targetStatus, sold_at: soldDate.toISOString() } as any)
+        .eq("id", deal.id);
+      if (error) {
+        toast({ title: "Erro ao marcar como vendida", description: error.message, variant: "destructive" });
+        refreshDeals();
+        return;
+      }
+      toast({ title: "Negociação marcada como vendida!" });
+    } else {
+      await executeDealMove(deal, targetStatus, { sold_at: soldDate.toISOString() });
     }
-    toast({ title: "Negociação marcada como vendida!" });
-  }, [columns, toast]);
+  };
+
 
 
   const handleTagToggle = useCallback(async (dealId: string, tagId: string, checked: boolean) => {
@@ -1094,6 +1118,13 @@ export function KanbanBoard() {
           }}
         />
       )}
+
+      <SellDateDialog
+        open={!!pendingSell}
+        onOpenChange={(open) => { if (!open) setPendingSell(null); }}
+        onConfirm={confirmPendingSell}
+        defaultDate={new Date()}
+      />
     </>
   );
 }

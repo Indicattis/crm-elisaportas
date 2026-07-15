@@ -531,6 +531,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           return_date: string | null
+          sold_at: string | null
           state: string | null
           status: string
           title: string
@@ -556,6 +557,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           return_date?: string | null
+          sold_at?: string | null
           state?: string | null
           status?: string
           title: string
@@ -581,6 +583,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           return_date?: string | null
+          sold_at?: string | null
           state?: string | null
           status?: string
           title?: string

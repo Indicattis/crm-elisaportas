@@ -111,9 +111,9 @@ export default function Sales() {
       .select("*")
       .eq("status", "Vendido")
       .eq("archived", false)
-      .gte("updated_at", fromISO)
-      .lte("updated_at", toISO)
-      .order("updated_at", { ascending: false });
+      .gte("sold_at", fromISO)
+      .lte("sold_at", toISO)
+      .order("sold_at", { ascending: false });
 
     if (selectedFunnelId !== "all") q = q.eq("funnel_id", selectedFunnelId);
     if (selectedSellerId !== "all") q = q.eq("assigned_to", selectedSellerId);
@@ -317,10 +317,40 @@ export default function Sales() {
                             {d.acquisition_channel}
                           </span>
                         )}
-                        <span className="inline-flex items-center gap-1">
-                          <CalendarIcon className="h-3 w-3" />
-                          {format(new Date(d.updated_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
-                        </span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 hover:text-foreground hover:underline underline-offset-2 transition-colors"
+                              title="Alterar data de referência da venda"
+                            >
+                              <CalendarIcon className="h-3 w-3" />
+                              {format(new Date((d as any).sold_at || d.updated_at), "dd/MM/yy", { locale: ptBR })}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto p-0"
+                            align="start"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Calendar
+                              mode="single"
+                              selected={new Date((d as any).sold_at || d.updated_at)}
+                              onSelect={async (nd) => {
+                                if (!nd) return;
+                                const { error } = await supabase
+                                  .from("deals")
+                                  .update({ sold_at: nd.toISOString() } as any)
+                                  .eq("id", d.id);
+                                if (!error) fetchDeals();
+                              }}
+                              initialFocus
+                              locale={ptBR}
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
 
