@@ -67,9 +67,24 @@ export default function Reports() {
       if (selectedFunnel !== "all" && d.funnel_id !== selectedFunnel) return false;
       if (selectedUser !== "all" && d.assigned_to !== selectedUser && d.user_id !== selectedUser) return false;
       if (selectedChannel !== "all" && d.acquisition_channel !== selectedChannel) return false;
+      if (selectedLossReason !== "all") {
+        const reason = (d as any).loss_reason;
+        if (selectedLossReason === "__none__") {
+          if (d.status === "Perdido" && reason) return false;
+        } else if (reason !== selectedLossReason) return false;
+      }
       return true;
     });
-  }, [deals, selectedFunnel, selectedUser, selectedChannel]);
+  }, [deals, selectedFunnel, selectedUser, selectedChannel, selectedLossReason]);
+
+  const lossReasons = useMemo(() => {
+    const set = new Set<string>();
+    deals.forEach((d) => {
+      const r = (d as any).loss_reason;
+      if (r) set.add(r);
+    });
+    return Array.from(set).sort();
+  }, [deals]);
 
   const soldDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Vendido"), [filteredDeals]);
   const lostDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Perdido"), [filteredDeals]);
