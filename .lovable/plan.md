@@ -1,59 +1,46 @@
-# Exportar planejamento em PDF/Excel
+## Objetivo
 
-## Botão de exportação
-No cabeçalho de `/planejamento`, ao lado do filtro "Vendedores", adicionar botão **Exportar** (ícone `Download`) com `DropdownMenu`:
-- **Baixar PDF**
-- **Baixar Excel**
+Cada negociação marcada como "Vendido" terá uma **data de referência da venda** (independente de `updated_at`), definida pelo vendedor no momento da venda e editável em `/vendas`. A listagem/filtros de `/vendas` passam a usar essa data.
 
-Desabilitado quando `visibleSellers.length === 0`.
+## Mudanças
 
-## Conteúdo exportado (mesmo em ambos)
-Respeita o filtro de vendedores atual — usa `visibleSellers` e `clients` já filtrados por `visibleIds`.
+### 1. Banco de dados (migração)
+- Adicionar coluna `sold_at timestamptz` em `public.deals`.
+- Backfill: para deals com `status = 'Vendido'`, setar `sold_at = updated_at`.
+- (Sem alteração de RLS — as políticas existentes já cobrem edição do deal.)
 
-Cabeçalho:
-- Título "Planejamento de Vendas"
-- Data/hora de geração (`pt-BR`)
-- Vendedores selecionados (ou "Todos" quando nenhum filtro)
+### 2. Marcar como vendido — coleta da data
+Fluxos hoje que movem para "Vendido":
+- Botão "Vender" no `DealCard.tsx` (quando `show_sell_button` está habilitado na coluna).
+- Drag & drop para a coluna final em `KanbanBoard.tsx`.
+- Mudança de status manual dentro do `DealDetailView.tsx`.
 
-Para cada vendedor visível, uma seção com:
-- Nome do vendedor + contagem de clientes + subtotal (BRL)
-- Tabela de clientes: Nome | Temperatura (Quente/Morno) | Valor (BRL)
-- Ordenação: quente antes de morno, depois maior valor, depois mais recente (mesma regra da coluna)
+Em todos os três, ao detectar transição para status "Vendido", abrir um pequeno diálogo (`SellDateDialog`) com um date picker (padrão = hoje, `pt-BR`) exigindo confirmação. Ao confirmar, o update do deal inclui `status = 'Vendido'` e `sold_at = <data escolhida>`. Se cancelar, a mudança de status é abortada (no drag, o card retorna à coluna original).
 
-Rodapé com os 4 índices:
-- Projetado — Quente
-- Projetado — Morno
-- Faturamento atual da empresa
-- Total
+Componente novo: `src/components/SellDateDialog.tsx` (Dialog + Calendar shadcn, reutilizado pelos três pontos).
 
-## Excel (.xlsx)
-Usar `xlsx` (SheetJS) — leve, roda no browser sem servidor.
-- Uma aba **Resumo**: cabeçalho com filtro e data, tabela com os 4 índices, tabela com subtotais por vendedor.
-- Uma aba **Clientes**: colunas `Vendedor | Cliente | Temperatura | Valor`, com todos os clientes visíveis.
-- Coluna de valor formatada como moeda BRL; largura das colunas ajustada.
-- Nome do arquivo: `planejamento-YYYY-MM-DD.xlsx`.
+### 3. Página `/vendas` (`src/pages/Sales.tsx`)
+- Trocar a query de listagem para filtrar por `sold_at` em vez de `updated_at`:
+  - `.gte("sold_at", fromISO).lte("sold_at", toISO)`
+  - `.order("sold_at", { ascending: false })`
+  - `COALESCE`-style fallback não é necessário graças ao backfill.
+- Na linha de cada venda, substituir o timestamp exibido (hoje `updated_at`) por `sold_at`, com um ícone de lápis pequeno para editar.
+- Ao clicar em editar: popover com `Calendar` (padrão shadcn) que salva `sold_at` no deal e recarrega a lista. Disponível para admin e para o próprio vendedor do deal (RLS já garante).
 
-## PDF
-Usar `jspdf` + `jspdf-autotable` (ambos já leves, client-side).
-- A4 retrato, margens confortáveis, fonte Helvetica.
-- Cabeçalho com título, data e filtro aplicado.
-- Para cada vendedor: subtítulo com nome + subtotal, seguido de `autoTable` com os clientes.
-- Bolinha de temperatura substituída por texto colorido (vermelho Quente / âmbar Morno).
-- Bloco final com os 4 índices em destaque.
-- Rodapé com numeração de página.
-- Nome do arquivo: `planejamento-YYYY-MM-DD.pdf`.
-
-## Arquivos
-- `src/pages/SalesPlanning.tsx` — adicionar botão/menu e handlers `handleExportPdf`/`handleExportXlsx`, passando `visibleSellers`, `clients` filtrados, `hotSum`, `warmSum` e `currentRevenue` (elevar leitura do faturamento atual para a página, ou lê-lo sob demanda no export).
-- `src/lib/planning-export.ts` — novo módulo com `exportPlanningToPdf(...)` e `exportPlanningToXlsx(...)`, isolando formatação e dependências.
-
-## Dependências a instalar
-- `xlsx`
-- `jspdf`
-- `jspdf-autotable`
+### 4. Tipos
+Após a migração, `Tables<"deals">` regenera automaticamente com `sold_at`. Nenhum ajuste manual em `types.ts`.
 
 ## Detalhes técnicos
-- O "Faturamento atual" hoje mora dentro do `PlanningFooter`. Para reutilizar no export sem duplicar fetch, mover o `useEffect` que carrega `company_revenue` para `SalesPlanning.tsx` e passar `currentRevenue`/`setCurrentRevenue` como props ao `PlanningFooter`.
-- Formatação BRL: `Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })`.
-- Ordenação replicada do `PlanningColumn` (hot→warm, valor desc, data desc) via helper compartilhado dentro de `planning-export.ts`.
-- Toast de sucesso/erro nas exportações.
+
+- SQL:
+  ```sql
+  ALTER TABLE public.deals ADD COLUMN sold_at timestamptz;
+  UPDATE public.deals SET sold_at = updated_at WHERE status = 'Vendido' AND sold_at IS NULL;
+  CREATE INDEX IF NOT EXISTS deals_sold_at_idx ON public.deals (sold_at);
+  ```
+- Detecção "virou vendido": comparar `oldStatus !== 'Vendido' && newStatus === 'Vendido'`.
+- Ao mudar de "Vendido" para outro status, manter `sold_at` (histórico) — não limpar. Se voltar a "Vendido" depois, pedir a data novamente e sobrescrever.
+- Formato exibido: `dd/MM/yy` (ptBR), consistente com o resto de `/vendas`.
+
+## Fora de escopo
+- Relatórios (`/relatorios`) e Dashboard continuam com suas datas atuais; podemos migrar depois se desejado.
