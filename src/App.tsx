@@ -39,6 +39,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/deal/:id" element={<DealDetail />} />
+          <Route path="/sale/:id" element={<SaleDetail />} />
           <Route path="/crm-config" element={<RoleGuard allowedRoles={["admin"]}><CrmConfig /></RoleGuard>} />
         </Route>
         <Route path="*" element={<NotFound />} />
