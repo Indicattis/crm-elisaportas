@@ -31,6 +31,7 @@ export default function Reports() {
   const [selectedFunnel, setSelectedFunnel] = useState("all");
   const [selectedUser, setSelectedUser] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
+  const [selectedLossReason, setSelectedLossReason] = useState("all");
   const [activeTab, setActiveTab] = useState("period");
 
   useEffect(() => {
