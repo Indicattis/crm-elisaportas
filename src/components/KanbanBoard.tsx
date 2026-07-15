@@ -1118,6 +1118,13 @@ export function KanbanBoard() {
           }}
         />
       )}
+
+      <SellDateDialog
+        open={!!pendingSell}
+        onOpenChange={(open) => { if (!open) setPendingSell(null); }}
+        onConfirm={confirmPendingSell}
+        defaultDate={new Date()}
+      />
     </>
   );
 }
