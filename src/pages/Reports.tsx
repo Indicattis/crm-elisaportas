@@ -439,6 +439,9 @@ export default function Reports() {
             <TabsTrigger value="channel" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Target className="h-4 w-4 text-warning" />Por Canal
             </TabsTrigger>
+            <TabsTrigger value="contacts" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <UserSquare2 className="h-4 w-4 text-info" />Contatos
+            </TabsTrigger>
           </TabsList>
 
           {loading ? (
