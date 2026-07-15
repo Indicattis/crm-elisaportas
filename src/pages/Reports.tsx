@@ -376,13 +376,14 @@ export default function Reports() {
                         <TableHead>Telefone</TableHead>
                         <TableHead>Valor</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Motivo da perda</TableHead>
                         <TableHead>Responsável</TableHead>
                         <TableHead>Atualizado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredDeals.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma negociação encontrada</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma negociação encontrada</TableCell></TableRow>
                       ) : filteredDeals.map((d) => (
                         <TableRow key={d.id}>
                           <TableCell>{d.deal_number || "-"}</TableCell>
@@ -390,6 +391,7 @@ export default function Reports() {
                           <TableCell>{d.phone ? applyPhoneMask(d.phone) : "-"}</TableCell>
                           <TableCell>{fmt(d.value || 0)}</TableCell>
                           <TableCell>{d.status}</TableCell>
+                          <TableCell className={(d as any).loss_reason ? "text-destructive" : "text-muted-foreground"}>{(d as any).loss_reason || "-"}</TableCell>
                           <TableCell>{profiles[d.assigned_to || d.user_id] || "-"}</TableCell>
                           <TableCell>{format(new Date(d.updated_at), "dd/MM/yyyy")}</TableCell>
                         </TableRow>
