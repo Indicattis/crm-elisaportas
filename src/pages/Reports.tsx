@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, FileText, Printer, BarChart3, TrendingUp, Users, Target, DollarSign, Percent, Package, ShoppingCart, XCircle } from "lucide-react";
+import { CalendarIcon, FileText, Printer, BarChart3, TrendingUp, Users, Target, DollarSign, Percent, Package, ShoppingCart, XCircle, UserSquare2 } from "lucide-react";
 import { format, startOfMonth, endOfDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,24 @@ import { applyPhoneMask } from "@/lib/phone-mask";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
+
+interface ContactRow {
+  id: string;
+  name: string;
+  phone: string | null;
+  state: string | null;
+  city: string | null;
+  notes: string | null;
+  created_at: string;
+  column_id: string;
+  funnel_id: string;
+}
+
+interface ContactColumn {
+  id: string;
+  name: string;
+  funnel_id: string;
+}
 
 export default function Reports() {
   const { user } = useAuth();
