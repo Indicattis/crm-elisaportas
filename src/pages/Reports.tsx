@@ -258,6 +258,30 @@ export default function Reports() {
           </tbody>
         </table>
       `;
+    } else if (activeTab === "contacts") {
+      tableHtml = `
+        <table>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Cidade/Estado</th><th>Coluna</th><th>Funil</th><th>Cadastrado em</th></tr></thead>
+          <tbody>
+            ${filteredContacts.map((c) => {
+              const col = contactColumnMap[c.column_id];
+              const funnel = funnels.find((f) => f.id === c.funnel_id);
+              const loc = [c.city, c.state].filter(Boolean).join(" / ") || "-";
+              return `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>${c.phone ? applyPhoneMask(c.phone) : "-"}</td>
+                  <td>${loc}</td>
+                  <td>${col?.name || "-"}</td>
+                  <td>${funnel?.name || "-"}</td>
+                  <td>${format(new Date(c.created_at), "dd/MM/yyyy")}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+        <p class="total">Total de contatos: ${filteredContacts.length}</p>
+      `;
     }
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
