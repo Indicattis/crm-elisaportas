@@ -630,13 +630,19 @@ export function KanbanBoard() {
     setActiveOverStatus(null);
   };
 
-  const executeDealMove = async (deal: Deal, newStatus: string) => {
+  const executeDealMove = async (deal: Deal, newStatus: string, extraUpdate: Record<string, any> = {}) => {
     const dealId = deal.id;
     const oldStatus = deal.status;
 
-    setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus } : item)));
+    // Intercept transitions into "Vendido" to require a reference date
+    if (newStatus === "Vendido" && oldStatus !== "Vendido" && !("sold_at" in extraUpdate)) {
+      setPendingSell({ deal, targetStatus: newStatus, kind: "drag" });
+      return;
+    }
 
-    const { error } = await supabase.from("deals").update({ status: newStatus }).eq("id", dealId);
+    setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus, ...extraUpdate } : item)));
+
+    const { error } = await supabase.from("deals").update({ status: newStatus, ...extraUpdate } as any).eq("id", dealId);
 
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
