@@ -603,14 +603,23 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
     }
   };
 
-  const handleMarkAsSold = async () => {
+  const handleMarkAsSold = () => {
+    if (!deal || statuses.length === 0) return;
+    setShowSellDateDialog(true);
+  };
+
+  const confirmMarkAsSold = async (soldDate: Date) => {
     if (!deal || statuses.length === 0) return;
     const lastStatus = statuses[statuses.length - 1];
-    const { error } = await supabase.from("deals").update({ status: lastStatus }).eq("id", deal.id);
+    const { error } = await supabase
+      .from("deals")
+      .update({ status: lastStatus, sold_at: soldDate.toISOString() } as any)
+      .eq("id", deal.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Negociação marcada como vendida!" });
+      setShowSellDateDialog(false);
       onUpdated();
       onOpenChange(false);
     }
