@@ -308,18 +308,19 @@ export default function SaleDetail() {
           <div className="text-3xl font-bold text-success mt-1 tabular-nums">{fmtBRL(deal.value || 0)}</div>
         </div>
         <div className="glass rounded-2xl p-5 border border-border/60 shadow-sm ring-1 ring-primary/10 bg-card/80">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Data de referência</div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Data de referência da venda</div>
           <Popover>
             <PopoverTrigger asChild>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="lg"
                 disabled={savingDate}
-                className="mt-1 inline-flex items-center gap-2 text-xl font-semibold text-primary hover:underline underline-offset-4"
+                className="mt-2 h-auto px-3 py-2 text-xl font-semibold text-primary hover:bg-primary/10 hover:text-primary"
                 title="Clique para alterar a data de referência da venda"
               >
-                <CalendarIcon className="h-5 w-5" />
+                <CalendarIcon className="h-5 w-5 mr-2" />
                 {format(new Date(soldAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-              </button>
+              </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
@@ -332,7 +333,9 @@ export default function SaleDetail() {
               />
             </PopoverContent>
           </Popover>
-          <div className="text-[11px] text-muted-foreground mt-1">Clique para alterar</div>
+          <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+            <CalendarIcon className="h-3 w-3" /> Clique na data acima para editar
+          </div>
         </div>
         <div className="glass rounded-2xl p-5 border border-border/60 shadow-sm bg-card/80 space-y-1.5">
           <div>
