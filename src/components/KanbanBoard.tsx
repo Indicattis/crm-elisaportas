@@ -758,32 +758,38 @@ export function KanbanBoard() {
   }, [authUser, deals, toast]);
 
   const handleQuickSell = useCallback((dealId: string) => {
-    const statuses = columns.map((c) => c.name);
-    if (statuses.length === 0) return;
-    const lastStatus = statuses[statuses.length - 1];
     const deal = deals.find((d) => d.id === dealId);
     if (!deal) return;
-    setPendingSell({ deal, targetStatus: lastStatus, kind: "quick" });
-  }, [columns, deals]);
+    setPendingSell({ deal, targetStatus: "Vendido", kind: "quick" });
+  }, [deals]);
 
   const confirmPendingSell = async (soldDate: Date) => {
     if (!pendingSell) return;
-    const { deal, targetStatus, kind } = pendingSell;
+    const { deal, kind } = pendingSell;
     setPendingSell(null);
     if (kind === "quick") {
       setDeals((prev) => prev.filter((d) => d.id !== deal.id));
       const { error } = await supabase
         .from("deals")
-        .update({ status: targetStatus, sold_at: soldDate.toISOString() } as any)
+        .update({ status: "Vendido", sold_at: soldDate.toISOString() } as any)
         .eq("id", deal.id);
       if (error) {
         toast({ title: "Erro ao marcar como vendida", description: error.message, variant: "destructive" });
         refreshDeals();
         return;
       }
+      if (authUser) {
+        await supabase.from("deal_history").insert({
+          deal_id: deal.id,
+          user_id: authUser.id,
+          event_type: "column_change",
+          description: `Moveu de "${deal.status}" para "Vendido"`,
+          metadata: { from: deal.status, to: "Vendido" },
+        } as any);
+      }
       toast({ title: "Negociação marcada como vendida!" });
     } else {
-      await executeDealMove(deal, targetStatus, { sold_at: soldDate.toISOString() });
+      await executeDealMove(deal, "Vendido", { sold_at: soldDate.toISOString() });
     }
   };
 
