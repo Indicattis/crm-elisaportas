@@ -1858,6 +1858,13 @@ export function DealDetailView({ deal, statuses, columnColor, onUpdated, onClose
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <SellDateDialog
+      open={showSellDateDialog}
+      onOpenChange={setShowSellDateDialog}
+      onConfirm={confirmMarkAsSold}
+      defaultDate={(deal as any)?.sold_at ? new Date((deal as any).sold_at) : new Date()}
+    />
     </>
   );
 }
