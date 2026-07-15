@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import LeadForm from "./pages/LeadForm";
 import Results from "./pages/Results";
 import Sales from "./pages/Sales";
+import Losses from "./pages/Losses";
 import SalesPlanning from "./pages/SalesPlanning";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
