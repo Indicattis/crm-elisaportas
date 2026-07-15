@@ -161,20 +161,21 @@ export default function Sales() {
   const pageDeals = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="min-h-screen bg-muted/40 p-4 md:p-8 space-y-6">
-      <div className="glass rounded-2xl p-4 md:p-5 flex items-center gap-3 border border-border/60 shadow-sm">
-        <div className="rounded-xl p-3 bg-success/10 ring-1 ring-success/20">
-          <DollarSign className="h-6 w-6 text-success" />
+    <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
+      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+        <div className="glass rounded-2xl p-5 flex items-center gap-3 border border-border/60 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)]">
+          <div className="rounded-xl p-3 bg-success/10 ring-1 ring-success/20">
+            <DollarSign className="h-6 w-6 text-success" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Vendas</h1>
+            <p className="text-sm text-muted-foreground">
+              Todas as negociações concluídas como vendidas
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Vendas</h1>
-          <p className="text-sm text-muted-foreground">
-            Todas as negociações concluídas como vendidas
-          </p>
-        </div>
-      </div>
 
-      <div className="glass rounded-2xl p-4 md:p-6 space-y-4 border border-border/60 shadow-sm bg-card/80">
+        <div className="glass rounded-2xl p-5 space-y-4 border border-border/60 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] bg-card/80">
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative lg:col-span-2">
