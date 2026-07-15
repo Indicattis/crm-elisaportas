@@ -629,9 +629,9 @@ export default function Results() {
     }
 
     return (
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Etapa</TableHead>
               <TableHead className="text-right">Qtd. Negociações</TableHead>
