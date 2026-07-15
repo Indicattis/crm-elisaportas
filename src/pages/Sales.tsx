@@ -319,21 +319,27 @@ export default function Sales() {
                             {d.acquisition_channel}
                           </span>
                         )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4 shrink-0">
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Data de referência</div>
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
                               type="button"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 hover:text-foreground hover:underline underline-offset-2 transition-colors"
+                              className="inline-flex items-center gap-1.5 mt-0.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/15 transition-colors"
                               title="Alterar data de referência da venda"
                             >
                               <CalendarIcon className="h-3 w-3" />
-                              {format(new Date((d as any).sold_at || d.updated_at), "dd/MM/yy", { locale: ptBR })}
+                              {format(new Date((d as any).sold_at || d.updated_at), "dd/MM/yyyy", { locale: ptBR })}
                             </button>
                           </PopoverTrigger>
                           <PopoverContent
                             className="w-auto p-0"
-                            align="start"
+                            align="end"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Calendar
@@ -354,16 +360,14 @@ export default function Sales() {
                           </PopoverContent>
                         </Popover>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
                       <div className="text-right">
                         <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Valor</div>
                         <div className="text-success font-bold text-sm md:text-base tabular-nums">
                           {fmtBRL(d.value || 0)}
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all hidden md:block" />
                     </div>
                   </div>
                 </div>
