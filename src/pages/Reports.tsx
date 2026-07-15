@@ -334,6 +334,14 @@ export default function Reports() {
                 {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={selectedLossReason} onValueChange={setSelectedLossReason}>
+              <SelectTrigger className="w-[200px] bg-background/60"><SelectValue placeholder="Motivo da perda" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os motivos</SelectItem>
+                <SelectItem value="__none__">Sem motivo</SelectItem>
+                {lossReasons.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
