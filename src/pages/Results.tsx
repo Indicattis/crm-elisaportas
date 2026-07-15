@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, DollarSign, User, Trash2, Ban, Undo2, UserPlus } from "lucide-react";
+import { Search, TrendingUp, XCircle, Archive, History, CalendarIcon, User, Trash2, Ban, Undo2, UserPlus, BarChart3 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
@@ -420,9 +420,9 @@ export default function Results() {
 
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Título</TableHead>
                 {showStatusColumn && <TableHead>Status</TableHead>}
@@ -629,9 +629,9 @@ export default function Results() {
     }
 
     return (
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Etapa</TableHead>
               <TableHead className="text-right">Qtd. Negociações</TableHead>
@@ -690,9 +690,9 @@ export default function Results() {
 
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
@@ -771,206 +771,222 @@ export default function Results() {
   };
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      {/* Header + Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Resultados</h1>
-        <div className="flex flex-wrap items-center gap-3 ml-auto">
-          {renderDatePicker("De", dateFrom, setDateFrom)}
-          <span className="text-muted-foreground text-sm">até</span>
-          {renderDatePicker("Até", dateTo, setDateTo)}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar negociação..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9 w-60"
-            />
-          </div>
-          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Todos os funis" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os funis</SelectItem>
-              {funnels.map(f => (
-                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={selectedDealsSellerId || "all"}
-            onValueChange={(v) => setSelectedDealsSellerId(v === "all" ? "" : v)}
-            disabled={role === "vendedor"}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Todos os vendedores" />
-            </SelectTrigger>
-            <SelectContent>
-              {role === "admin" && <SelectItem value="all">Todos os vendedores</SelectItem>}
-              {sellers.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Summary Cards as Filters */}
-      {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
-            onClick={() => setActiveFilter(f => f === "sold" ? null : "sold")}
-            className={cn(
-              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
-              activeFilter === "sold"
-                ? "border-success/40 bg-success/10 ring-2 ring-success/30"
-                : activeFilter === null
-                  ? "border-success/20 bg-success/5 hover:bg-success/10"
-                  : "border-border bg-card opacity-50 hover:opacity-75"
-            )}
-          >
-            <div className="rounded-lg bg-success/15 p-2.5">
-              <TrendingUp className="h-5 w-5 text-success" />
+    <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
+      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+        {/* Header + Filters */}
+        <div className="glass rounded-2xl border border-border/60 p-5 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center text-primary ring-1 ring-primary/20">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Resultados</h1>
+                <p className="text-xs text-muted-foreground">Acompanhe vendas, perdas, arquivos e leads</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Vendidas</p>
-              <p className="text-lg font-bold text-success">{formatCurrency(soldDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
-              <p className="text-xs text-muted-foreground">{soldDeals.length} negociação{soldDeals.length !== 1 ? "ões" : ""}</p>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveFilter(f => f === "lost" ? null : "lost")}
-            className={cn(
-              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
-              activeFilter === "lost"
-                ? "border-destructive/40 bg-destructive/10 ring-2 ring-destructive/30"
-                : activeFilter === null
-                  ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
-                  : "border-border bg-card opacity-50 hover:opacity-75"
-            )}
-          >
-            <div className="rounded-lg bg-destructive/15 p-2.5">
-              <XCircle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Perdidas</p>
-              <p className="text-lg font-bold text-destructive">{formatCurrency(lostDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
-              <p className="text-xs text-muted-foreground">{lostDeals.length} negociação{lostDeals.length !== 1 ? "ões" : ""}</p>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveFilter(f => f === "archived" ? null : "archived")}
-            className={cn(
-              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
-              activeFilter === "archived"
-                ? "border-warning/40 bg-warning/10 ring-2 ring-warning/30"
-                : activeFilter === null
-                  ? "border-warning/20 bg-warning/5 hover:bg-warning/10"
-                  : "border-border bg-card opacity-50 hover:opacity-75"
-            )}
-          >
-            <div className="rounded-lg bg-warning/15 p-2.5">
-              <Archive className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Arquivadas</p>
-              <p className="text-lg font-bold text-warning">{formatCurrency(archivedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
-              <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveFilter(f => f === "disqualified" ? null : "disqualified")}
-            className={cn(
-              "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer",
-              activeFilter === "disqualified"
-                ? "border-muted-foreground/40 bg-muted ring-2 ring-muted-foreground/30"
-                : activeFilter === null
-                  ? "border-muted-foreground/20 bg-muted/50 hover:bg-muted"
-                  : "border-border bg-card opacity-50 hover:opacity-75"
-            )}
-          >
-            <div className="rounded-lg bg-muted-foreground/15 p-2.5">
-              <Ban className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Desqualificados</p>
-              <p className="text-lg font-bold text-muted-foreground">{formatCurrency(disqualifiedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
-              <p className="text-xs text-muted-foreground">{disqualifiedDeals.length} negociação{disqualifiedDeals.length !== 1 ? "ões" : ""}</p>
-            </div>
-          </button>
-        </div>
-      )}
-
-      {/* Deals Table */}
-      {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      ) : (
-        renderTable(getActiveDeals())
-      )}
-
-      {/* Stage History Section */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <History className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Histórico por Etapa</h2>
-          </div>
-          <div className="flex items-center gap-3 sm:ml-auto">
-            {role === "admin" && (
-              <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
-                <SelectTrigger className="w-48">
+            <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+              {renderDatePicker("De", dateFrom, setDateFrom)}
+              <span className="text-muted-foreground text-sm">até</span>
+              {renderDatePicker("Até", dateTo, setDateTo)}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar negociação..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 w-60 bg-background/60"
+                />
+              </div>
+              <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+                <SelectTrigger className="w-48 bg-background/60">
+                  <SelectValue placeholder="Todos os funis" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os funis</SelectItem>
+                  {funnels.map(f => (
+                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={selectedDealsSellerId || "all"}
+                onValueChange={(v) => setSelectedDealsSellerId(v === "all" ? "" : v)}
+                disabled={role === "vendedor"}
+              >
+                <SelectTrigger className="w-48 bg-background/60">
                   <SelectValue placeholder="Todos os vendedores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os vendedores</SelectItem>
+                  {role === "admin" && <SelectItem value="all">Todos os vendedores</SelectItem>}
                   {sellers.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            )}
-            {renderDatePicker("Data", historyDate, setHistoryDate)}
+            </div>
           </div>
         </div>
-        {renderStageHistory()}
-      </div>
 
-      {/* Leads History Section */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Histórico de Leads Criados</h2>
+        {/* Summary Cards as Filters */}
+        {!loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              onClick={() => setActiveFilter(f => f === "sold" ? null : "sold")}
+              className={cn(
+                "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer border-l-4 shadow-sm",
+                activeFilter === "sold"
+                  ? "border-success/40 bg-success/10 ring-2 ring-success/30 border-l-success"
+                  : activeFilter === null
+                    ? "border-success/20 bg-card hover:bg-success/5 border-l-success"
+                    : "border-border bg-card opacity-50 hover:opacity-75 border-l-success"
+              )}
+            >
+              <div className="rounded-lg bg-success/15 p-2.5 ring-1 ring-success/20">
+                <TrendingUp className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Vendidas</p>
+                <p className="text-lg font-bold text-success">{formatCurrency(soldDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+                <p className="text-xs text-muted-foreground">{soldDeals.length} negociação{soldDeals.length !== 1 ? "ões" : ""}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveFilter(f => f === "lost" ? null : "lost")}
+              className={cn(
+                "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer border-l-4 shadow-sm",
+                activeFilter === "lost"
+                  ? "border-destructive/40 bg-destructive/10 ring-2 ring-destructive/30 border-l-destructive"
+                  : activeFilter === null
+                    ? "border-destructive/20 bg-card hover:bg-destructive/5 border-l-destructive"
+                    : "border-border bg-card opacity-50 hover:opacity-75 border-l-destructive"
+              )}
+            >
+              <div className="rounded-lg bg-destructive/15 p-2.5 ring-1 ring-destructive/20">
+                <XCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Perdidas</p>
+                <p className="text-lg font-bold text-destructive">{formatCurrency(lostDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+                <p className="text-xs text-muted-foreground">{lostDeals.length} negociação{lostDeals.length !== 1 ? "ões" : ""}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveFilter(f => f === "archived" ? null : "archived")}
+              className={cn(
+                "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer border-l-4 shadow-sm",
+                activeFilter === "archived"
+                  ? "border-warning/40 bg-warning/10 ring-2 ring-warning/30 border-l-warning"
+                  : activeFilter === null
+                    ? "border-warning/20 bg-card hover:bg-warning/5 border-l-warning"
+                    : "border-border bg-card opacity-50 hover:opacity-75 border-l-warning"
+              )}
+            >
+              <div className="rounded-lg bg-warning/15 p-2.5 ring-1 ring-warning/20">
+                <Archive className="h-5 w-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Arquivadas</p>
+                <p className="text-lg font-bold text-warning">{formatCurrency(archivedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+                <p className="text-xs text-muted-foreground">{archivedDeals.length} negociação{archivedDeals.length !== 1 ? "ões" : ""}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveFilter(f => f === "disqualified" ? null : "disqualified")}
+              className={cn(
+                "rounded-xl border p-4 flex items-center gap-3 text-left transition-all cursor-pointer border-l-4 shadow-sm",
+                activeFilter === "disqualified"
+                  ? "border-muted-foreground/40 bg-muted ring-2 ring-muted-foreground/30 border-l-muted-foreground"
+                  : activeFilter === null
+                    ? "border-muted-foreground/20 bg-card hover:bg-muted/50 border-l-muted-foreground"
+                    : "border-border bg-card opacity-50 hover:opacity-75 border-l-muted-foreground"
+              )}
+            >
+              <div className="rounded-lg bg-muted-foreground/15 p-2.5 ring-1 ring-muted-foreground/20">
+                <Ban className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Desqualificados</p>
+                <p className="text-lg font-bold text-muted-foreground">{formatCurrency(disqualifiedDeals.reduce((s, d) => s + (d.value || 0), 0))}</p>
+                <p className="text-xs text-muted-foreground">{disqualifiedDeals.length} negociação{disqualifiedDeals.length !== 1 ? "ões" : ""}</p>
+              </div>
+            </button>
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
-            <Select value={leadsOriginFilter} onValueChange={setLeadsOriginFilter}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Todas as origens" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as origens</SelectItem>
-                {[...new Set(leadsHistory.map(l => l.description))].sort().map(origin => (
-                  <SelectItem key={origin} value={origin}>{origin}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Buscar últimos 4 dígitos..."
-              value={leadsPhoneSearch}
-              onChange={(e) => { setLeadsPhoneSearch(e.target.value); setLeadsPage(1); }}
-              className="w-48"
-            />
-            {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
-            <span className="text-muted-foreground text-sm">até</span>
-            {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
+        )}
+
+        {/* Deals Table */}
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
           </div>
+        ) : (
+          renderTable(getActiveDeals())
+        )}
+
+        {/* Stage History Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-card rounded-xl border border-border p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center text-primary ring-1 ring-primary/20">
+                <History className="h-4 w-4" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Histórico por Etapa</h2>
+            </div>
+            <div className="flex items-center gap-3 sm:ml-auto">
+              {role === "admin" && (
+                <Select value={selectedSellerId} onValueChange={setSelectedSellerId}>
+                  <SelectTrigger className="w-48 bg-background/60">
+                    <SelectValue placeholder="Todos os vendedores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os vendedores</SelectItem>
+                    {sellers.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {renderDatePicker("Data", historyDate, setHistoryDate)}
+            </div>
+          </div>
+          {renderStageHistory()}
         </div>
-        {renderLeadsHistory()}
+
+        {/* Leads History Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-card rounded-xl border border-border p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground ring-1 ring-accent-foreground/20">
+                <UserPlus className="h-4 w-4" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Histórico de Leads Criados</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+              <Select value={leadsOriginFilter} onValueChange={setLeadsOriginFilter}>
+                <SelectTrigger className="w-56 bg-background/60">
+                  <SelectValue placeholder="Todas as origens" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as origens</SelectItem>
+                  {[...new Set(leadsHistory.map(l => l.description))].sort().map(origin => (
+                    <SelectItem key={origin} value={origin}>{origin}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Buscar últimos 4 dígitos..."
+                value={leadsPhoneSearch}
+                onChange={(e) => { setLeadsPhoneSearch(e.target.value); setLeadsPage(1); }}
+                className="w-48 bg-background/60"
+              />
+              {renderDatePicker("De", leadsDateFrom, setLeadsDateFrom)}
+              <span className="text-muted-foreground text-sm">até</span>
+              {renderDatePicker("Até", leadsDateTo, setLeadsDateTo)}
+            </div>
+          </div>
+          {renderLeadsHistory()}
+        </div>
       </div>
     </div>
   );
