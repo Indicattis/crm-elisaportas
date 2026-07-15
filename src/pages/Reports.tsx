@@ -168,6 +168,9 @@ export default function Reports() {
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
     if (selectedLossReason !== "all") parts.push(`Motivo da perda: ${selectedLossReason === "__none__" ? "Sem motivo" : selectedLossReason}`);
+    if (activeTab === "contacts" && selectedContactColumn !== "all") {
+      parts.push(`Coluna: ${contactColumnMap[selectedContactColumn]?.name || "-"}`);
+    }
     return parts.join(" | ");
   };
 
@@ -176,6 +179,7 @@ export default function Reports() {
     performance: "Resumo de Desempenho",
     seller: "Relatório por Vendedor",
     channel: "Relatório por Canal de Aquisição",
+    contacts: "Contatos Cadastrados",
   };
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
