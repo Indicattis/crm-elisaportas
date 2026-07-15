@@ -32,6 +32,7 @@ export function Header() {
   const allNavItems = [
     { path: "/", label: "Kanban", icon: LayoutDashboard },
     { path: "/vendas", label: "Vendas", icon: DollarSign },
+    { path: "/perdas", label: "Perdas", icon: TrendingDown },
     { path: "/planejamento", label: "Planejamento", icon: Target },
     { path: "/relatorios", label: "Relatórios", icon: FileText },
     { path: "/results", label: "Resultados", icon: BarChart3 },
