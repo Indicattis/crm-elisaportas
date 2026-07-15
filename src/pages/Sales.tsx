@@ -276,7 +276,7 @@ export default function Sales() {
               return (
                 <div
                   key={d.id}
-                  onClick={() => navigate(`/deal/${d.id}`)}
+                  onClick={() => navigate(`/sale/${d.id}`)}
                   className="group relative flex items-stretch gap-3 rounded-2xl bg-card/70 hover:bg-card border border-border/60 shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.12),0_1px_2px_-1px_hsl(var(--foreground)/0.08)] hover:shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.2),0_2px_6px_-2px_hsl(var(--foreground)/0.1)] hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden"
                 >
                   {/* Colored accent bar */}
