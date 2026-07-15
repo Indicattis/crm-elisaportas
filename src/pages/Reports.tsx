@@ -566,6 +566,46 @@ export default function Reports() {
                   </Table>
                 </div>
               </TabsContent>
+
+              <TabsContent value="contacts" className="space-y-4">
+                <div className="rounded-2xl border border-border/60 bg-card shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Cidade/Estado</TableHead>
+                        <TableHead>Coluna</TableHead>
+                        <TableHead>Funil</TableHead>
+                        <TableHead>Cadastrado em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredContacts.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum contato encontrado</TableCell></TableRow>
+                      ) : filteredContacts.map((c) => {
+                        const col = contactColumnMap[c.column_id];
+                        const funnel = funnels.find((f) => f.id === c.funnel_id);
+                        const loc = [c.city, c.state].filter(Boolean).join(" / ") || "-";
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-medium">{c.name}</TableCell>
+                            <TableCell>{c.phone ? applyPhoneMask(c.phone) : "-"}</TableCell>
+                            <TableCell>{loc}</TableCell>
+                            <TableCell>{col?.name || "-"}</TableCell>
+                            <TableCell>{funnel?.name || "-"}</TableCell>
+                            <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card/60 rounded-xl px-4 py-3 border border-border/40">
+                  <span className="h-2 w-2 rounded-full bg-info" />
+                  Total: <span className="font-semibold text-foreground">{filteredContacts.length}</span> contatos
+                </div>
+              </TabsContent>
             </>
           )}
         </Tabs>
