@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, FileText, Printer, BarChart3, TrendingUp, Users, Target, DollarSign, Percent, Package, ShoppingCart, XCircle } from "lucide-react";
+import { CalendarIcon, FileText, Printer, BarChart3, TrendingUp, Users, Target, DollarSign, Percent, Package, ShoppingCart, XCircle, UserSquare2 } from "lucide-react";
 import { format, startOfMonth, endOfDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,24 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Deal = Tables<"deals">;
 
+interface ContactRow {
+  id: string;
+  name: string;
+  phone: string | null;
+  state: string | null;
+  city: string | null;
+  notes: string | null;
+  created_at: string;
+  column_id: string;
+  funnel_id: string;
+}
+
+interface ContactColumn {
+  id: string;
+  name: string;
+  funnel_id: string;
+}
+
 export default function Reports() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -24,6 +42,9 @@ export default function Reports() {
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
+  const [contactColumns, setContactColumns] = useState<ContactColumn[]>([]);
+  const [selectedContactColumn, setSelectedContactColumn] = useState("all");
 
   // Filters
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
@@ -43,16 +64,20 @@ export default function Reports() {
     const from = startOfDay(dateFrom).toISOString();
     const to = endOfDay(dateTo).toISOString();
 
-    const [dealsRes, funnelsRes, profilesRes, channelsRes] = await Promise.all([
+    const [dealsRes, funnelsRes, profilesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
       supabase.from("deals").select("*").gte("updated_at", from).lte("updated_at", to),
       supabase.from("funnels").select("id, name"),
       supabase.from("profiles").select("id, full_name"),
       supabase.from("acquisition_channels").select("id, name"),
+      supabase.from("contacts" as any).select("id, name, phone, state, city, notes, created_at, column_id, funnel_id").gte("created_at", from).lte("created_at", to).order("created_at", { ascending: false }),
+      supabase.from("funnel_columns").select("id, name, funnel_id, column_type").eq("column_type", "contacts" as any),
     ]);
 
     setDeals(dealsRes.data || []);
     setFunnels(funnelsRes.data || []);
     setChannels(channelsRes.data || []);
+    setContacts(((contactsRes.data as any) || []) as ContactRow[]);
+    setContactColumns(((contactColsRes.data as any) || []).map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id })));
 
     const map: Record<string, string> = {};
     (profilesRes.data || []).forEach((p) => {
@@ -121,6 +146,21 @@ export default function Reports() {
     return Object.values(map).sort((a, b) => b.totalValue - a.totalValue);
   }, [filteredDeals]);
 
+  const contactColumnMap = useMemo(() => {
+    const m: Record<string, ContactColumn> = {};
+    contactColumns.forEach((c) => { m[c.id] = c; });
+    return m;
+  }, [contactColumns]);
+
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((c) => {
+      if (selectedContactColumn !== "all" && c.column_id !== selectedContactColumn) return false;
+      if (selectedFunnel !== "all" && c.funnel_id !== selectedFunnel) return false;
+      return true;
+    });
+  }, [contacts, selectedContactColumn, selectedFunnel]);
+
+
   const filtersLabel = () => {
     const parts: string[] = [];
     parts.push(`Período: ${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`);
@@ -128,6 +168,9 @@ export default function Reports() {
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
     if (selectedLossReason !== "all") parts.push(`Motivo da perda: ${selectedLossReason === "__none__" ? "Sem motivo" : selectedLossReason}`);
+    if (activeTab === "contacts" && selectedContactColumn !== "all") {
+      parts.push(`Coluna: ${contactColumnMap[selectedContactColumn]?.name || "-"}`);
+    }
     return parts.join(" | ");
   };
 
@@ -136,6 +179,7 @@ export default function Reports() {
     performance: "Resumo de Desempenho",
     seller: "Relatório por Vendedor",
     channel: "Relatório por Canal de Aquisição",
+    contacts: "Contatos Cadastrados",
   };
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -213,6 +257,30 @@ export default function Reports() {
             `).join("")}
           </tbody>
         </table>
+      `;
+    } else if (activeTab === "contacts") {
+      tableHtml = `
+        <table>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Cidade/Estado</th><th>Coluna</th><th>Funil</th><th>Cadastrado em</th></tr></thead>
+          <tbody>
+            ${filteredContacts.map((c) => {
+              const col = contactColumnMap[c.column_id];
+              const funnel = funnels.find((f) => f.id === c.funnel_id);
+              const loc = [c.city, c.state].filter(Boolean).join(" / ") || "-";
+              return `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>${c.phone ? applyPhoneMask(c.phone) : "-"}</td>
+                  <td>${loc}</td>
+                  <td>${col?.name || "-"}</td>
+                  <td>${funnel?.name || "-"}</td>
+                  <td>${format(new Date(c.created_at), "dd/MM/yyyy")}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+        <p class="total">Total de contatos: ${filteredContacts.length}</p>
       `;
     }
 
@@ -342,6 +410,17 @@ export default function Reports() {
                 {lossReasons.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
               </SelectContent>
             </Select>
+            {activeTab === "contacts" && (
+              <Select value={selectedContactColumn} onValueChange={setSelectedContactColumn}>
+                <SelectTrigger className="w-[220px] bg-background/60"><SelectValue placeholder="Coluna de contatos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as colunas</SelectItem>
+                  {contactColumns
+                    .filter((c) => selectedFunnel === "all" || c.funnel_id === selectedFunnel)
+                    .map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
@@ -359,6 +438,9 @@ export default function Reports() {
             </TabsTrigger>
             <TabsTrigger value="channel" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Target className="h-4 w-4 text-warning" />Por Canal
+            </TabsTrigger>
+            <TabsTrigger value="contacts" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <UserSquare2 className="h-4 w-4 text-info" />Contatos
             </TabsTrigger>
           </TabsList>
 
@@ -482,6 +564,46 @@ export default function Reports() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="contacts" className="space-y-4">
+                <div className="rounded-2xl border border-border/60 bg-card shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Cidade/Estado</TableHead>
+                        <TableHead>Coluna</TableHead>
+                        <TableHead>Funil</TableHead>
+                        <TableHead>Cadastrado em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredContacts.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum contato encontrado</TableCell></TableRow>
+                      ) : filteredContacts.map((c) => {
+                        const col = contactColumnMap[c.column_id];
+                        const funnel = funnels.find((f) => f.id === c.funnel_id);
+                        const loc = [c.city, c.state].filter(Boolean).join(" / ") || "-";
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-medium">{c.name}</TableCell>
+                            <TableCell>{c.phone ? applyPhoneMask(c.phone) : "-"}</TableCell>
+                            <TableCell>{loc}</TableCell>
+                            <TableCell>{col?.name || "-"}</TableCell>
+                            <TableCell>{funnel?.name || "-"}</TableCell>
+                            <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card/60 rounded-xl px-4 py-3 border border-border/40">
+                  <span className="h-2 w-2 rounded-full bg-info" />
+                  Total: <span className="font-semibold text-foreground">{filteredContacts.length}</span> contatos
                 </div>
               </TabsContent>
             </>
