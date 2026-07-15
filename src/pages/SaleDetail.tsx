@@ -234,22 +234,26 @@ export default function SaleDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/40 p-4 md:p-8 space-y-4">
-        <Skeleton className="h-16 w-full rounded-2xl" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
+      <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
+        <div className="p-6 space-y-8 max-w-7xl mx-auto">
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }
 
   if (!deal) {
     return (
-      <div className="min-h-screen bg-muted/40 p-8">
-        <div className="glass rounded-2xl p-6 border border-border/60 shadow-sm text-center">
-          <p className="text-muted-foreground">Negociação não encontrada.</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/vendas")}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Vendas
-          </Button>
+      <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
+        <div className="p-6 space-y-8 max-w-7xl mx-auto">
+          <div className="glass rounded-2xl p-6 border border-border/60 shadow-sm text-center">
+            <p className="text-muted-foreground">Negociação não encontrada.</p>
+            <Button variant="outline" className="mt-4" onClick={() => navigate("/vendas")}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Vendas
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -258,7 +262,8 @@ export default function SaleDetail() {
   const isSold = deal.status === "Vendido";
 
   return (
-    <div className="min-h-screen bg-muted/40 p-4 md:p-8 space-y-6">
+    <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
+      <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="glass rounded-2xl p-4 md:p-5 border border-border/60 shadow-sm flex flex-wrap items-center gap-3">
         <Button variant="outline" size="sm" onClick={() => navigate("/vendas")}>
