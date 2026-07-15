@@ -18,6 +18,7 @@ import SalesPlanning from "./pages/SalesPlanning";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import DealDetail from "./pages/DealDetail";
+import SaleDetail from "./pages/SaleDetail";
 
 const queryClient = new QueryClient();
 
