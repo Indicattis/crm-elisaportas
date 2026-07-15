@@ -410,6 +410,17 @@ export default function Reports() {
                 {lossReasons.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
               </SelectContent>
             </Select>
+            {activeTab === "contacts" && (
+              <Select value={selectedContactColumn} onValueChange={setSelectedContactColumn}>
+                <SelectTrigger className="w-[220px] bg-background/60"><SelectValue placeholder="Coluna de contatos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as colunas</SelectItem>
+                  {contactColumns
+                    .filter((c) => selectedFunnel === "all" || c.funnel_id === selectedFunnel)
+                    .map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
