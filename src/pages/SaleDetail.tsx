@@ -481,6 +481,7 @@ export default function SaleDetail() {
         </div>
       )}
     </div>
+    </div>
   );
 }
 
