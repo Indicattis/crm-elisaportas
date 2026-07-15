@@ -31,6 +31,7 @@ export default function Reports() {
   const [selectedFunnel, setSelectedFunnel] = useState("all");
   const [selectedUser, setSelectedUser] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
+  const [selectedLossReason, setSelectedLossReason] = useState("all");
   const [activeTab, setActiveTab] = useState("period");
 
   useEffect(() => {
@@ -66,9 +67,24 @@ export default function Reports() {
       if (selectedFunnel !== "all" && d.funnel_id !== selectedFunnel) return false;
       if (selectedUser !== "all" && d.assigned_to !== selectedUser && d.user_id !== selectedUser) return false;
       if (selectedChannel !== "all" && d.acquisition_channel !== selectedChannel) return false;
+      if (selectedLossReason !== "all") {
+        const reason = (d as any).loss_reason;
+        if (selectedLossReason === "__none__") {
+          if (d.status === "Perdido" && reason) return false;
+        } else if (reason !== selectedLossReason) return false;
+      }
       return true;
     });
-  }, [deals, selectedFunnel, selectedUser, selectedChannel]);
+  }, [deals, selectedFunnel, selectedUser, selectedChannel, selectedLossReason]);
+
+  const lossReasons = useMemo(() => {
+    const set = new Set<string>();
+    deals.forEach((d) => {
+      const r = (d as any).loss_reason;
+      if (r) set.add(r);
+    });
+    return Array.from(set).sort();
+  }, [deals]);
 
   const soldDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Vendido"), [filteredDeals]);
   const lostDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Perdido"), [filteredDeals]);
@@ -111,6 +127,7 @@ export default function Reports() {
     if (selectedFunnel !== "all") parts.push(`Funil: ${funnels.find((f) => f.id === selectedFunnel)?.name}`);
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
+    if (selectedLossReason !== "all") parts.push(`Motivo da perda: ${selectedLossReason === "__none__" ? "Sem motivo" : selectedLossReason}`);
     return parts.join(" | ");
   };
 
@@ -133,7 +150,7 @@ export default function Reports() {
     if (activeTab === "period") {
       tableHtml = `
         <table>
-          <thead><tr><th>Nº</th><th>Título</th><th>Telefone</th><th>Valor</th><th>Status</th><th>Responsável</th><th>Atualizado em</th></tr></thead>
+          <thead><tr><th>Nº</th><th>Título</th><th>Telefone</th><th>Valor</th><th>Status</th><th>Motivo da perda</th><th>Responsável</th><th>Atualizado em</th></tr></thead>
           <tbody>
             ${filteredDeals.map((d) => `
               <tr>
@@ -142,6 +159,7 @@ export default function Reports() {
                 <td>${d.phone ? applyPhoneMask(d.phone) : "-"}</td>
                 <td>${fmt(d.value || 0)}</td>
                 <td>${d.status}</td>
+                <td>${(d as any).loss_reason || "-"}</td>
                 <td>${profiles[d.assigned_to || d.user_id] || "-"}</td>
                 <td>${format(new Date(d.updated_at), "dd/MM/yyyy")}</td>
               </tr>
@@ -316,6 +334,14 @@ export default function Reports() {
                 {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={selectedLossReason} onValueChange={setSelectedLossReason}>
+              <SelectTrigger className="w-[200px] bg-background/60"><SelectValue placeholder="Motivo da perda" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os motivos</SelectItem>
+                <SelectItem value="__none__">Sem motivo</SelectItem>
+                {lossReasons.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -350,13 +376,14 @@ export default function Reports() {
                         <TableHead>Telefone</TableHead>
                         <TableHead>Valor</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Motivo da perda</TableHead>
                         <TableHead>Responsável</TableHead>
                         <TableHead>Atualizado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredDeals.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma negociação encontrada</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma negociação encontrada</TableCell></TableRow>
                       ) : filteredDeals.map((d) => (
                         <TableRow key={d.id}>
                           <TableCell>{d.deal_number || "-"}</TableCell>
@@ -364,6 +391,7 @@ export default function Reports() {
                           <TableCell>{d.phone ? applyPhoneMask(d.phone) : "-"}</TableCell>
                           <TableCell>{fmt(d.value || 0)}</TableCell>
                           <TableCell>{d.status}</TableCell>
+                          <TableCell className={(d as any).loss_reason ? "text-destructive" : "text-muted-foreground"}>{(d as any).loss_reason || "-"}</TableCell>
                           <TableCell>{profiles[d.assigned_to || d.user_id] || "-"}</TableCell>
                           <TableCell>{format(new Date(d.updated_at), "dd/MM/yyyy")}</TableCell>
                         </TableRow>
