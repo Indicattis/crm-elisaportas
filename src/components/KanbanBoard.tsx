@@ -640,9 +640,19 @@ export function KanbanBoard() {
       return;
     }
 
-    setDeals((prev) => prev.map((item) => (item.id === dealId ? { ...item, status: newStatus, ...extraUpdate } : item)));
+    const isSelling = newStatus === "Vendido";
+    setDeals((prev) =>
+      isSelling
+        ? prev.filter((item) => item.id !== dealId)
+        : prev.map((item) => (item.id === dealId ? { ...item, status: newStatus, ...extraUpdate } : item))
+    );
 
-    const { error } = await supabase.from("deals").update({ status: newStatus, ...extraUpdate } as any).eq("id", dealId);
+    const { error } = isSelling
+      ? await (supabase as any).rpc("mark_deal_as_sold", {
+          _deal_id: dealId,
+          _sold_at: extraUpdate.sold_at || new Date().toISOString(),
+        })
+      : await supabase.from("deals").update({ status: newStatus, ...extraUpdate } as any).eq("id", dealId);
 
     if (error) {
       toast({ title: "Erro ao mover", description: error.message, variant: "destructive" });
@@ -650,7 +660,7 @@ export function KanbanBoard() {
       return;
     }
 
-    if (authUser) {
+    if (authUser && !isSelling) {
       await supabase.from("deal_history").insert({
         deal_id: dealId,
         user_id: authUser.id,
@@ -765,32 +775,11 @@ export function KanbanBoard() {
 
   const confirmPendingSell = async (soldDate: Date) => {
     if (!pendingSell) return;
-    const { deal, kind } = pendingSell;
+    const { deal } = pendingSell;
     setPendingSell(null);
-    if (kind === "quick") {
-      setDeals((prev) => prev.filter((d) => d.id !== deal.id));
-      const { error } = await supabase
-        .from("deals")
-        .update({ status: "Vendido", sold_at: soldDate.toISOString() } as any)
-        .eq("id", deal.id);
-      if (error) {
-        toast({ title: "Erro ao marcar como vendida", description: error.message, variant: "destructive" });
-        refreshDeals();
-        return;
-      }
-      if (authUser) {
-        await supabase.from("deal_history").insert({
-          deal_id: deal.id,
-          user_id: authUser.id,
-          event_type: "column_change",
-          description: `Moveu de "${deal.status}" para "Vendido"`,
-          metadata: { from: deal.status, to: "Vendido" },
-        } as any);
-      }
-      toast({ title: "Negociação marcada como vendida!" });
-    } else {
-      await executeDealMove(deal, "Vendido", { sold_at: soldDate.toISOString() });
-    }
+    await executeDealMove(deal, "Vendido", { sold_at: soldDate.toISOString() });
+    refreshDeals();
+    toast({ title: "Negociação marcada como vendida!" });
   };
 
 

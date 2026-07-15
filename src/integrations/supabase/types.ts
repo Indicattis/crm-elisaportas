@@ -1251,6 +1251,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_deal_as_sold: {
+        Args: { _deal_id: string; _sold_at: string }
+        Returns: undefined
+      }
       recreate_deal_tasks: { Args: { _deal_id: string }; Returns: undefined }
     }
     Enums: {
