@@ -42,6 +42,9 @@ export default function Reports() {
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
+  const [contactColumns, setContactColumns] = useState<ContactColumn[]>([]);
+  const [selectedContactColumn, setSelectedContactColumn] = useState("all");
 
   // Filters
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
@@ -61,16 +64,20 @@ export default function Reports() {
     const from = startOfDay(dateFrom).toISOString();
     const to = endOfDay(dateTo).toISOString();
 
-    const [dealsRes, funnelsRes, profilesRes, channelsRes] = await Promise.all([
+    const [dealsRes, funnelsRes, profilesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
       supabase.from("deals").select("*").gte("updated_at", from).lte("updated_at", to),
       supabase.from("funnels").select("id, name"),
       supabase.from("profiles").select("id, full_name"),
       supabase.from("acquisition_channels").select("id, name"),
+      supabase.from("contacts" as any).select("id, name, phone, state, city, notes, created_at, column_id, funnel_id").gte("created_at", from).lte("created_at", to).order("created_at", { ascending: false }),
+      supabase.from("funnel_columns").select("id, name, funnel_id, column_type").eq("column_type", "contacts" as any),
     ]);
 
     setDeals(dealsRes.data || []);
     setFunnels(funnelsRes.data || []);
     setChannels(channelsRes.data || []);
+    setContacts(((contactsRes.data as any) || []) as ContactRow[]);
+    setContactColumns(((contactColsRes.data as any) || []).map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id })));
 
     const map: Record<string, string> = {};
     (profilesRes.data || []).forEach((p) => {
