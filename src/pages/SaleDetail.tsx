@@ -166,8 +166,34 @@ export default function SaleDetail() {
 
   const soldAt = (deal as any)?.sold_at || deal?.updated_at;
 
+  const logHistory = async (
+    eventType: string,
+    description: string,
+    metadata: Record<string, any>,
+  ) => {
+    if (!deal) return;
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes?.user?.id;
+    if (!uid) return;
+    const { data: inserted } = await supabase
+      .from("deal_history")
+      .insert({
+        deal_id: deal.id,
+        user_id: uid,
+        event_type: eventType,
+        description,
+        metadata,
+      })
+      .select("*")
+      .maybeSingle();
+    if (inserted) {
+      setHistory((h) => [...h, inserted as HistoryEvent]);
+    }
+  };
+
   const updateSoldAt = async (nd: Date | undefined) => {
     if (!nd || !deal) return;
+    const prev = soldAt;
     setSavingDate(true);
     const { error } = await supabase
       .from("deals")
@@ -179,7 +205,53 @@ export default function SaleDetail() {
     } else {
       toast({ title: "Data de venda atualizada" });
       setDeal((d) => (d ? ({ ...d, sold_at: nd.toISOString() } as any) : d));
+      await logHistory(
+        "sold_at_change",
+        `Alterou data de referência de ${format(new Date(prev), "dd/MM/yyyy", { locale: ptBR })} para ${format(nd, "dd/MM/yyyy", { locale: ptBR })}`,
+        { from: prev, to: nd.toISOString() },
+      );
     }
+  };
+
+  const [savingValue, setSavingValue] = useState(false);
+  const [valueInput, setValueInput] = useState<string>("");
+  const [valuePopoverOpen, setValuePopoverOpen] = useState(false);
+
+  const openValueEditor = () => {
+    setValueInput(String(deal?.value ?? ""));
+    setValuePopoverOpen(true);
+  };
+
+  const saveValue = async () => {
+    if (!deal) return;
+    const parsed = parseFloat(valueInput.replace(",", "."));
+    if (isNaN(parsed) || parsed < 0) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    const prev = deal.value || 0;
+    if (parsed === prev) {
+      setValuePopoverOpen(false);
+      return;
+    }
+    setSavingValue(true);
+    const { error } = await supabase
+      .from("deals")
+      .update({ value: parsed })
+      .eq("id", deal.id);
+    setSavingValue(false);
+    if (error) {
+      toast({ title: "Erro ao alterar valor", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Valor da venda atualizado" });
+    setDeal((d) => (d ? { ...d, value: parsed } : d));
+    setValuePopoverOpen(false);
+    await logHistory(
+      "value_change",
+      `Alterou valor de ${fmtBRL(prev)} para ${fmtBRL(parsed)}`,
+      { from: prev, to: parsed },
+    );
   };
 
   // Merged timeline (history + comments + completed tasks)
