@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -166,8 +168,34 @@ export default function SaleDetail() {
 
   const soldAt = (deal as any)?.sold_at || deal?.updated_at;
 
+  const logHistory = async (
+    eventType: string,
+    description: string,
+    metadata: Record<string, any>,
+  ) => {
+    if (!deal) return;
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes?.user?.id;
+    if (!uid) return;
+    const { data: inserted } = await supabase
+      .from("deal_history")
+      .insert({
+        deal_id: deal.id,
+        user_id: uid,
+        event_type: eventType,
+        description,
+        metadata,
+      })
+      .select("*")
+      .maybeSingle();
+    if (inserted) {
+      setHistory((h) => [...h, inserted as HistoryEvent]);
+    }
+  };
+
   const updateSoldAt = async (nd: Date | undefined) => {
     if (!nd || !deal) return;
+    const prev = soldAt;
     setSavingDate(true);
     const { error } = await supabase
       .from("deals")
@@ -179,7 +207,53 @@ export default function SaleDetail() {
     } else {
       toast({ title: "Data de venda atualizada" });
       setDeal((d) => (d ? ({ ...d, sold_at: nd.toISOString() } as any) : d));
+      await logHistory(
+        "sold_at_change",
+        `Alterou data de referência de ${format(new Date(prev), "dd/MM/yyyy", { locale: ptBR })} para ${format(nd, "dd/MM/yyyy", { locale: ptBR })}`,
+        { from: prev, to: nd.toISOString() },
+      );
     }
+  };
+
+  const [savingValue, setSavingValue] = useState(false);
+  const [valueInput, setValueInput] = useState<string>("");
+  const [valuePopoverOpen, setValuePopoverOpen] = useState(false);
+
+  const openValueEditor = () => {
+    setValueInput(String(deal?.value ?? ""));
+    setValuePopoverOpen(true);
+  };
+
+  const saveValue = async () => {
+    if (!deal) return;
+    const parsed = parseFloat(valueInput.replace(",", "."));
+    if (isNaN(parsed) || parsed < 0) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    const prev = deal.value || 0;
+    if (parsed === prev) {
+      setValuePopoverOpen(false);
+      return;
+    }
+    setSavingValue(true);
+    const { error } = await supabase
+      .from("deals")
+      .update({ value: parsed })
+      .eq("id", deal.id);
+    setSavingValue(false);
+    if (error) {
+      toast({ title: "Erro ao alterar valor", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Valor da venda atualizado" });
+    setDeal((d) => (d ? { ...d, value: parsed } : d));
+    setValuePopoverOpen(false);
+    await logHistory(
+      "value_change",
+      `Alterou valor de ${fmtBRL(prev)} para ${fmtBRL(parsed)}`,
+      { from: prev, to: parsed },
+    );
   };
 
   // Merged timeline (history + comments + completed tasks)
@@ -305,7 +379,44 @@ export default function SaleDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-5 border border-border/60 shadow-sm ring-1 ring-success/15 bg-card/80">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Valor da venda</div>
-          <div className="text-3xl font-bold text-success mt-1 tabular-nums">{fmtBRL(deal.value || 0)}</div>
+          <Popover open={valuePopoverOpen} onOpenChange={(o) => (o ? openValueEditor() : setValuePopoverOpen(false))}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="mt-1 h-auto px-2 py-1 -ml-2 text-3xl font-bold text-success hover:bg-success/10 hover:text-success tabular-nums"
+                title="Clique para alterar o valor da venda"
+              >
+                {fmtBRL(deal.value || 0)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72" align="start">
+              <div className="space-y-3">
+                <Label htmlFor="sale-value-input" className="text-xs">Novo valor (R$)</Label>
+                <Input
+                  id="sale-value-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={valueInput}
+                  onChange={(e) => setValueInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveValue();
+                  }}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setValuePopoverOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={saveValue} disabled={savingValue}>
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <div className="text-[11px] text-muted-foreground mt-1">Clique no valor para editar</div>
         </div>
         <div className="glass rounded-2xl p-5 border border-border/60 shadow-sm ring-1 ring-primary/10 bg-card/80">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Data de referência da venda</div>
