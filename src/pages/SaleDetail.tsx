@@ -379,7 +379,44 @@ export default function SaleDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-5 border border-border/60 shadow-sm ring-1 ring-success/15 bg-card/80">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Valor da venda</div>
-          <div className="text-3xl font-bold text-success mt-1 tabular-nums">{fmtBRL(deal.value || 0)}</div>
+          <Popover open={valuePopoverOpen} onOpenChange={(o) => (o ? openValueEditor() : setValuePopoverOpen(false))}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="mt-1 h-auto px-2 py-1 -ml-2 text-3xl font-bold text-success hover:bg-success/10 hover:text-success tabular-nums"
+                title="Clique para alterar o valor da venda"
+              >
+                {fmtBRL(deal.value || 0)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72" align="start">
+              <div className="space-y-3">
+                <Label htmlFor="sale-value-input" className="text-xs">Novo valor (R$)</Label>
+                <Input
+                  id="sale-value-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={valueInput}
+                  onChange={(e) => setValueInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveValue();
+                  }}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setValuePopoverOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={saveValue} disabled={savingValue}>
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <div className="text-[11px] text-muted-foreground mt-1">Clique no valor para editar</div>
         </div>
         <div className="glass rounded-2xl p-5 border border-border/60 shadow-sm ring-1 ring-primary/10 bg-card/80">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Data de referência da venda</div>
