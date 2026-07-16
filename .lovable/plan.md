@@ -1,33 +1,21 @@
 ## Objetivo
+Permitir editar o **valor da venda** na página `/sale/:id` e registrar no **histórico da negociação** toda alteração de valor e de data de referência.
 
-Criar página `/perdas` (negociações perdidas/desqualificadas) com o mesmo layout de `/vendas`, e adicionar botão no header.
+## Alterações
 
-## Mudanças
+### 1. `src/pages/SaleDetail.tsx`
+- Tornar o card **"Valor da venda"** editável:
+  - Ao clicar no valor, abrir um Popover com um input numérico (máscara BRL) e botão "Salvar".
+  - Ao salvar, chamar `supabase.from("deals").update({ value }).eq("id", deal.id)`.
+  - Atualizar o estado local e mostrar toast de sucesso/erro.
+- Ao atualizar `sold_at` (função `updateSoldAt` já existente) e ao atualizar `value`:
+  - Após o `update` bem-sucedido, inserir em `public.deal_history` um evento do tipo `value_change` ou `sold_at_change`, com descrição legível (ex.: `"Alterou valor de R$ 1.000,00 para R$ 1.200,00"`, `"Alterou data de referência de 10/07/2026 para 15/07/2026"`) e `metadata` contendo `from`/`to`.
+  - Recarregar a timeline (`load()`) ou inserir localmente no `history` para refletir imediatamente.
 
-### 1. Header — `src/components/Header.tsx`
-- Adicionar novo item de navegação "Perdas" entre "Vendas" e "Planejamento", usando ícone `TrendingDown` (ou `XCircle`) do lucide-react.
-- Aparece tanto no menu desktop quanto na navegação inferior mobile (mesmo padrão dos demais).
-
-### 2. Nova rota `/perdas` — `src/App.tsx`
-- Registrar `<Route path="/perdas" element={<Losses />} />` dentro do `AppLayout` protegido.
-
-### 3. Nova página `src/pages/Losses.tsx`
-- Clone estrutural de `src/pages/Sales.tsx` com as diferenças:
-  - Título: "Perdas" / subtítulo apropriado.
-  - Query: buscar deals com `status = 'disqualified'` (ou o status usado para perdidas — confirmar em `Results.tsx`/`Reports.tsx`) em vez de vendidos.
-  - Ordenação/filtro por data: usar `updated_at` (data em que foi marcada como perdida) — não existe `lost_at`. Sem popover de edição de data.
-  - KPI cards: "Total de perdas" e "Valor total perdido" com anel em cor `destructive`/`ring-destructive/15` no lugar de `success`.
-  - Barra de destaque lateral do card e badges em tons destrutivos (vermelho) em vez de verde/success.
-  - Exibir **motivo da perda** (`loss_reason`) em destaque no card, ao lado do valor.
-  - Ao clicar no card: navegar para `/deal/:id` (página normal), já que não há tela específica de "perda vendida"; sem edição de data.
-- Manter filtros existentes de `/vendas` (período, vendedor, busca) adaptados.
-
-### 4. Fora do escopo
-- Nenhuma alteração de banco / RLS.
-- Nenhuma nova página de detalhe de perda (`/loss/:id`) — usa `/deal/:id`.
+### 2. Histórico
+A tabela `deal_history` já existe e é usada em outras partes do sistema — nenhuma migração é necessária. Vamos apenas inserir novas linhas via client (RLS já permite ao dono/admin/membro do funil escrever histórico).
 
 ## Detalhes técnicos
-
-- Confirmar o valor de status para perdas lendo `Reports.tsx` (provavelmente `status = 'lost'` ou `disqualified` com `loss_reason`).
-- Reutilizar componentes de UI: `Card`, `Badge`, filtros, `format` de `date-fns`.
-- Preservar espaçamento lateral (`max-w-7xl mx-auto p-6 space-y-8`) igual `/vendas` e `/relatorios`.
+- Formatação BRL reutiliza o `fmtBRL` já presente.
+- `event_type` novos: `value_change` e `sold_at_change` — a timeline já renderiza qualquer `event_type` (converte `_` em espaço) e mostra a `description`.
+- Estado de saving separado para valor (`savingValue`) além do já existente `savingDate`.
