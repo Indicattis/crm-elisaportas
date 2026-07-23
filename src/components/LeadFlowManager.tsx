@@ -168,67 +168,85 @@ export function LeadFlowManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground">Fluxos de Captação</h2>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-1" /> Novo Fluxo
-        </Button>
-      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Fluxos de Captação</CardTitle>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" /> Novo Fluxo
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {flows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum fluxo cadastrado. Crie um para começar a captar leads automaticamente.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {flows.map((flow) => {
+                const isOpen = expanded === flow.id;
+                const channelIconData = flow.acquisition_channel ? getChannelIcon(flow.acquisition_channel) : null;
+                const ChannelIconComp = channelIconData?.icon;
+                return (
+                  <li
+                    key={flow.id}
+                    className={`rounded-md border border-border bg-card/50 p-3 text-sm ${!flow.active ? "opacity-60" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(isOpen ? null : flow.id)}
+                      className="flex w-full items-center gap-3 text-left"
+                    >
+                      {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                      <span className="font-medium text-foreground truncate">{flow.name}</span>
+                      {!flow.active && (
+                        <span className="text-xs text-muted-foreground">(inativo)</span>
+                      )}
+                      <div className="ml-auto flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(flow)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(flow.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </button>
 
-      {flows.length === 0 && (
-        <p className="text-sm text-muted-foreground">Nenhum fluxo cadastrado. Crie um para começar a captar leads automaticamente.</p>
-      )}
+                    {isOpen && (
+                      <div className="mt-3 space-y-2 pl-7 text-xs">
+                        <div className="flex flex-wrap gap-3 text-muted-foreground">
+                          <span>Funil: <strong className="text-foreground">{getFunnelName(flow.funnel_id)}</strong></span>
+                          <span>Coluna: <strong className="text-foreground">{flow.status}</strong></span>
+                          {flow.acquisition_channel && (
+                            <span className="flex items-center gap-1">
+                              Canal: {ChannelIconComp && <ChannelIconComp className="h-3.5 w-3.5" />}
+                              <strong className="text-foreground">{flow.acquisition_channel}</strong>
+                            </span>
+                          )}
+                          <span>Atribuição: <strong className="text-foreground">{flow.assignment_mode === "round_robin" ? "Roleta" : "Sem dono"}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => copyEmbed(flow)}>
+                            {copiedId === flow.id ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                            Embed
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={`/lead-form?flow_id=${flow.id}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3 mr-1" /> Abrir
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="space-y-3">
-        {flows.map((flow) => {
-          const channelIconData = flow.acquisition_channel ? getChannelIcon(flow.acquisition_channel) : null;
-          const ChannelIconComp = channelIconData?.icon;
-          return (
-            <Card key={flow.id} className={!flow.active ? "opacity-60" : ""}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    {flow.name}
-                    {!flow.active && <span className="text-xs text-muted-foreground">(inativo)</span>}
-                  </CardTitle>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(flow)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(flow.id)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <span>Funil: <strong className="text-foreground">{getFunnelName(flow.funnel_id)}</strong></span>
-                  <span>Coluna: <strong className="text-foreground">{flow.status}</strong></span>
-                  {flow.acquisition_channel && (
-                    <span className="flex items-center gap-1">
-                      Canal: {ChannelIconComp && <ChannelIconComp className="h-3.5 w-3.5" />}
-                      <strong className="text-foreground">{flow.acquisition_channel}</strong>
-                    </span>
-                  )}
-                  <span>Atribuição: <strong className="text-foreground">{flow.assignment_mode === "round_robin" ? "Roleta" : "Sem dono"}</strong></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => copyEmbed(flow)}>
-                    {copiedId === flow.id ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                    Embed
-                  </Button>
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`/lead-form?flow_id=${flow.id}`} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3 w-3 mr-1" /> Abrir
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
 
       <ExternalIntegrationLogs />
 
