@@ -103,7 +103,7 @@ export function ExternalIntegrationLogs() {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base">Log de tentativas — Integração externa</CardTitle>
+          <CardTitle className="text-base">Log de tentativas — Integrações & Fluxos</CardTitle>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={fetchLogs} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
@@ -140,6 +140,9 @@ export function ExternalIntegrationLogs() {
                   >
                     {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
                     {statusBadge(log.status, log.http_status)}
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                      {log.source === "lead_flow" ? "Fluxo" : log.source}
+                    </Badge>
                     <span className="font-medium text-foreground truncate">
                       {log.title || <span className="text-muted-foreground italic">sem título</span>}
                     </span>
