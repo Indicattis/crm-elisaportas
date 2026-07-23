@@ -6,18 +6,63 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function getSupabaseAdmin() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  return createClient(supabaseUrl, serviceRoleKey);
+}
+
+async function writeLog(entry: {
+  status: string;
+  http_status: number;
+  title?: string | null;
+  phone?: string | null;
+  deal_id?: string | null;
+  assigned_to?: string | null;
+  warning?: string | null;
+  error_message?: string | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  raw_body?: unknown;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    await supabase.from("external_integration_logs").insert({
+      source: "lead_flow",
+      status: entry.status,
+      http_status: entry.http_status,
+      title: entry.title ?? null,
+      phone: entry.phone ?? null,
+      deal_id: entry.deal_id ?? null,
+      assigned_to: entry.assigned_to ?? null,
+      warning: entry.warning ?? null,
+      error_message: entry.error_message ?? null,
+      ip: entry.ip ?? null,
+      user_agent: entry.user_agent ?? null,
+      raw_body: entry.raw_body ?? null,
+    });
+  } catch (e) {
+    console.error("Failed to write lead_flow log:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    null;
+  const userAgent = req.headers.get("user-agent") || null;
+
+  let body: any = null;
   try {
-    const body = await req.json();
+    body = await req.json();
     let { name, phone, email, estado, cidade, funnel_id, status, canal_aquisicao, flow_id } = body;
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = getSupabaseAdmin();
 
     // If flow_id is provided, load the flow config
     let acquisition_channel = canal_aquisicao || null;
@@ -31,12 +76,20 @@ Deno.serve(async (req) => {
         .single();
 
       if (flowError || !flow) {
+        await writeLog({
+          status: "error", http_status: 404, title: name ?? null, phone: phone ?? null,
+          error_message: "Fluxo não encontrado", ip, user_agent: userAgent, raw_body: body,
+        });
         return new Response(
           JSON.stringify({ error: "Fluxo não encontrado" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (!flow.active) {
+        await writeLog({
+          status: "error", http_status: 400, title: name ?? null, phone: phone ?? null,
+          error_message: `Fluxo inativo (${flow.name})`, ip, user_agent: userAgent, raw_body: body,
+        });
         return new Response(
           JSON.stringify({ error: "Fluxo inativo" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -50,6 +103,10 @@ Deno.serve(async (req) => {
     }
 
     if (!name || !funnel_id) {
+      await writeLog({
+        status: "error", http_status: 400, title: name ?? null, phone: phone ?? null,
+        error_message: "name e funnel_id são obrigatórios", ip, user_agent: userAgent, raw_body: body,
+      });
       return new Response(
         JSON.stringify({ error: "name e funnel_id são obrigatórios" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -64,6 +121,10 @@ Deno.serve(async (req) => {
       .single();
 
     if (funnelError || !funnel) {
+      await writeLog({
+        status: "error", http_status: 404, title: name, phone: phone ?? null,
+        error_message: "Funil não encontrado", ip, user_agent: userAgent, raw_body: body,
+      });
       return new Response(
         JSON.stringify({ error: "Funil não encontrado" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -73,7 +134,6 @@ Deno.serve(async (req) => {
     // Determine assigned_to based on assignment_mode
     let assigned_to: string | null = null;
     if (assignment_mode === "round_robin") {
-      // Get funnel members
       const { data: members } = await supabase
         .from("funnel_members")
         .select("user_id")
@@ -81,12 +141,8 @@ Deno.serve(async (req) => {
 
       if (members && members.length > 0) {
         const memberIds = members.map((m: any) => m.user_id);
-
-        // Count active (non-archived) deals per member in this funnel
         const counts: Record<string, number> = {};
-        for (const mid of memberIds) {
-          counts[mid] = 0;
-        }
+        for (const mid of memberIds) counts[mid] = 0;
 
         const { data: deals } = await supabase
           .from("deals")
@@ -103,7 +159,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Pick member with fewest deals
         let minCount = Infinity;
         let chosen: string | null = null;
         for (const mid of memberIds) {
@@ -139,7 +194,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Store estado/cidade in dedicated columns
     const { data: deal, error: dealError } = await supabase
       .from("deals")
       .insert({
@@ -162,6 +216,12 @@ Deno.serve(async (req) => {
 
     if (dealError) {
       console.error("Error inserting deal:", dealError);
+      await writeLog({
+        status: "error", http_status: 500, title: name, phone: phone ?? null,
+        assigned_to, warning: duplicateWarning,
+        error_message: `Erro ao criar negociação: ${dealError.message}`,
+        ip, user_agent: userAgent, raw_body: body,
+      });
       return new Response(
         JSON.stringify({ error: "Erro ao criar negociação", details: dealError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -179,7 +239,18 @@ Deno.serve(async (req) => {
       user_id: funnel.user_id,
     });
 
-    // Tasks are now created automatically by the database trigger on deals insert
+    await writeLog({
+      status: duplicateWarning ? "duplicate" : "success",
+      http_status: 200,
+      title: name,
+      phone: phone ?? null,
+      deal_id: deal.id,
+      assigned_to,
+      warning: duplicateWarning ? `${duplicateWarning}${flow_name ? ` | Fluxo: ${flow_name}` : ""}` : (flow_name ? `Fluxo: ${flow_name}` : null),
+      ip,
+      user_agent: userAgent,
+      raw_body: body,
+    });
 
     return new Response(
       JSON.stringify({ success: true, deal_id: deal.id, ...(duplicateWarning ? { warning: duplicateWarning } : {}) }),
@@ -187,6 +258,11 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("Unexpected error:", err);
+    await writeLog({
+      status: "error", http_status: 500,
+      error_message: `Erro interno: ${(err as Error)?.message ?? String(err)}`,
+      ip, user_agent: userAgent, raw_body: body,
+    });
     return new Response(
       JSON.stringify({ error: "Erro interno" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
