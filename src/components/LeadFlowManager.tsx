@@ -49,6 +49,7 @@ export function LeadFlowManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFlow, setEditingFlow] = useState<LeadFlow | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   // Form state
   const [name, setName] = useState("");
