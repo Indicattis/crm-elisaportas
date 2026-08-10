@@ -9,11 +9,35 @@ const corsHeaders = {
 
 const FUNNEL_ID = "027c0fb7-eb3d-49a8-8377-9a533d9768b5";
 const STATUS = "Fazer orçamento";
-const ROTATION_USER_IDS = [
-  "053feb1f-6d60-4c4d-a01a-a3e9146d09f1",
-  "99964511-d379-4795-901e-094a3e062051",
-  "611351a8-c5f3-4e95-876d-ffeb2b0f785f",
-];
+
+// Vendedores ativos = possuem role 'vendedor' (a desativação remove a role)
+// e, preferencialmente, são membros do funil de destino.
+async function getRotationUserIds(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+): Promise<string[]> {
+  const { data: roles, error } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "vendedor");
+  if (error) throw new Error(`Erro ao buscar vendedores: ${error.message}`);
+
+  const activeIds = Array.from(
+    new Set((roles ?? []).map((r: { user_id: string }) => r.user_id)),
+  );
+  if (activeIds.length === 0) return [];
+
+  const { data: members } = await supabase
+    .from("funnel_members")
+    .select("user_id")
+    .eq("funnel_id", FUNNEL_ID)
+    .in("user_id", activeIds);
+
+  const memberIds = Array.from(
+    new Set((members ?? []).map((m: { user_id: string }) => m.user_id)),
+  );
+
+  return (memberIds.length > 0 ? memberIds : activeIds).sort();
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
