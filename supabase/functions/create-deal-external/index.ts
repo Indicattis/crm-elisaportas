@@ -281,16 +281,47 @@ Deno.serve(async (req) => {
 
     const supabase = getSupabaseAdmin();
 
-    // Round-robin
+    // Round-robin entre vendedores ativos (buscados dinamicamente)
+    let rotationIds: string[] = [];
+    try {
+      rotationIds = await getRotationUserIds(supabase);
+    } catch (e) {
+      await writeLog({
+        status: "error",
+        http_status: 500,
+        title: cleanTitle,
+        phone: maskedPhone,
+        error_message: (e as Error).message,
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
+      return jsonResponse({ error: "Erro ao buscar vendedores ativos" }, 500);
+    }
+
+    if (rotationIds.length === 0) {
+      await writeLog({
+        status: "error",
+        http_status: 503,
+        title: cleanTitle,
+        phone: maskedPhone,
+        error_message: "Nenhum vendedor ativo disponível para receber leads",
+        ip,
+        user_agent: userAgent,
+        raw_body: body,
+      });
+      return jsonResponse({ error: "Nenhum vendedor ativo disponível" }, 503);
+    }
+
     const counts: Record<string, number> = {};
-    for (const id of ROTATION_USER_IDS) counts[id] = 0;
+    for (const id of rotationIds) counts[id] = 0;
 
     const { data: logRows, error: countError } = await supabase
       .from("external_integration_logs")
       .select("assigned_to")
       .eq("source", "hunt")
       .in("status", ["success", "duplicate"])
-      .in("assigned_to", ROTATION_USER_IDS);
+      .in("assigned_to", rotationIds);
 
     if (countError) {
       console.error("Error counting integration logs:", countError);
@@ -313,14 +344,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    let chosen = ROTATION_USER_IDS[0];
+    let chosen = rotationIds[0];
     let minCount = counts[chosen];
-    for (const id of ROTATION_USER_IDS) {
+    for (const id of rotationIds) {
       if (counts[id] < minCount) {
         minCount = counts[id];
         chosen = id;
       }
     }
+
 
     // Duplicate phone warning
     let duplicateWarning: string | null = null;
