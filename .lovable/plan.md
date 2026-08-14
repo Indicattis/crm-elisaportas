@@ -1,21 +1,30 @@
-## Objetivo
-Permitir editar o **valor da venda** na página `/sale/:id` e registrar no **histórico da negociação** toda alteração de valor e de data de referência.
+# Monitoramento do CRM
 
-## Alterações
+Nova página `/monitoramento` com botão no header, onde o administrador registra, dia a dia e por vendedor, se o CRM foi concluído e em que horário — com contagem automática das bolinhas verde/amarela/vermelha do dia.
 
-### 1. `src/pages/SaleDetail.tsx`
-- Tornar o card **"Valor da venda"** editável:
-  - Ao clicar no valor, abrir um Popover com um input numérico (máscara BRL) e botão "Salvar".
-  - Ao salvar, chamar `supabase.from("deals").update({ value }).eq("id", deal.id)`.
-  - Atualizar o estado local e mostrar toast de sucesso/erro.
-- Ao atualizar `sold_at` (função `updateSoldAt` já existente) e ao atualizar `value`:
-  - Após o `update` bem-sucedido, inserir em `public.deal_history` um evento do tipo `value_change` ou `sold_at_change`, com descrição legível (ex.: `"Alterou valor de R$ 1.000,00 para R$ 1.200,00"`, `"Alterou data de referência de 10/07/2026 para 15/07/2026"`) e `metadata` contendo `from`/`to`.
-  - Recarregar a timeline (`load()`) ou inserir localmente no `history` para refletir imediatamente.
+## Acesso
+- Botão "Monitoramento" no header (desktop e barra inferior mobile), visível para todos os usuários logados.
+- Admin: vê e edita todos os vendedores.
+- Vendedor: vê somente os próprios registros, sem edição.
 
-### 2. Histórico
-A tabela `deal_history` já existe e é usada em outras partes do sistema — nenhuma migração é necessária. Vamos apenas inserir novas linhas via client (RLS já permite ao dono/admin/membro do funil escrever histórico).
+## Tela
+- Calendário mensal no topo (mês navegável) com marcação visual dos dias já preenchidos.
+- Ao selecionar um dia, aparece a lista de vendedores ativos com, por linha:
+  - Nome do vendedor.
+  - Botão Sim/Não para "CRM concluído".
+  - Campo de hora da conclusão (habilitado quando "Sim").
+  - Três indicadores coloridos com a contagem de bolinhas verdes, amarelas e vermelhas do dia.
+- Salvamento imediato ao alterar (com feedback de toast).
+- Resumo do dia no rodapé: quantos vendedores concluíram, total de bolinhas por cor.
+
+## Contagem das bolinhas
+Calculada ao vivo a partir das cores diárias das negociações, agrupadas pelo responsável da negociação (campo de delegação). Negociações sem responsável ficam fora da contagem por vendedor, mas entram no total geral do dia.
 
 ## Detalhes técnicos
-- Formatação BRL reutiliza o `fmtBRL` já presente.
-- `event_type` novos: `value_change` e `sold_at_change` — a timeline já renderiza qualquer `event_type` (converte `_` em espaço) e mostra a `description`.
-- Estado de saving separado para valor (`savingValue`) além do já existente `savingDate`.
+- Nova tabela `public.crm_monitoring` com: `seller_id`, `date`, `completed` (boolean), `completed_time` (time, nulo quando não concluído), timestamps, `updated_by`; índice único em (`seller_id`, `date`).
+- GRANTs para `authenticated` e `service_role`; RLS:
+  - leitura: admin vê tudo, vendedor vê apenas `seller_id = auth.uid()`;
+  - inserir/atualizar: apenas admin (`has_role`).
+- Trigger `update_updated_at_column` na tabela.
+- Contagem: consulta em `deal_daily_color` do dia unida a `deals` para obter `assigned_to`, agregada por vendedor e cor no cliente.
+- Nova rota `/monitoramento` em `App.tsx` dentro do `AppLayout` autenticado; página `src/pages/Monitoring.tsx` seguindo o padrão visual glassmorphism das páginas `/vendas` e `/relatorios` (container `max-w-7xl mx-auto p-6`, fundo `bg-muted/40`).
