@@ -284,6 +284,39 @@ export type Database = {
           },
         ]
       }
+      crm_monitoring: {
+        Row: {
+          completed: boolean
+          completed_time: string | null
+          created_at: string
+          date: string
+          id: string
+          seller_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          completed?: boolean
+          completed_time?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          seller_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          completed?: boolean
+          completed_time?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          seller_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       deal_attachments: {
         Row: {
           created_at: string
