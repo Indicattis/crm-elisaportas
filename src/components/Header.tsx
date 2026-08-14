@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, LayoutDashboard, Settings, Sun, Moon, User, BarChart3, PieChart, Download, FileText, DollarSign, Target, TrendingDown } from "lucide-react";
+import { LogOut, LayoutDashboard, Settings, Sun, Moon, User, BarChart3, PieChart, Download, FileText, DollarSign, Target, TrendingDown, CalendarCheck } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -36,6 +36,7 @@ export function Header() {
     { path: "/planejamento", label: "Planejamento", icon: Target },
     { path: "/relatorios", label: "Relatórios", icon: FileText },
     { path: "/results", label: "Resultados", icon: BarChart3 },
+    { path: "/monitoramento", label: "Monitoramento", icon: CalendarCheck },
     { path: "/crm-config", label: "Configurações", icon: Settings, adminOnly: true },
   ];
 

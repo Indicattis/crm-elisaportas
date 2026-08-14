@@ -20,6 +20,7 @@ import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import DealDetail from "./pages/DealDetail";
 import SaleDetail from "./pages/SaleDetail";
+import Monitoring from "./pages/Monitoring";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/perdas" element={<Losses />} />
           <Route path="/planejamento" element={<SalesPlanning />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/monitoramento" element={<Monitoring />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/deal/:id" element={<DealDetail />} />
           <Route path="/sale/:id" element={<SaleDetail />} />
