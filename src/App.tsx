@@ -20,6 +20,7 @@ import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import DealDetail from "./pages/DealDetail";
 import SaleDetail from "./pages/SaleDetail";
+import Monitoring from "./pages/Monitoring";
 
 const queryClient = new QueryClient();
 
