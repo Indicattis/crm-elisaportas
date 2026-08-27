@@ -8,7 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { CalendarCheck, Check, X, ClipboardCheck, AlertTriangle } from "lucide-react";
+import { CalendarCheck, Check, X, ClipboardCheck, AlertTriangle, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { isSameDay } from "date-fns";
@@ -57,6 +69,8 @@ export default function Monitoring() {
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+
 
   const dateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
   const today = useMemo(() => new Date(), []);
@@ -177,7 +191,25 @@ export default function Monitoring() {
     fetchCalendarStates();
   };
 
+  const resetDay = async () => {
+    if (!isAdmin) return;
+    setResetting(true);
+    const { error } = await supabase
+      .from("crm_monitoring" as any)
+      .delete()
+      .eq("date", dateKey);
+    setResetting(false);
+    if (error) {
+      toast.error("Erro ao resetar o dia", { description: error.message });
+      return;
+    }
+    setRows({});
+    toast.success("Dia resetado");
+    fetchCalendarStates();
+  };
+
   const completedCount = sellers.filter((s) => rows[s.id]?.completed).length;
+
 
   const todayNotCompleted = useMemo(
     () => !completedDates.some((d) => isSameDay(d, today)),
@@ -255,10 +287,40 @@ export default function Monitoring() {
                   {isAdmin ? "Marque a conclusão do CRM e o horário" : "Visualização do seu registro"}
                 </p>
               </div>
-              <Badge variant="secondary" className="gap-1.5">
-                <ClipboardCheck className="h-3.5 w-3.5" />
-                {completedCount}/{sellers.length} concluíram
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="gap-1.5">
+                  <ClipboardCheck className="h-3.5 w-3.5" />
+                  {completedCount}/{sellers.length} concluíram
+                </Badge>
+                {isAdmin && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={resetting || Object.keys(rows).length === 0}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Resetar dia
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Resetar este dia?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Todos os registros de {formatDateLabel(selectedDate)} serão apagados e o dia
+                          voltará ao estado não preenchido.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={resetDay}>Resetar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+
             </div>
 
             {loading ? (
