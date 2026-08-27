@@ -102,24 +102,36 @@ export default function Monitoring() {
 
     const totalSellers = sellers.length;
     const completed: Date[] = [];
-    const incomplete: Date[] = [];
+    const completedKeys = new Set<string>();
 
-    byDate.forEach((counts, dateKey) => {
-      const date = parseDateKey(dateKey);
-      // A day is "completed" only when ALL active sellers marked done.
-      // Use totalSellers when available (admin sees all); a single-seller view
-      // (vendedor) uses its own list length.
+    byDate.forEach((counts, key) => {
       const target = totalSellers || counts.total;
       if (counts.done >= target && counts.total >= target) {
-        completed.push(date);
-      } else {
-        incomplete.push(date);
+        completed.push(parseDateKey(key));
+        completedKeys.add(key);
       }
     });
+
+    // Todo dia passado (a partir do primeiro registro) que não esteja completo = vermelho
+    const incomplete: Date[] = [];
+    const keys = Array.from(byDate.keys()).sort();
+    if (keys.length) {
+      const start = parseDateKey(keys[0]);
+      const end = new Date();
+      end.setHours(0, 0, 0, 0);
+      for (const d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+        const key = toDateKey(d);
+        if (!completedKeys.has(key)) incomplete.push(new Date(d));
+      }
+      // dia atual só fica vermelho se já tem registro e não está completo
+      const todayKey = toDateKey(end);
+      if (byDate.has(todayKey) && !completedKeys.has(todayKey)) incomplete.push(new Date(end));
+    }
 
     setCompletedDates(completed);
     setIncompleteDates(incomplete);
   }, [sellers.length]);
+
 
   useEffect(() => {
     fetchCalendarStates();
