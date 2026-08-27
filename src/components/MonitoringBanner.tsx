@@ -14,13 +14,17 @@ export function MonitoringBanner() {
 
   useEffect(() => {
     let active = true;
-    (async () => {
+
+    const check = async () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "vendedor");
       const ids = (roles || []).map((r) => r.user_id);
-      if (!ids.length) return;
+      if (!ids.length) {
+        if (active) setPending(false);
+        return;
+      }
 
       const { data: rows } = await supabase
         .from("crm_monitoring" as any)
@@ -32,9 +36,27 @@ export function MonitoringBanner() {
       );
       const allDone = ids.every((id) => done.has(id));
       if (active) setPending(!allDone);
-    })();
+    };
+
+    check();
+
+    const channel = supabase
+      .channel("crm_monitoring_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "crm_monitoring" },
+        () => check(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles" },
+        () => check(),
+      )
+      .subscribe();
+
     return () => {
       active = false;
+      supabase.removeChannel(channel);
     };
   }, []);
 
