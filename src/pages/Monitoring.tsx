@@ -57,6 +57,8 @@ export default function Monitoring() {
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+
 
   const dateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
   const today = useMemo(() => new Date(), []);
