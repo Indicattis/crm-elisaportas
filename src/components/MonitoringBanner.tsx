@@ -54,8 +54,16 @@ export function MonitoringBanner() {
       )
       .subscribe();
 
+    const interval = window.setInterval(check, 20000);
+    const onFocus = () => check();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+
     return () => {
       active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
       supabase.removeChannel(channel);
     };
   }, []);
