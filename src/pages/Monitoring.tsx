@@ -177,7 +177,25 @@ export default function Monitoring() {
     fetchCalendarStates();
   };
 
+  const resetDay = async () => {
+    if (!isAdmin) return;
+    setResetting(true);
+    const { error } = await supabase
+      .from("crm_monitoring" as any)
+      .delete()
+      .eq("date", dateKey);
+    setResetting(false);
+    if (error) {
+      toast.error("Erro ao resetar o dia", { description: error.message });
+      return;
+    }
+    setRows({});
+    toast.success("Dia resetado");
+    fetchCalendarStates();
+  };
+
   const completedCount = sellers.filter((s) => rows[s.id]?.completed).length;
+
 
   const todayNotCompleted = useMemo(
     () => !completedDates.some((d) => isSameDay(d, today)),
