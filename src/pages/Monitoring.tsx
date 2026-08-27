@@ -210,6 +210,15 @@ export default function Monitoring() {
           </div>
         </div>
 
+        {todayNotCompleted && (
+          <div className="flex items-center gap-3 rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4 text-orange-700 dark:text-orange-300">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <p className="text-sm font-medium">
+              Atenção: o monitoramento de hoje ainda não foi preenchido. Marque a conclusão do CRM para todos os vendedores.
+            </p>
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-[auto,1fr]">
           <div className="glass rounded-2xl p-3">
             <Calendar
