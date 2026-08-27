@@ -20,7 +20,18 @@ export function MonitoringBanner() {
         .from("user_roles")
         .select("user_id")
         .eq("role", "vendedor");
-      const ids = (roles || []).map((r) => r.user_id);
+      const roleIds = (roles || []).map((r) => r.user_id);
+      if (!roleIds.length) {
+        if (active) setPending(false);
+        return;
+      }
+
+      // Only sellers that still have a profile (active users)
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id")
+        .in("id", roleIds);
+      const ids = (profs || []).map((p) => p.id);
       if (!ids.length) {
         if (active) setPending(false);
         return;
