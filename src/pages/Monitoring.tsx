@@ -55,7 +55,6 @@ export default function Monitoring() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [rows, setRows] = useState<Record<string, MonitoringRow>>({});
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
-  const [incompleteDates, setIncompleteDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -112,24 +111,7 @@ export default function Monitoring() {
       }
     });
 
-    // Todo dia passado (a partir do primeiro registro) que não esteja completo = vermelho
-    const incomplete: Date[] = [];
-    const keys = Array.from(byDate.keys()).sort();
-    if (keys.length) {
-      const start = parseDateKey(keys[0]);
-      const end = new Date();
-      end.setHours(0, 0, 0, 0);
-      for (const d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-        const key = toDateKey(d);
-        if (!completedKeys.has(key)) incomplete.push(new Date(d));
-      }
-      // dia atual só fica vermelho se já tem registro e não está completo
-      const todayKey = toDateKey(end);
-      if (byDate.has(todayKey) && !completedKeys.has(todayKey)) incomplete.push(new Date(end));
-    }
-
     setCompletedDates(completed);
-    setIncompleteDates(incomplete);
   }, [sellers.length]);
 
 
@@ -197,16 +179,15 @@ export default function Monitoring() {
 
   const completedCount = sellers.filter((s) => rows[s.id]?.completed).length;
 
-  // Today is blue only if it has no monitoring records
-  const todayEmpty = useMemo(() => {
-    const todayKey = toDateKey(today);
-    const hasRecord = completedDates.some((d) => isSameDay(d, today)) || incompleteDates.some((d) => isSameDay(d, today));
-    return !hasRecord;
-  }, [today, completedDates, incompleteDates]);
-
-  const todayModifier = useMemo(
-    () => (todayEmpty ? [today] : []),
-    [todayEmpty, today],
+  const incompleteDay = useCallback(
+    (date: Date) => {
+      const candidate = new Date(date);
+      const current = new Date(today);
+      candidate.setHours(0, 0, 0, 0);
+      current.setHours(0, 0, 0, 0);
+      return candidate < current && !completedDates.some((completed) => isSameDay(completed, candidate));
+    },
+    [completedDates, today],
   );
 
   return (
@@ -232,15 +213,15 @@ export default function Monitoring() {
               onSelect={(d) => d && setSelectedDate(d)}
               modifiers={{
                 completed: completedDates,
-                incomplete: incompleteDates,
-                todayEmpty: todayModifier,
+                incomplete: incompleteDay,
+                currentDay: [today],
               }}
               modifiersClassNames={{
                 completed:
                   "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white font-semibold",
                 incomplete:
                   "bg-red-500 text-white hover:bg-red-600 hover:text-white font-semibold",
-                todayEmpty:
+                currentDay:
                   "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground font-semibold ring-2 ring-primary/40",
               }}
               className={cn("p-3 pointer-events-auto")}
