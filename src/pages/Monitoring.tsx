@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { CalendarCheck, Check, X, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { isSameDay } from "date-fns";
 
 interface Seller {
   id: string;
   name: string;
+  avatar_url: string | null;
 }
 
 interface MonitoringRow {
@@ -24,15 +27,24 @@ interface MonitoringRow {
   completed_time: string | null;
 }
 
-type ColorCounts = { green: number; yellow: number; red: number };
-
-const emptyCounts = (): ColorCounts => ({ green: 0, yellow: 0, red: 0 });
-
 const toDateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+const parseDateKey = (key: string): Date => {
+  const [y, m, dd] = key.split("-").map(Number);
+  return new Date(y, m - 1, dd);
+};
+
 const formatDateLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("") || "?";
 
 export default function Monitoring() {
   const { user } = useAuth();
@@ -42,13 +54,13 @@ export default function Monitoring() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [rows, setRows] = useState<Record<string, MonitoringRow>>({});
-  const [filledDates, setFilledDates] = useState<Date[]>([]);
-  const [counts, setCounts] = useState<Record<string, ColorCounts>>({});
-  const [unassigned, setUnassigned] = useState<ColorCounts>(emptyCounts());
+  const [completedDates, setCompletedDates] = useState<Date[]>([]);
+  const [incompleteDates, setIncompleteDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const dateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
+  const today = useMemo(() => new Date(), []);
 
   // Sellers
   useEffect(() => {
@@ -61,73 +73,71 @@ export default function Monitoring() {
       }
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, avatar_url")
         .in("id", ids)
         .order("full_name");
-      let list: Seller[] = (profs || []).map((p) => ({ id: p.id, name: p.full_name || "Sem nome" }));
+      let list: Seller[] = (profs || []).map((p) => ({
+        id: p.id,
+        name: p.full_name || "Sem nome",
+        avatar_url: p.avatar_url,
+      }));
       if (!isAdmin && user?.id) list = list.filter((s) => s.id === user.id);
       setSellers(list);
     })();
   }, [isAdmin, user?.id]);
 
-  // Days already filled (for calendar highlight)
-  const fetchFilledDates = useCallback(async () => {
-    const { data } = await supabase.from("crm_monitoring" as any).select("date");
-    const uniq = new Set((data || []).map((r: any) => r.date));
-    setFilledDates(
-      Array.from(uniq).map((d) => {
-        const [y, m, dd] = (d as string).split("-").map(Number);
-        return new Date(y, m - 1, dd);
-      }),
-    );
-  }, []);
+  // Compute calendar day colors from all monitoring rows + active sellers count
+  const fetchCalendarStates = useCallback(async () => {
+    const { data } = await supabase
+      .from("crm_monitoring" as any)
+      .select("date, completed");
+
+    const byDate = new Map<string, { total: number; done: number }>();
+    (data || []).forEach((r: any) => {
+      const cur = byDate.get(r.date) || { total: 0, done: 0 };
+      cur.total += 1;
+      if (r.completed) cur.done += 1;
+      byDate.set(r.date, cur);
+    });
+
+    const totalSellers = sellers.length;
+    const completed: Date[] = [];
+    const incomplete: Date[] = [];
+
+    byDate.forEach((counts, dateKey) => {
+      const date = parseDateKey(dateKey);
+      // A day is "completed" only when ALL active sellers marked done.
+      // Use totalSellers when available (admin sees all); a single-seller view
+      // (vendedor) uses its own list length.
+      const target = totalSellers || counts.total;
+      if (counts.done >= target && counts.total >= target) {
+        completed.push(date);
+      } else {
+        incomplete.push(date);
+      }
+    });
+
+    setCompletedDates(completed);
+    setIncompleteDates(incomplete);
+  }, [sellers.length]);
 
   useEffect(() => {
-    fetchFilledDates();
-  }, [fetchFilledDates]);
+    fetchCalendarStates();
+  }, [fetchCalendarStates]);
 
-  // Day data: monitoring rows + live color counts
+  // Day data: monitoring rows for the selected date
   const fetchDay = useCallback(async () => {
     setLoading(true);
-
-    const [{ data: monRows }, { data: colorRows }] = await Promise.all([
-      supabase.from("crm_monitoring" as any).select("id, seller_id, date, completed, completed_time").eq("date", dateKey),
-      supabase.from("deal_daily_color").select("deal_id, color").eq("date", dateKey),
-    ]);
+    const { data: monRows } = await supabase
+      .from("crm_monitoring" as any)
+      .select("id, seller_id, date, completed, completed_time")
+      .eq("date", dateKey);
 
     const map: Record<string, MonitoringRow> = {};
     (monRows || []).forEach((r: any) => {
       map[r.seller_id] = r as MonitoringRow;
     });
     setRows(map);
-
-    const colorList = (colorRows || []) as { deal_id: string; color: string }[];
-    const dealIds = colorList.map((c) => c.deal_id);
-    const owners: Record<string, string | null> = {};
-    for (let i = 0; i < dealIds.length; i += 200) {
-      const chunk = dealIds.slice(i, i + 200);
-      if (!chunk.length) break;
-      const { data: deals } = await supabase.from("deals").select("id, assigned_to").in("id", chunk);
-      (deals || []).forEach((d: any) => {
-        owners[d.id] = d.assigned_to ?? null;
-      });
-    }
-
-    const perSeller: Record<string, ColorCounts> = {};
-    const noOwner = emptyCounts();
-    for (const c of colorList) {
-      const color = c.color as keyof ColorCounts;
-      if (color !== "green" && color !== "yellow" && color !== "red") continue;
-      const owner = owners[c.deal_id] ?? null;
-      if (!owner) {
-        noOwner[color]++;
-        continue;
-      }
-      if (!perSeller[owner]) perSeller[owner] = emptyCounts();
-      perSeller[owner][color]++;
-    }
-    setCounts(perSeller);
-    setUnassigned(noOwner);
     setLoading(false);
   }, [dateKey]);
 
@@ -167,43 +177,24 @@ export default function Monitoring() {
         toast.error("Erro ao salvar", { description: error.message });
       } else if (data) {
         setRows((prev) => ({ ...prev, [sellerId]: data as any as MonitoringRow }));
-        fetchFilledDates();
       }
     }
     setSavingId(null);
+    fetchCalendarStates();
   };
-
-  const dayTotals = useMemo(() => {
-    const t = emptyCounts();
-    for (const s of sellers) {
-      const c = counts[s.id];
-      if (!c) continue;
-      t.green += c.green;
-      t.yellow += c.yellow;
-      t.red += c.red;
-    }
-    if (isAdmin) {
-      t.green += unassigned.green;
-      t.yellow += unassigned.yellow;
-      t.red += unassigned.red;
-    }
-    return t;
-  }, [sellers, counts, unassigned, isAdmin]);
 
   const completedCount = sellers.filter((s) => rows[s.id]?.completed).length;
 
-  const ColorPill = ({ color, value }: { color: keyof ColorCounts; value: number }) => (
-    <div className="flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-2.5 py-1">
-      <span
-        className={cn(
-          "h-2.5 w-2.5 rounded-full",
-          color === "green" && "bg-emerald-500",
-          color === "yellow" && "bg-amber-400",
-          color === "red" && "bg-red-500",
-        )}
-      />
-      <span className="text-xs font-semibold tabular-nums">{value}</span>
-    </div>
+  // Today is blue only if it has no monitoring records
+  const todayEmpty = useMemo(() => {
+    const todayKey = toDateKey(today);
+    const hasRecord = completedDates.some((d) => isSameDay(d, today)) || incompleteDates.some((d) => isSameDay(d, today));
+    return !hasRecord;
+  }, [today, completedDates, incompleteDates]);
+
+  const todayModifier = useMemo(
+    () => (todayEmpty ? [today] : []),
+    [todayEmpty, today],
   );
 
   return (
@@ -227,10 +218,32 @@ export default function Monitoring() {
               mode="single"
               selected={selectedDate}
               onSelect={(d) => d && setSelectedDate(d)}
-              modifiers={{ filled: filledDates }}
-              modifiersClassNames={{ filled: "font-bold text-primary underline underline-offset-4" }}
+              modifiers={{
+                completed: completedDates,
+                incomplete: incompleteDates,
+                todayEmpty: todayModifier,
+              }}
+              modifiersClassNames={{
+                completed:
+                  "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white font-semibold",
+                incomplete:
+                  "bg-red-500 text-white hover:bg-red-600 hover:text-white font-semibold",
+                todayEmpty:
+                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground font-semibold ring-2 ring-primary/40",
+              }}
               className={cn("p-3 pointer-events-auto")}
             />
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-3 px-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-emerald-500" /> Concluído
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-red-500" /> Não concluído
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-primary" /> Dia atual
+              </span>
+            </div>
           </div>
 
           <div className="glass space-y-4 rounded-2xl p-5">
@@ -261,7 +274,6 @@ export default function Monitoring() {
               <div className="space-y-3">
                 {sellers.map((s) => {
                   const row = rows[s.id];
-                  const c = counts[s.id] || emptyCounts();
                   const done = row?.completed === true;
                   return (
                     <div
@@ -271,19 +283,23 @@ export default function Monitoring() {
                         done ? "border-emerald-500/40 bg-emerald-500/5" : "border-border bg-card/50",
                       )}
                     >
-                      <div className="min-w-[160px] flex-1">
-                        <p className="truncate font-medium">{s.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {done
-                            ? `CRM concluído${row?.completed_time ? ` às ${row.completed_time.slice(0, 5)}` : ""}`
-                            : "CRM não concluído"}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <ColorPill color="green" value={c.green} />
-                        <ColorPill color="yellow" value={c.yellow} />
-                        <ColorPill color="red" value={c.red} />
+                      <div className="flex min-w-[180px] flex-1 items-center gap-3">
+                        <Avatar className="h-10 w-10 border border-border">
+                          {s.avatar_url ? (
+                            <AvatarImage src={s.avatar_url} alt={s.name} />
+                          ) : null}
+                          <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                            {getInitials(s.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{s.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {done
+                              ? `CRM concluído${row?.completed_time ? ` às ${row.completed_time.slice(0, 5)}` : ""}`
+                              : "CRM não concluído"}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -325,15 +341,6 @@ export default function Monitoring() {
                 })}
               </div>
             )}
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/50 p-4">
-              <span className="text-sm font-medium text-muted-foreground">Total de bolinhas no dia</span>
-              <div className="flex items-center gap-1.5">
-                <ColorPill color="green" value={dayTotals.green} />
-                <ColorPill color="yellow" value={dayTotals.yellow} />
-                <ColorPill color="red" value={dayTotals.red} />
-              </div>
-            </div>
           </div>
         </div>
       </div>
