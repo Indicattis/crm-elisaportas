@@ -179,6 +179,11 @@ export default function Monitoring() {
 
   const completedCount = sellers.filter((s) => rows[s.id]?.completed).length;
 
+  const todayNotCompleted = useMemo(
+    () => !completedDates.some((d) => isSameDay(d, today)),
+    [completedDates, today],
+  );
+
   const incompleteDay = useCallback(
     (date: Date) => {
       const candidate = new Date(date);
