@@ -238,9 +238,13 @@ export default function Monitoring() {
       const current = new Date(today);
       candidate.setHours(0, 0, 0, 0);
       current.setHours(0, 0, 0, 0);
-      return candidate < current && !completedDates.some((completed) => isSameDay(completed, candidate));
+      return (
+        candidate < current &&
+        !completedDates.some((completed) => isSameDay(completed, candidate)) &&
+        !partialDates.some((partial) => isSameDay(partial, candidate))
+      );
     },
-    [completedDates, today],
+    [completedDates, partialDates, today],
   );
 
   return (
