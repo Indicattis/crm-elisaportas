@@ -533,6 +533,20 @@ export function TaskGroupManager() {
                   onCheckedChange={(v) => toggleRecurringMode(group, v)}
                 />
               </div>
+              {(groupColumns[group.id] || []).length > 0 && (
+                <div className="pt-2 flex flex-wrap gap-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1 self-center">
+                    <Layers className="h-3 w-3" /> Colunas:
+                  </span>
+                  {(groupColumns[group.id] || []).map(col => (
+                    <Badge key={col.id} variant="outline" className="text-[10px] gap-1 font-normal">
+                      <span className="text-muted-foreground">{col.funnel_name}</span>
+                      <span className="text-foreground">/</span>
+                      <span className="text-foreground">{col.name}</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-3">
               {isRecurring ? (
