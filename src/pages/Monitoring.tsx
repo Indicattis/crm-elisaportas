@@ -70,6 +70,7 @@ export default function Monitoring() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [rows, setRows] = useState<Record<string, MonitoringRow>>({});
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
+  const [partialDates, setPartialDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
@@ -121,16 +122,20 @@ export default function Monitoring() {
     const totalSellers = sellers.length;
     const completed: Date[] = [];
     const completedKeys = new Set<string>();
+    const partial: Date[] = [];
 
     byDate.forEach((counts, key) => {
       const target = totalSellers || counts.total;
       if (counts.done >= target && counts.total >= target) {
         completed.push(parseDateKey(key));
         completedKeys.add(key);
+      } else if (counts.total > 0) {
+        partial.push(parseDateKey(key));
       }
     });
 
     setCompletedDates(completed);
+    setPartialDates(partial);
   }, [sellers.length]);
 
 
@@ -233,9 +238,13 @@ export default function Monitoring() {
       const current = new Date(today);
       candidate.setHours(0, 0, 0, 0);
       current.setHours(0, 0, 0, 0);
-      return candidate < current && !completedDates.some((completed) => isSameDay(completed, candidate));
+      return (
+        candidate < current &&
+        !completedDates.some((completed) => isSameDay(completed, candidate)) &&
+        !partialDates.some((partial) => isSameDay(partial, candidate))
+      );
     },
-    [completedDates, today],
+    [completedDates, partialDates, today],
   );
 
   return (
@@ -264,12 +273,15 @@ export default function Monitoring() {
               onSelect={(d) => d && setSelectedDate(d)}
               modifiers={{
                 completed: completedDates,
+                partial: partialDates,
                 incomplete: incompleteDay,
                 currentDay: [today],
               }}
               modifiersClassNames={{
                 completed:
                   "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white font-semibold",
+                partial:
+                  "bg-yellow-400 text-yellow-950 hover:bg-yellow-500 hover:text-yellow-950 font-semibold",
                 incomplete:
                   "bg-red-500 text-white hover:bg-red-600 hover:text-white font-semibold",
                 currentDay:
@@ -280,6 +292,9 @@ export default function Monitoring() {
             <div className="mt-3 flex flex-wrap items-center justify-center gap-3 px-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full bg-emerald-500" /> Concluído
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-yellow-400" /> Parcial
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full bg-red-500" /> Não concluído
