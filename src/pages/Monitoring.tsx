@@ -122,16 +122,20 @@ export default function Monitoring() {
     const totalSellers = sellers.length;
     const completed: Date[] = [];
     const completedKeys = new Set<string>();
+    const partial: Date[] = [];
 
     byDate.forEach((counts, key) => {
       const target = totalSellers || counts.total;
       if (counts.done >= target && counts.total >= target) {
         completed.push(parseDateKey(key));
         completedKeys.add(key);
+      } else if (counts.total > 0) {
+        partial.push(parseDateKey(key));
       }
     });
 
     setCompletedDates(completed);
+    setPartialDates(partial);
   }, [sellers.length]);
 
 
