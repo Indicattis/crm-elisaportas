@@ -291,6 +291,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          justification: string | null
           seller_id: string
           updated_at: string
           updated_by: string | null
@@ -301,6 +302,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          justification?: string | null
           seller_id: string
           updated_at?: string
           updated_by?: string | null
@@ -311,6 +313,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          justification?: string | null
           seller_id?: string
           updated_at?: string
           updated_by?: string | null

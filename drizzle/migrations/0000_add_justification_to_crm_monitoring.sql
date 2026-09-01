@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_monitoring ADD COLUMN IF NOT EXISTS justification TEXT;
