@@ -129,13 +129,19 @@ export function TaskGroupManager() {
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const { toast } = useToast();
 
+  const [groupColumns, setGroupColumns] = useState<Record<string, { id: string; name: string; funnel_name: string }[]>>({});
+
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [gRes, tRes, sRes, schRes] = await Promise.all([
+    const [gRes, tRes, sRes, schRes, colRes] = await Promise.all([
       supabase.from("task_groups").select("*").order("position"),
       supabase.from("task_templates").select("*").order("position"),
       supabase.from("task_group_stages").select("*").order("position"),
       supabase.from("task_group_schedules" as any).select("*").order("position"),
+      supabase
+        .from("funnel_columns")
+        .select("id, name, task_group_id, funnels(name)")
+        .not("task_group_id", "is", null),
     ]);
     if (gRes.error) toast({ title: "Erro", description: gRes.error.message, variant: "destructive" });
     if (tRes.error) toast({ title: "Erro", description: tRes.error.message, variant: "destructive" });
@@ -143,6 +149,15 @@ export function TaskGroupManager() {
     setTemplates((tRes.data as TaskTemplate[]) || []);
     setStages((sRes.data as TaskGroupStage[]) || []);
     setSchedules(((schRes.data as any) || []) as TaskGroupSchedule[]);
+    const cols = (colRes.data as any) || [];
+    const map: Record<string, { id: string; name: string; funnel_name: string }[]> = {};
+    cols.forEach((c: any) => {
+      const gid = c.task_group_id;
+      if (!gid) return;
+      if (!map[gid]) map[gid] = [];
+      map[gid].push({ id: c.id, name: c.name, funnel_name: c.funnels?.name || "—" });
+    });
+    setGroupColumns(map);
     setLoading(false);
   }, [toast]);
 
@@ -518,6 +533,20 @@ export function TaskGroupManager() {
                   onCheckedChange={(v) => toggleRecurringMode(group, v)}
                 />
               </div>
+              {(groupColumns[group.id] || []).length > 0 && (
+                <div className="pt-2 flex flex-wrap gap-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1 self-center">
+                    <Layers className="h-3 w-3" /> Colunas:
+                  </span>
+                  {(groupColumns[group.id] || []).map(col => (
+                    <Badge key={col.id} variant="outline" className="text-[10px] gap-1 font-normal">
+                      <span className="text-muted-foreground">{col.funnel_name}</span>
+                      <span className="text-foreground">/</span>
+                      <span className="text-foreground">{col.name}</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-3">
               {isRecurring ? (
