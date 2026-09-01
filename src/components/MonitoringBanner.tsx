@@ -84,7 +84,7 @@ export function MonitoringBanner() {
   return (
     <button
       onClick={() => navigate("/monitoramento")}
-      className="flex w-full items-center justify-center gap-3 bg-orange-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-md transition-colors hover:bg-orange-600"
+      className="flex w-full items-center justify-center gap-3 bg-yellow-400 px-4 py-3 text-center text-sm font-semibold text-yellow-950 shadow-md transition-colors hover:bg-yellow-500"
     >
       <AlertTriangle className="h-5 w-5 shrink-0" />
       <span>
