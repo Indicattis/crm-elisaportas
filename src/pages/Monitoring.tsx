@@ -21,6 +21,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { isSameDay } from "date-fns";
@@ -37,6 +39,7 @@ interface MonitoringRow {
   date: string;
   completed: boolean;
   completed_time: string | null;
+  justification: string | null;
 }
 
 const toDateKey = (d: Date) =>
@@ -70,6 +73,8 @@ export default function Monitoring() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [justifyFor, setJustifyFor] = useState<Seller | null>(null);
+  const [justifyText, setJustifyText] = useState("");
 
 
   const dateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
@@ -138,7 +143,7 @@ export default function Monitoring() {
     setLoading(true);
     const { data: monRows } = await supabase
       .from("crm_monitoring" as any)
-      .select("id, seller_id, date, completed, completed_time")
+      .select("id, seller_id, date, completed, completed_time, justification")
       .eq("date", dateKey);
 
     const map: Record<string, MonitoringRow> = {};
@@ -153,14 +158,20 @@ export default function Monitoring() {
     fetchDay();
   }, [fetchDay]);
 
-  const upsertRow = async (sellerId: string, patch: { completed?: boolean; completed_time?: string | null }) => {
+  const upsertRow = async (
+    sellerId: string,
+    patch: { completed?: boolean; completed_time?: string | null; justification?: string | null },
+  ) => {
     if (!isAdmin) return;
     const existing = rows[sellerId];
     const next = {
       completed: patch.completed ?? existing?.completed ?? false,
       completed_time: patch.completed_time !== undefined ? patch.completed_time : existing?.completed_time ?? null,
+      justification:
+        patch.justification !== undefined ? patch.justification : existing?.justification ?? null,
     };
     if (!next.completed) next.completed_time = null;
+    else next.justification = null;
 
     setSavingId(sellerId);
     // optimistic
@@ -179,7 +190,7 @@ export default function Monitoring() {
       const { data, error } = await supabase
         .from("crm_monitoring" as any)
         .insert({ seller_id: sellerId, date: dateKey, ...next, updated_by: user?.id } as any)
-        .select("id, seller_id, date, completed, completed_time")
+        .select("id, seller_id, date, completed, completed_time, justification")
         .single();
       if (error) {
         toast.error("Erro ao salvar", { description: error.message });
@@ -362,6 +373,12 @@ export default function Monitoring() {
                               ? `CRM concluído${row?.completed_time ? ` às ${row.completed_time.slice(0, 5)}` : ""}`
                               : "CRM não concluído"}
                           </p>
+                          {!done && row?.justification ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">Justificativa:</span>{" "}
+                              {row.justification}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
 
@@ -386,7 +403,10 @@ export default function Monitoring() {
                           size="sm"
                           variant={row && !done ? "destructive" : "outline"}
                           disabled={!isAdmin || savingId === s.id}
-                          onClick={() => upsertRow(s.id, { completed: false, completed_time: null })}
+                          onClick={() => {
+                            setJustifyFor(s);
+                            setJustifyText(row?.completed ? "" : row?.justification ?? "");
+                          }}
                           className="gap-1"
                         >
                           <X className="h-4 w-4" /> Não
@@ -407,6 +427,62 @@ export default function Monitoring() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={!!justifyFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setJustifyFor(null);
+            setJustifyText("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Justificativa obrigatória
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Informe o motivo pelo qual {justifyFor?.name} não concluiu o CRM em{" "}
+            {formatDateLabel(selectedDate)}.
+          </p>
+          <Textarea
+            value={justifyText}
+            onChange={(e) => setJustifyText(e.target.value)}
+            placeholder="Descreva a justificativa..."
+            rows={4}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setJustifyFor(null);
+                setJustifyText("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={justifyText.trim().length < 3 || savingId === justifyFor?.id}
+              onClick={async () => {
+                const seller = justifyFor;
+                if (!seller) return;
+                setJustifyFor(null);
+                await upsertRow(seller.id, {
+                  completed: false,
+                  completed_time: null,
+                  justification: justifyText.trim(),
+                });
+                setJustifyText("");
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
