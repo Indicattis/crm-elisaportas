@@ -70,6 +70,7 @@ export default function Monitoring() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [rows, setRows] = useState<Record<string, MonitoringRow>>({});
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
+  const [partialDates, setPartialDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
