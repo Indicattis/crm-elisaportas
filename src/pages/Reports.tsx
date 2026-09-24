@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,9 +8,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { CalendarIcon, FileText, Printer, BarChart3, UserSquare2 } from "lucide-react";
-import { format, startOfMonth, endOfDay, startOfDay } from "date-fns";
+import { format, startOfMonth, endOfDay, startOfDay, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 import { applyPhoneMask } from "@/lib/phone-mask";
 import type { Tables } from "@/integrations/supabase/types";
@@ -33,6 +35,7 @@ interface ContactColumn {
   id: string;
   name: string;
   funnel_id: string;
+  column_type?: string;
 }
 
 export default function Reports() {
@@ -54,7 +57,9 @@ export default function Reports() {
   const [selectedUser, setSelectedUser] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
+  const [selectedChartStage, setSelectedChartStage] = useState("all");
   const [activeTab, setActiveTab] = useState("period");
+  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
@@ -66,13 +71,13 @@ export default function Reports() {
     const to = endOfDay(dateTo).toISOString();
 
     const [dealsRes, funnelsRes, profilesRes, rolesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
-      supabase.from("deals").select("*").gte("updated_at", from).lte("updated_at", to),
+      supabase.from("deals").select("*"),
       supabase.from("funnels").select("id, name"),
       supabase.from("profiles").select("id, full_name"),
       supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
       supabase.from("acquisition_channels").select("id, name"),
       supabase.from("contacts" as any).select("id, name, phone, state, city, notes, created_at, column_id, funnel_id").gte("created_at", from).lte("created_at", to).order("created_at", { ascending: false }),
-      supabase.from("funnel_columns").select("id, name, funnel_id, column_type").eq("column_type", "contacts" as any),
+      supabase.from("funnel_columns").select("id, name, funnel_id, column_type").order("position"),
     ]);
 
     setDeals(dealsRes.data || []);
@@ -80,7 +85,7 @@ export default function Reports() {
     setSellerIds((rolesRes.data || []).map((role) => role.user_id));
     setChannels(channelsRes.data || []);
     setContacts(((contactsRes.data as any) || []) as ContactRow[]);
-    setContactColumns(((contactColsRes.data as any) || []).map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id })));
+    setContactColumns(((contactColsRes.data as any) || []).map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id, column_type: c.column_type })));
 
     const map: Record<string, string> = {};
     (profilesRes.data || []).forEach((p) => {
@@ -92,13 +97,15 @@ export default function Reports() {
 
   const filteredDeals = useMemo(() => {
     return deals.filter((d) => {
+      const updatedAt = new Date(d.updated_at);
+      if (updatedAt < startOfDay(dateFrom) || updatedAt > endOfDay(dateTo)) return false;
       if (selectedFunnel !== "all" && d.funnel_id !== selectedFunnel) return false;
       if (selectedUser !== "all" && d.assigned_to !== selectedUser && d.user_id !== selectedUser) return false;
       if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
       if (selectedChannel !== "all" && d.acquisition_channel !== selectedChannel) return false;
       return true;
     });
-  }, [deals, selectedFunnel, selectedUser, selectedStatus, selectedChannel]);
+  }, [deals, dateFrom, dateTo, selectedFunnel, selectedUser, selectedStatus, selectedChannel]);
 
   const dealStatuses = useMemo(
     () => Array.from(new Set(deals.map((deal) => deal.status).filter(Boolean))).sort(),
@@ -154,6 +161,36 @@ export default function Reports() {
     });
   }, [contacts, selectedContactColumn, selectedFunnel]);
 
+  const dealColumns = useMemo(
+    () => contactColumns.filter((column) => column.column_type === "deals" && (selectedFunnel === "all" || column.funnel_id === selectedFunnel)),
+    [contactColumns, selectedFunnel]
+  );
+
+  const chartData = useMemo(() => {
+    const filteredForChart = deals.filter((deal) => {
+      if (selectedFunnel !== "all" && deal.funnel_id !== selectedFunnel) return false;
+      if (selectedUser !== "all" && deal.assigned_to !== selectedUser && deal.user_id !== selectedUser) return false;
+      if (selectedStatus !== "all" && deal.status !== selectedStatus) return false;
+      if (selectedChannel !== "all" && deal.acquisition_channel !== selectedChannel) return false;
+      if (selectedChartStage !== "all" && deal.status !== selectedChartStage) return false;
+      return true;
+    });
+
+    return eachDayOfInterval({ start: startOfDay(dateFrom), end: startOfDay(dateTo) }).map((day) => {
+      const key = format(day, "yyyy-MM-dd");
+      const leads = filteredForChart.filter((deal) => format(new Date(deal.created_at), "yyyy-MM-dd") === key).length;
+      const closedValue = filteredForChart
+        .filter((deal) => deal.status === "Vendido" && deal.sold_at && format(new Date(deal.sold_at), "yyyy-MM-dd") === key)
+        .reduce((sum, deal) => sum + (deal.value || 0), 0);
+      return { date: format(day, "dd/MM"), fullDate: format(day, "dd/MM/yyyy"), leads, closedValue };
+    });
+  }, [deals, dateFrom, dateTo, selectedFunnel, selectedUser, selectedStatus, selectedChannel, selectedChartStage]);
+
+  const chartConfig = {
+    closedValue: { label: "Valor fechado", color: "hsl(var(--success))" },
+    leads: { label: "Quantidade de leads", color: "hsl(var(--primary))" },
+  };
+
 
   const filtersLabel = () => {
     const parts: string[] = [];
@@ -162,6 +199,7 @@ export default function Reports() {
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedStatus !== "all") parts.push(`Status: ${selectedStatus}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
+    if (activeTab === "period" && selectedChartStage !== "all") parts.push(`Etapa do gráfico: ${selectedChartStage}`);
     if (activeTab === "contacts" && selectedContactColumn !== "all") {
       parts.push(`Coluna: ${contactColumnMap[selectedContactColumn]?.name || "-"}`);
     }
@@ -178,15 +216,44 @@ export default function Reports() {
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const handlePrint = () => {
+  const getChartImage = async () => {
+    const svg = chartRef.current?.querySelector("svg");
+    if (!svg) return "";
+
+    const serialized = new XMLSerializer().serializeToString(svg);
+    const source = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(serialized)}`;
+    return await new Promise<string>((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1200;
+        canvas.height = 480;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          resolve("");
+          return;
+        }
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      image.onerror = () => resolve("");
+      image.src = source;
+    });
+  };
+
+  const handlePrint = async () => {
     const title = tabTitles[activeTab];
     const filtersSummary = filtersLabel();
     const now = format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR });
+    const chartImage = activeTab === "period" ? await getChartImage() : "";
 
     let tableHtml = "";
 
     if (activeTab === "period") {
       tableHtml = `
+        ${chartImage ? `<div class="chart"><h2>Evolução diária</h2><img src="${chartImage}" alt="Gráfico de valor fechado e quantidade de leads" /></div>` : ""}
         <table>
           <thead><tr><th>Nº</th><th>Título</th><th>Telefone</th><th>Valor</th><th>Status</th><th>Motivo da perda</th><th>Responsável</th><th>Atualizado em</th></tr></thead>
           <tbody>
@@ -286,6 +353,9 @@ export default function Reports() {
       .header h1 { font-size: 18px; }
       .header .meta { text-align: right; font-size: 10px; color: #666; }
       .filters { background: #f5f5f5; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-size: 11px; color: #555; }
+      .chart { margin: 14px 0 20px; break-inside: avoid; }
+      .chart h2 { font-size: 14px; margin-bottom: 8px; }
+      .chart img { display: block; width: 100%; max-height: 360px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; }
       table { width: 100%; border-collapse: collapse; margin-top: 8px; }
       th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
       th { background: #f0f0f0; font-weight: 600; }
@@ -404,6 +474,13 @@ export default function Reports() {
                         {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <Select value={selectedChartStage} onValueChange={setSelectedChartStage}>
+                      <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Etapa do gráfico" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as etapas no gráfico</SelectItem>
+                        {dealColumns.map((column) => <SelectItem key={column.id} value={column.name}>{column.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </>
                 )}
                 {activeTab === "contacts" && (
@@ -426,6 +503,31 @@ export default function Reports() {
           ) : (
             <>
               <TabsContent value="period" className="space-y-4">
+                <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)]">
+                  <div className="mb-4">
+                    <h2 className="font-semibold text-foreground">Evolução diária</h2>
+                    <p className="text-xs text-muted-foreground">Valor fechado e novos leads por data</p>
+                  </div>
+                  <ChartContainer ref={chartRef} config={chartConfig} className="h-[360px] w-full aspect-auto">
+                    <LineChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid vertical={false} />
+                      <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={24} />
+                      <YAxis yAxisId="value" tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR", { notation: "compact" })}`} width={76} />
+                      <YAxis yAxisId="leads" orientation="right" allowDecimals={false} tickLine={false} axisLine={false} width={36} />
+                      <ChartTooltip
+                        content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ""} formatter={(value, name) => (
+                          <div className="flex min-w-[180px] items-center justify-between gap-4">
+                            <span className="text-muted-foreground">{name === "closedValue" ? "Valor fechado" : "Quantidade de leads"}</span>
+                            <span className="font-medium text-foreground">{name === "closedValue" ? fmt(Number(value)) : Number(value).toLocaleString("pt-BR")}</span>
+                          </div>
+                        )} />}
+                      />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Line yAxisId="value" type="monotone" dataKey="closedValue" stroke="var(--color-closedValue)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Line yAxisId="leads" type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ChartContainer>
+                </div>
                 <div className="rounded-2xl border border-border/60 bg-card shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] overflow-hidden">
                   <Table>
                     <TableHeader className="bg-muted/50">
