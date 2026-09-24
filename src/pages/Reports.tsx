@@ -172,13 +172,17 @@ export default function Reports() {
       if (selectedUser !== "all" && deal.assigned_to !== selectedUser && deal.user_id !== selectedUser) return false;
       if (selectedStatus !== "all" && deal.status !== selectedStatus) return false;
       if (selectedChannel !== "all" && deal.acquisition_channel !== selectedChannel) return false;
-      if (selectedChartStage !== "all" && deal.status !== selectedChartStage) return false;
       return true;
     });
 
+    if (startOfDay(dateFrom) > startOfDay(dateTo)) return [];
+
     return eachDayOfInterval({ start: startOfDay(dateFrom), end: startOfDay(dateTo) }).map((day) => {
       const key = format(day, "yyyy-MM-dd");
-      const leads = filteredForChart.filter((deal) => format(new Date(deal.created_at), "yyyy-MM-dd") === key).length;
+      const leads = filteredForChart.filter((deal) =>
+        (selectedChartStage === "all" || deal.status === selectedChartStage)
+        && format(new Date(deal.created_at), "yyyy-MM-dd") === key
+      ).length;
       const closedValue = filteredForChart
         .filter((deal) => deal.status === "Vendido" && deal.sold_at && format(new Date(deal.sold_at), "yyyy-MM-dd") === key)
         .reduce((sum, deal) => sum + (deal.value || 0), 0);
@@ -220,7 +224,20 @@ export default function Reports() {
     const svg = chartRef.current?.querySelector("svg");
     if (!svg) return "";
 
-    const serialized = new XMLSerializer().serializeToString(svg);
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    const sourceElements = svg.querySelectorAll("*");
+    const clonedElements = clone.querySelectorAll("*");
+    sourceElements.forEach((element, index) => {
+      const clonedElement = clonedElements[index];
+      if (!clonedElement) return;
+      const computed = window.getComputedStyle(element);
+      ["fill", "stroke", "color", "font-family", "font-size"].forEach((property) => {
+        const value = computed.getPropertyValue(property);
+        if (value) clonedElement.setAttribute(property, value);
+      });
+    });
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const serialized = new XMLSerializer().serializeToString(clone);
     const source = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(serialized)}`;
     return await new Promise<string>((resolve) => {
       const image = new Image();
@@ -489,7 +506,7 @@ export default function Reports() {
                 <SelectContent>
                   <SelectItem value="all">Todas as colunas</SelectItem>
                   {contactColumns
-                    .filter((c) => selectedFunnel === "all" || c.funnel_id === selectedFunnel)
+                    .filter((c) => c.column_type === "contacts" && (selectedFunnel === "all" || c.funnel_id === selectedFunnel))
                     .map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
