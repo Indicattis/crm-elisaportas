@@ -52,6 +52,15 @@
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
+    --chart-status-1: 217 91% 50%;
+    --chart-status-2: 0 72% 51%;
+    --chart-status-3: 38 92% 50%;
+    --chart-status-4: 271 81% 56%;
+    --chart-status-5: 173 80% 40%;
+    --chart-status-6: 330 81% 60%;
+    --chart-status-7: 24 95% 53%;
+    --chart-status-8: 199 89% 48%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 217 91% 50%;
@@ -100,6 +109,15 @@
     --warning-foreground: 0 0% 100%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
+
+    --chart-status-1: 217 91% 60%;
+    --chart-status-2: 0 84% 65%;
+    --chart-status-3: 43 96% 56%;
+    --chart-status-4: 271 91% 72%;
+    --chart-status-5: 173 80% 45%;
+    --chart-status-6: 330 81% 68%;
+    --chart-status-7: 24 95% 60%;
+    --chart-status-8: 199 89% 58%;
 
     --sidebar-background: 222 47% 6%;
     --sidebar-foreground: 210 40% 98%;

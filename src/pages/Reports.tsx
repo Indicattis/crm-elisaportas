@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { CalendarIcon, FileText, Printer, BarChart3, UserSquare2 } from "lucide-react";
 import { format, startOfMonth, endOfDay, startOfDay, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,6 +58,7 @@ export default function Reports() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
   const [selectedChartStage, setSelectedChartStage] = useState("all");
+  const [hiddenChartSeries, setHiddenChartSeries] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("period");
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +173,22 @@ export default function Reports() {
     [contactColumns, selectedFunnel]
   );
 
+  const chartStatuses = useMemo(() => {
+    const availableStatuses = Array.from(new Set([
+      ...dealColumns.map((column) => column.name),
+      ...deals.map((deal) => deal.status).filter(Boolean),
+    ]));
+    return selectedChartStage === "all"
+      ? availableStatuses
+      : availableStatuses.filter((status) => status === selectedChartStage);
+  }, [dealColumns, deals, selectedChartStage]);
+
+  const chartSeries = useMemo(() => chartStatuses.map((status, index) => ({
+    key: `status_${index}`,
+    status,
+    color: `hsl(var(--chart-status-${(index % 8) + 1}))`,
+  })), [chartStatuses]);
+
   const chartData = useMemo(() => {
     const filteredForChart = deals.filter((deal) => {
       if (selectedFunnel !== "all" && deal.funnel_id !== selectedFunnel) return false;
@@ -185,20 +202,31 @@ export default function Reports() {
 
     return eachDayOfInterval({ start: startOfDay(dateFrom), end: startOfDay(dateTo) }).map((day) => {
       const key = format(day, "yyyy-MM-dd");
-      const leads = filteredForChart.filter((deal) =>
-        (selectedChartStage === "all" || deal.status === selectedChartStage)
-        && format(new Date(deal.created_at), "yyyy-MM-dd") === key
-      ).length;
       const closedValue = filteredForChart
         .filter((deal) => deal.status === "Vendido" && deal.sold_at && format(new Date(deal.sold_at), "yyyy-MM-dd") === key)
         .reduce((sum, deal) => sum + (deal.value || 0), 0);
-      return { date: format(day, "dd/MM"), fullDate: format(day, "dd/MM/yyyy"), leads, closedValue };
+      const statusCounts = Object.fromEntries(chartSeries.map((series) => [
+        series.key,
+        filteredForChart.filter((deal) =>
+          deal.status === series.status && format(new Date(deal.created_at), "yyyy-MM-dd") === key
+        ).length,
+      ]));
+      return { date: format(day, "dd/MM"), fullDate: format(day, "dd/MM/yyyy"), closedValue, ...statusCounts };
     });
-  }, [deals, dateFrom, dateTo, selectedFunnel, selectedUser, selectedStatus, selectedChannel, selectedChartStage]);
+  }, [deals, dateFrom, dateTo, selectedFunnel, selectedUser, selectedStatus, selectedChannel, chartSeries]);
 
-  const chartConfig = {
+  const chartConfig = useMemo<ChartConfig>(() => ({
     closedValue: { label: "Valor fechado", color: "hsl(var(--success))" },
-    leads: { label: "Quantidade de leads", color: "hsl(var(--primary))" },
+    ...Object.fromEntries(chartSeries.map((series) => [series.key, { label: series.status, color: series.color }])),
+  }), [chartSeries]);
+
+  const toggleChartSeries = (key: string) => {
+    setHiddenChartSeries((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
 
@@ -529,7 +557,7 @@ export default function Reports() {
                 <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)]">
                   <div className="mb-4">
                     <h2 className="font-semibold text-foreground">Evolução diária</h2>
-                    <p className="text-xs text-muted-foreground">Valor fechado e novos leads por data</p>
+                    <p className="text-xs text-muted-foreground">Valor fechado e quantidade de leads por status e data</p>
                   </div>
                   <ChartContainer ref={chartRef} config={chartConfig} className="h-[360px] w-full aspect-auto">
                     <LineChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
@@ -540,16 +568,36 @@ export default function Reports() {
                       <ChartTooltip
                         content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ""} formatter={(value, name) => (
                           <div className="flex min-w-[180px] items-center justify-between gap-4">
-                            <span className="text-muted-foreground">{name === "closedValue" ? "Valor fechado" : "Quantidade de leads"}</span>
+                            <span className="text-muted-foreground">{chartConfig[String(name)]?.label || String(name)}</span>
                             <span className="font-medium text-foreground">{name === "closedValue" ? fmt(Number(value)) : Number(value).toLocaleString("pt-BR")}</span>
                           </div>
                         )} />}
                       />
-                      <ChartLegend content={<ChartLegendContent />} />
-                      <Line yAxisId="value" type="monotone" dataKey="closedValue" stroke="var(--color-closedValue)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      <Line yAxisId="leads" type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      {!hiddenChartSeries.has("closedValue") && <Line yAxisId="value" type="monotone" dataKey="closedValue" name="closedValue" stroke="var(--color-closedValue)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />}
+                      {chartSeries.map((series) => !hiddenChartSeries.has(series.key) && (
+                        <Line key={series.key} yAxisId="leads" type="monotone" dataKey={series.key} name={series.key} stroke={`var(--color-${series.key})`} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                      ))}
                     </LineChart>
                   </ChartContainer>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2" aria-label="Legenda do gráfico">
+                    {[{ key: "closedValue", label: "Valor fechado", color: "hsl(var(--success))" }, ...chartSeries.map((series) => ({ key: series.key, label: series.status, color: series.color }))].map((series) => {
+                      const hidden = hiddenChartSeries.has(series.key);
+                      return (
+                        <Button
+                          key={series.key}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          aria-pressed={!hidden}
+                          className={cn("h-7 gap-1.5 px-2 text-xs", hidden && "opacity-40")}
+                          onClick={() => toggleChartSeries(series.key)}
+                        >
+                          <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: series.color }} />
+                          {series.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-card shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] overflow-hidden">
                   <Table>
