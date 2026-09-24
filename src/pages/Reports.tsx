@@ -54,7 +54,6 @@ export default function Reports() {
   const [selectedUser, setSelectedUser] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
-  const [selectedLossReason, setSelectedLossReason] = useState("all");
   const [activeTab, setActiveTab] = useState("period");
 
   useEffect(() => {
@@ -97,29 +96,14 @@ export default function Reports() {
       if (selectedUser !== "all" && d.assigned_to !== selectedUser && d.user_id !== selectedUser) return false;
       if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
       if (selectedChannel !== "all" && d.acquisition_channel !== selectedChannel) return false;
-      if (selectedLossReason !== "all") {
-        const reason = (d as any).loss_reason;
-        if (selectedLossReason === "__none__") {
-          if (d.status === "Perdido" && reason) return false;
-        } else if (reason !== selectedLossReason) return false;
-      }
       return true;
     });
-  }, [deals, selectedFunnel, selectedUser, selectedStatus, selectedChannel, selectedLossReason]);
+  }, [deals, selectedFunnel, selectedUser, selectedStatus, selectedChannel]);
 
   const dealStatuses = useMemo(
     () => Array.from(new Set(deals.map((deal) => deal.status).filter(Boolean))).sort(),
     [deals]
   );
-
-  const lossReasons = useMemo(() => {
-    const set = new Set<string>();
-    deals.forEach((d) => {
-      const r = (d as any).loss_reason;
-      if (r) set.add(r);
-    });
-    return Array.from(set).sort();
-  }, [deals]);
 
   const soldDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Vendido"), [filteredDeals]);
   const lostDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Perdido"), [filteredDeals]);
@@ -178,7 +162,6 @@ export default function Reports() {
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedStatus !== "all") parts.push(`Status: ${selectedStatus}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
-    if (selectedLossReason !== "all") parts.push(`Motivo da perda: ${selectedLossReason === "__none__" ? "Sem motivo" : selectedLossReason}`);
     if (activeTab === "contacts" && selectedContactColumn !== "all") {
       parts.push(`Coluna: ${contactColumnMap[selectedContactColumn]?.name || "-"}`);
     }
