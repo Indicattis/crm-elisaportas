@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, FileText, Printer, BarChart3, TrendingUp, Users, Target, DollarSign, Percent, Package, ShoppingCart, XCircle, UserSquare2 } from "lucide-react";
+import { CalendarIcon, FileText, Printer, BarChart3, UserSquare2 } from "lucide-react";
 import { format, startOfMonth, endOfDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export default function Reports() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [funnels, setFunnels] = useState<{ id: string; name: string }[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [sellerIds, setSellerIds] = useState<string[]>([]);
   const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [contactColumns, setContactColumns] = useState<ContactColumn[]>([]);
@@ -51,8 +52,8 @@ export default function Reports() {
   const [dateTo, setDateTo] = useState<Date>(new Date());
   const [selectedFunnel, setSelectedFunnel] = useState("all");
   const [selectedUser, setSelectedUser] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
-  const [selectedLossReason, setSelectedLossReason] = useState("all");
   const [activeTab, setActiveTab] = useState("period");
 
   useEffect(() => {
@@ -64,10 +65,11 @@ export default function Reports() {
     const from = startOfDay(dateFrom).toISOString();
     const to = endOfDay(dateTo).toISOString();
 
-    const [dealsRes, funnelsRes, profilesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
+    const [dealsRes, funnelsRes, profilesRes, rolesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
       supabase.from("deals").select("*").gte("updated_at", from).lte("updated_at", to),
       supabase.from("funnels").select("id, name"),
       supabase.from("profiles").select("id, full_name"),
+      supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
       supabase.from("acquisition_channels").select("id, name"),
       supabase.from("contacts" as any).select("id, name, phone, state, city, notes, created_at, column_id, funnel_id").gte("created_at", from).lte("created_at", to).order("created_at", { ascending: false }),
       supabase.from("funnel_columns").select("id, name, funnel_id, column_type").eq("column_type", "contacts" as any),
@@ -75,6 +77,7 @@ export default function Reports() {
 
     setDeals(dealsRes.data || []);
     setFunnels(funnelsRes.data || []);
+    setSellerIds((rolesRes.data || []).map((role) => role.user_id));
     setChannels(channelsRes.data || []);
     setContacts(((contactsRes.data as any) || []) as ContactRow[]);
     setContactColumns(((contactColsRes.data as any) || []).map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id })));
@@ -91,25 +94,16 @@ export default function Reports() {
     return deals.filter((d) => {
       if (selectedFunnel !== "all" && d.funnel_id !== selectedFunnel) return false;
       if (selectedUser !== "all" && d.assigned_to !== selectedUser && d.user_id !== selectedUser) return false;
+      if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
       if (selectedChannel !== "all" && d.acquisition_channel !== selectedChannel) return false;
-      if (selectedLossReason !== "all") {
-        const reason = (d as any).loss_reason;
-        if (selectedLossReason === "__none__") {
-          if (d.status === "Perdido" && reason) return false;
-        } else if (reason !== selectedLossReason) return false;
-      }
       return true;
     });
-  }, [deals, selectedFunnel, selectedUser, selectedChannel, selectedLossReason]);
+  }, [deals, selectedFunnel, selectedUser, selectedStatus, selectedChannel]);
 
-  const lossReasons = useMemo(() => {
-    const set = new Set<string>();
-    deals.forEach((d) => {
-      const r = (d as any).loss_reason;
-      if (r) set.add(r);
-    });
-    return Array.from(set).sort();
-  }, [deals]);
+  const dealStatuses = useMemo(
+    () => Array.from(new Set(deals.map((deal) => deal.status).filter(Boolean))).sort(),
+    [deals]
+  );
 
   const soldDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Vendido"), [filteredDeals]);
   const lostDeals = useMemo(() => filteredDeals.filter((d) => d.status === "Perdido"), [filteredDeals]);
@@ -166,8 +160,8 @@ export default function Reports() {
     parts.push(`Período: ${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`);
     if (selectedFunnel !== "all") parts.push(`Funil: ${funnels.find((f) => f.id === selectedFunnel)?.name}`);
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
+    if (selectedStatus !== "all") parts.push(`Status: ${selectedStatus}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
-    if (selectedLossReason !== "all") parts.push(`Motivo da perda: ${selectedLossReason === "__none__" ? "Sem motivo" : selectedLossReason}`);
     if (activeTab === "contacts" && selectedContactColumn !== "all") {
       parts.push(`Coluna: ${contactColumnMap[selectedContactColumn]?.name || "-"}`);
     }
@@ -333,25 +327,7 @@ export default function Reports() {
     </Popover>
   );
 
-  const profileEntries = Object.entries(profiles);
-
-  const kpiCards = [
-    { label: "Total de Negociações", value: kpis.totalDeals, icon: Package, color: "primary" },
-    { label: "Vendidas", value: kpis.soldCount, icon: ShoppingCart, color: "success" },
-    { label: "Perdidas", value: kpis.lostCount, icon: XCircle, color: "destructive" },
-    { label: "Total Vendido", value: fmt(kpis.totalSold), icon: DollarSign, color: "success" },
-    { label: "Total Perdido", value: fmt(kpis.totalLost), icon: DollarSign, color: "destructive" },
-    { label: "Taxa de Conversão", value: `${kpis.conversionRate.toFixed(1)}%`, icon: Percent, color: "warning" },
-    { label: "Ticket Médio", value: fmt(kpis.avgTicket), icon: TrendingUp, color: "info" },
-  ];
-
-  const colorMap: Record<string, { border: string; bg: string; text: string; icon: string }> = {
-    primary: { border: "border-l-primary", bg: "bg-primary/10", text: "text-primary", icon: "text-primary" },
-    success: { border: "border-l-success", bg: "bg-success/10", text: "text-success", icon: "text-success" },
-    destructive: { border: "border-l-destructive", bg: "bg-destructive/10", text: "text-destructive", icon: "text-destructive" },
-    warning: { border: "border-l-warning", bg: "bg-warning/10", text: "text-warning", icon: "text-warning" },
-    info: { border: "border-l-info", bg: "bg-info/10", text: "text-info", icon: "text-info" },
-  };
+  const profileEntries = Object.entries(profiles).filter(([id]) => sellerIds.includes(id));
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
@@ -375,44 +351,64 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="glass rounded-2xl border border-border/60 p-5 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)]">
-          <div className="flex flex-wrap items-center gap-3">
-            <DatePicker date={dateFrom} onChange={setDateFrom} label="Data início" />
-            <span className="text-muted-foreground text-sm">até</span>
-            <DatePicker date={dateTo} onChange={setDateTo} label="Data fim" />
-            <Select value={selectedFunnel} onValueChange={setSelectedFunnel}>
-              <SelectTrigger className="w-[180px] bg-background/60"><SelectValue placeholder="Funil" /></SelectTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {/* Search type and filters */}
+          <div className="glass rounded-2xl border border-border/60 p-5 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] space-y-5">
+            <div>
+              <p className="mb-2 text-sm font-medium text-foreground">Buscar por</p>
+              <TabsList className="grid h-11 w-full max-w-md grid-cols-2 bg-muted/60 p-1">
+                <TabsTrigger value="period" className="gap-2">
+                  <FileText className="h-4 w-4" />Negociações
+                </TabsTrigger>
+                <TabsTrigger value="contacts" className="gap-2">
+                  <UserSquare2 className="h-4 w-4" />Contatos
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <div className="border-t border-border/60 pt-4">
+              <p className="mb-3 text-sm font-medium text-foreground">Filtros</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex items-center gap-2 sm:col-span-2">
+                  <DatePicker date={dateFrom} onChange={setDateFrom} label="Data início" />
+                  <span className="text-muted-foreground text-sm">até</span>
+                  <DatePicker date={dateTo} onChange={setDateTo} label="Data fim" />
+                </div>
+                <Select value={selectedFunnel} onValueChange={setSelectedFunnel}>
+                  <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Funil" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os funis</SelectItem>
                 {funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger className="w-[180px] bg-background/60"><SelectValue placeholder="Vendedor" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {profileEntries.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-              <SelectTrigger className="w-[180px] bg-background/60"><SelectValue placeholder="Canal" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os canais</SelectItem>
-                {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={selectedLossReason} onValueChange={setSelectedLossReason}>
-              <SelectTrigger className="w-[200px] bg-background/60"><SelectValue placeholder="Motivo da perda" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os motivos</SelectItem>
-                <SelectItem value="__none__">Sem motivo</SelectItem>
-                {lossReasons.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {activeTab === "contacts" && (
-              <Select value={selectedContactColumn} onValueChange={setSelectedContactColumn}>
-                <SelectTrigger className="w-[220px] bg-background/60"><SelectValue placeholder="Coluna de contatos" /></SelectTrigger>
+                {activeTab === "period" && (
+                  <>
+                    <Select value={selectedUser} onValueChange={setSelectedUser}>
+                      <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os vendedores</SelectItem>
+                        {profileEntries.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                      <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Status da negociação" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        {dealStatuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+                      <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Canal de aquisição" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os canais</SelectItem>
+                        {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+                {activeTab === "contacts" && (
+                  <Select value={selectedContactColumn} onValueChange={setSelectedContactColumn}>
+                    <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Coluna de contatos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as colunas</SelectItem>
                   {contactColumns
@@ -421,28 +417,9 @@ export default function Reports() {
                 </SelectContent>
               </Select>
             )}
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="w-full flex-wrap h-auto p-1 bg-muted/60 rounded-xl">
-            <TabsTrigger value="period" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <FileText className="h-4 w-4 text-primary" />Negociações
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <TrendingUp className="h-4 w-4 text-success" />Desempenho
-            </TabsTrigger>
-            <TabsTrigger value="seller" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Users className="h-4 w-4 text-info" />Por Vendedor
-            </TabsTrigger>
-            <TabsTrigger value="channel" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Target className="h-4 w-4 text-warning" />Por Canal
-            </TabsTrigger>
-            <TabsTrigger value="contacts" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <UserSquare2 className="h-4 w-4 text-info" />Contatos
-            </TabsTrigger>
-          </TabsList>
 
           {loading ? (
             <div className="space-y-3 pt-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -484,86 +461,6 @@ export default function Reports() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card/60 rounded-xl px-4 py-3 border border-border/40">
                   <span className="h-2 w-2 rounded-full bg-primary" />
                   Total: <span className="font-semibold text-foreground">{filteredDeals.length}</span> negociações | Valor: <span className="font-semibold text-foreground">{fmt(filteredDeals.reduce((s, d) => s + (d.value || 0), 0))}</span>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="performance">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {kpiCards.map((kpi) => {
-                    const colors = colorMap[kpi.color];
-                    const Icon = kpi.icon;
-                    return (
-                      <div key={kpi.label} className={cn("rounded-2xl border border-border/60 bg-card p-4 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] border-l-4", colors.border)}>
-                        <div className="flex items-center gap-3">
-                          <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", colors.bg)}>
-                            <Icon className={cn("h-4 w-4", colors.icon)} />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                            <p className={cn("text-xl font-bold", colors.text)}>{kpi.value}</p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="seller" className="space-y-4">
-                <div className="rounded-2xl border border-border/60 bg-card shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead>Vendedor</TableHead>
-                        <TableHead>Negociações</TableHead>
-                        <TableHead>Vendidas</TableHead>
-                        <TableHead>Perdidas</TableHead>
-                        <TableHead>Valor Total</TableHead>
-                        <TableHead>Conversão</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {byUser.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
-                      ) : byUser.map((u) => (
-                        <TableRow key={u.name}>
-                          <TableCell className="font-medium">{u.name}</TableCell>
-                          <TableCell>{u.count}</TableCell>
-                          <TableCell className="text-success font-medium">{u.sold}</TableCell>
-                          <TableCell className="text-destructive font-medium">{u.lost}</TableCell>
-                          <TableCell className="font-medium">{fmt(u.totalValue)}</TableCell>
-                          <TableCell>{u.sold + u.lost > 0 ? ((u.sold / (u.sold + u.lost)) * 100).toFixed(1) : 0}%</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="channel" className="space-y-4">
-                <div className="rounded-2xl border border-border/60 bg-card shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.1)] overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead>Canal</TableHead>
-                        <TableHead>Negociações</TableHead>
-                        <TableHead>Vendidas</TableHead>
-                        <TableHead>Valor Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {byChannel.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
-                      ) : byChannel.map((c) => (
-                        <TableRow key={c.name}>
-                          <TableCell className="font-medium">{c.name}</TableCell>
-                          <TableCell>{c.count}</TableCell>
-                          <TableCell className="text-success font-medium">{c.sold}</TableCell>
-                          <TableCell className="font-medium">{fmt(c.totalValue)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
                 </div>
               </TabsContent>
 
