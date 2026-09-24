@@ -70,8 +70,10 @@ export default function Reports() {
     const from = startOfDay(dateFrom).toISOString();
     const to = endOfDay(dateTo).toISOString();
 
-    const [dealsRes, funnelsRes, profilesRes, rolesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
-      supabase.from("deals").select("*"),
+    const [updatedDealsRes, createdDealsRes, soldDealsRes, funnelsRes, profilesRes, rolesRes, channelsRes, contactsRes, contactColsRes] = await Promise.all([
+      supabase.from("deals").select("*").gte("updated_at", from).lte("updated_at", to),
+      supabase.from("deals").select("*").gte("created_at", from).lte("created_at", to),
+      supabase.from("deals").select("*").not("sold_at", "is", null).gte("sold_at", from).lte("sold_at", to),
       supabase.from("funnels").select("id, name"),
       supabase.from("profiles").select("id, full_name"),
       supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
@@ -80,7 +82,11 @@ export default function Reports() {
       supabase.from("funnel_columns").select("id, name, funnel_id, column_type").order("position"),
     ]);
 
-    setDeals(dealsRes.data || []);
+    const dealsById = new Map<string, Deal>();
+    [updatedDealsRes.data, createdDealsRes.data, soldDealsRes.data].forEach((rows) => {
+      (rows || []).forEach((deal) => dealsById.set(deal.id, deal));
+    });
+    setDeals(Array.from(dealsById.values()));
     setFunnels(funnelsRes.data || []);
     setSellerIds((rolesRes.data || []).map((role) => role.user_id));
     setChannels(channelsRes.data || []);
