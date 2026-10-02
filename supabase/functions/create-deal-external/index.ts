@@ -313,18 +313,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Nenhum vendedor ativo disponível" }, 503);
     }
 
-    const counts: Record<string, number> = {};
-    for (const id of rotationIds) counts[id] = 0;
-
-    const { data: logRows, error: countError } = await supabase
+    // Alternância circular: pega o último vendedor que recebeu lead e escolhe o próximo.
+    const { data: lastRow, error: countError } = await supabase
       .from("external_integration_logs")
       .select("assigned_to")
       .eq("source", "hunt")
       .in("status", ["success", "duplicate"])
-      .in("assigned_to", rotationIds);
+      .in("assigned_to", rotationIds)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (countError) {
-      console.error("Error counting integration logs:", countError);
+      console.error("Error reading last assignment:", countError);
       await writeLog({
         status: "error",
         http_status: 500,
@@ -338,20 +339,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Erro ao calcular rotação" }, 500);
     }
 
-    for (const r of logRows ?? []) {
-      if (r.assigned_to && counts[r.assigned_to] !== undefined) {
-        counts[r.assigned_to]++;
-      }
-    }
-
-    let chosen = rotationIds[0];
-    let minCount = counts[chosen];
-    for (const id of rotationIds) {
-      if (counts[id] < minCount) {
-        minCount = counts[id];
-        chosen = id;
-      }
-    }
+    const lastIdx = lastRow?.assigned_to ? rotationIds.indexOf(lastRow.assigned_to) : -1;
+    const chosen = rotationIds[(lastIdx + 1) % rotationIds.length];
 
 
     // Duplicate phone warning
