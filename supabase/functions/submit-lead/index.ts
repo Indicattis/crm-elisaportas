@@ -68,6 +68,22 @@ Deno.serve(async (req) => {
     let acquisition_channel = canal_aquisicao || null;
     let assignment_mode = "unassigned";
     let flow_name: string | null = null;
+    // Fallback: no flow_id sent -> use the active flow configured for this funnel
+    if (!flow_id && funnel_id) {
+      const { data: autoFlow } = await supabase
+        .from("lead_flows")
+        .select("id")
+        .eq("funnel_id", funnel_id)
+        .eq("active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (autoFlow) {
+        flow_id = autoFlow.id;
+        body.flow_id = autoFlow.id;
+        body._flow_auto = true;
+      }
+    }
     if (flow_id) {
       const { data: flow, error: flowError } = await supabase
         .from("lead_flows")
@@ -141,32 +157,19 @@ Deno.serve(async (req) => {
 
       if (members && members.length > 0) {
         const memberIds = members.map((m: any) => m.user_id);
-        const counts: Record<string, number> = {};
-        for (const mid of memberIds) counts[mid] = 0;
-
-        const { data: deals } = await supabase
-          .from("deals")
+        memberIds.sort();
+        // Circular rotation: next member after the last one assigned by lead flows
+        const { data: last } = await supabase
+          .from("external_integration_logs")
           .select("assigned_to")
-          .eq("funnel_id", funnel_id)
-          .eq("archived", false)
-          .in("assigned_to", memberIds);
-
-        if (deals) {
-          for (const d of deals) {
-            if (d.assigned_to && counts[d.assigned_to] !== undefined) {
-              counts[d.assigned_to]++;
-            }
-          }
-        }
-
-        let minCount = Infinity;
-        let chosen: string | null = null;
-        for (const mid of memberIds) {
-          if (counts[mid] < minCount) {
-            minCount = counts[mid];
-            chosen = mid;
-          }
-        }
+          .eq("source", "lead_flow")
+          .not("assigned_to", "is", null)
+          .in("assigned_to", memberIds)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const lastIdx = last?.assigned_to ? memberIds.indexOf(last.assigned_to) : -1;
+        const chosen: string | null = memberIds[(lastIdx + 1) % memberIds.length];
         assigned_to = chosen;
       }
     }

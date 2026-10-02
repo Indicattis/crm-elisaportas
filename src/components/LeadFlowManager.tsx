@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { ExternalIntegrationLogs } from "@/components/ExternalIntegrationLogs";
+import { LeadFlowStats } from "@/components/LeadFlowStats";
 
 interface LeadFlow {
   id: string;
@@ -237,6 +238,7 @@ export function LeadFlowManager() {
                             </a>
                           </Button>
                         </div>
+                        <LeadFlowStats flowId={flow.id} funnelId={flow.funnel_id} />
                       </div>
                     )}
                   </li>
