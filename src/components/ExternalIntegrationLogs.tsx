@@ -92,7 +92,7 @@ export function ExternalIntegrationLogs({ source, title }: { source?: "lead_flow
       .from("external_integration_logs")
       .delete()
       .not("id", "is", null)
-      .match(source === "lead_flow" ? { source: "lead_flow" } : {});
+      .filter("source", source === "lead_flow" ? "eq" : source === "external" ? "neq" : "not.is", source ? "lead_flow" : null);
     if (error) {
       toast({ title: "Erro ao limpar", description: error.message, variant: "destructive" });
       return;
