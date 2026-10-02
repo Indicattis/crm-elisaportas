@@ -250,7 +250,8 @@ export function LeadFlowManager() {
       </Card>
 
 
-      <ExternalIntegrationLogs />
+      <ExternalIntegrationLogs source="lead_flow" title="Log de tentativas — Fluxos de Captação (Google)" />
+      <ExternalIntegrationLogs source="external" title="Log de tentativas — Integração Hunt" />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
