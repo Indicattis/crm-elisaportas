@@ -57,7 +57,6 @@ export default function Reports() {
   const [selectedUser, setSelectedUser] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedChannel, setSelectedChannel] = useState("all");
-  const [selectedChartStage, setSelectedChartStage] = useState("all");
   const [hiddenChartSeries, setHiddenChartSeries] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("period");
   const chartRef = useRef<HTMLDivElement>(null);
@@ -173,15 +172,10 @@ export default function Reports() {
     [contactColumns, selectedFunnel]
   );
 
-  const chartStatuses = useMemo(() => {
-    const availableStatuses = Array.from(new Set([
-      ...dealColumns.map((column) => column.name),
-      ...deals.map((deal) => deal.status).filter(Boolean),
-    ]));
-    return selectedChartStage === "all"
-      ? availableStatuses
-      : availableStatuses.filter((status) => status === selectedChartStage);
-  }, [dealColumns, deals, selectedChartStage]);
+  const chartStatuses = useMemo(() => Array.from(new Set([
+    ...dealColumns.map((column) => column.name),
+    ...deals.map((deal) => deal.status).filter(Boolean),
+  ])), [dealColumns, deals]);
 
   const chartSeries = useMemo(() => chartStatuses.map((status, index) => ({
     key: `status_${index}`,
@@ -237,7 +231,6 @@ export default function Reports() {
     if (selectedUser !== "all") parts.push(`Vendedor: ${profiles[selectedUser]}`);
     if (selectedStatus !== "all") parts.push(`Status: ${selectedStatus}`);
     if (selectedChannel !== "all") parts.push(`Canal: ${selectedChannel}`);
-    if (activeTab === "period" && selectedChartStage !== "all") parts.push(`Etapa do gráfico: ${selectedChartStage}`);
     if (activeTab === "contacts" && selectedContactColumn !== "all") {
       parts.push(`Coluna: ${contactColumnMap[selectedContactColumn]?.name || "-"}`);
     }
@@ -523,13 +516,6 @@ export default function Reports() {
                       <SelectContent>
                         <SelectItem value="all">Todos os canais</SelectItem>
                         {channels.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={selectedChartStage} onValueChange={setSelectedChartStage}>
-                      <SelectTrigger className="w-full bg-background/60"><SelectValue placeholder="Etapa do gráfico" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas as etapas no gráfico</SelectItem>
-                        {dealColumns.map((column) => <SelectItem key={column.id} value={column.name}>{column.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </>
