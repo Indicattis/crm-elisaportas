@@ -38,7 +38,7 @@ function statusBadge(status: string, httpStatus: number) {
   return <Badge variant="destructive">Erro · {httpStatus}</Badge>;
 }
 
-export function ExternalIntegrationLogs() {
+export function ExternalIntegrationLogs({ source, title }: { source?: "lead_flow" | "external"; title?: string } = {}) {
   const [logs, setLogs] = useState<IntegrationLog[]>([]);
   const [profiles, setProfiles] = useState<ProfileMap>({});
   const [loading, setLoading] = useState(false);
@@ -49,9 +49,12 @@ export function ExternalIntegrationLogs() {
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("external_integration_logs")
-      .select("*")
+      .select("*");
+    if (source === "lead_flow") q = q.eq("source", "lead_flow");
+    else if (source === "external") q = q.neq("source", "lead_flow");
+    const { data, error } = await q
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -77,7 +80,7 @@ export function ExternalIntegrationLogs() {
     }
 
     setLoading(false);
-  }, [toast]);
+  }, [toast, source]);
 
   useEffect(() => {
     if (isAdmin) fetchLogs();
@@ -88,7 +91,8 @@ export function ExternalIntegrationLogs() {
     const { error } = await supabase
       .from("external_integration_logs")
       .delete()
-      .not("id", "is", null);
+      .not("id", "is", null)
+      .filter("source", source === "lead_flow" ? "eq" : source === "external" ? "neq" : "not.is", source ? "lead_flow" : null);
     if (error) {
       toast({ title: "Erro ao limpar", description: error.message, variant: "destructive" });
       return;
@@ -103,7 +107,7 @@ export function ExternalIntegrationLogs() {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base">Log de tentativas — Integrações & Fluxos</CardTitle>
+          <CardTitle className="text-base">{title || "Log de tentativas — Integrações & Fluxos"}</CardTitle>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={fetchLogs} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
