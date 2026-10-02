@@ -68,6 +68,22 @@ Deno.serve(async (req) => {
     let acquisition_channel = canal_aquisicao || null;
     let assignment_mode = "unassigned";
     let flow_name: string | null = null;
+    // Fallback: no flow_id sent -> use the active flow configured for this funnel
+    if (!flow_id && funnel_id) {
+      const { data: autoFlow } = await supabase
+        .from("lead_flows")
+        .select("id")
+        .eq("funnel_id", funnel_id)
+        .eq("active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (autoFlow) {
+        flow_id = autoFlow.id;
+        body.flow_id = autoFlow.id;
+        body._flow_auto = true;
+      }
+    }
     if (flow_id) {
       const { data: flow, error: flowError } = await supabase
         .from("lead_flows")
