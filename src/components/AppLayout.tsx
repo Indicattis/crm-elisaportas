@@ -10,12 +10,10 @@ export function AppLayout() {
       <div className="min-h-screen w-full bg-background">
         <Header />
         <MonitoringBanner />
-        <div className="flex w-full">
-          <ClientsSidebar />
-          <main className="min-w-0 flex-1">
-            <Outlet />
-          </main>
-        </div>
+        <ClientsSidebar />
+        <main className="w-full">
+          <Outlet />
+        </main>
       </div>
     </SidebarProvider>
   );
