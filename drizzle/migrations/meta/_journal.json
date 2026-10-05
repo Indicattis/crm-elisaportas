@@ -15,6 +15,13 @@
       "when": 1791228365862,
       "tag": "0001_clients_from_sales",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791229313352,
+      "tag": "0002_contacts_per_seller_visibility",
+      "breakpoints": true
     }
   ]
 }
