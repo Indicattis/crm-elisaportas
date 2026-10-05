@@ -37,8 +37,14 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColor = true, allowedDailyColors, collapsed = false, onToggleCollapse, onChanged }: Props) {
-  const [contacts, setContacts] = useState<ContactRecord[]>([]);
+export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColor = true, allowedDailyColors, collapsed = false, onToggleCollapse, onChanged, sellerFilter = "all" }: Props) {
+  const [allContacts, setContacts] = useState<ContactRecord[]>([]);
+  const contacts = useMemo(
+    () => (sellerFilter === "all" || sellerFilter === "unassigned"
+      ? allContacts
+      : allContacts.filter((c) => c.user_id === sellerFilter)),
+    [allContacts, sellerFilter]
+  );
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [colors, setColors] = useState<Record<string, string>>({});
   const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
