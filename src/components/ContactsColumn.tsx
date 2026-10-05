@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight } from "lucide-react";
+import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactDialog, type ContactRecord } from "@/components/ContactDialog";
 import { CreateDealFromContactDialog } from "@/components/CreateDealFromContactDialog";
@@ -40,6 +40,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [colors, setColors] = useState<Record<string, string>>({});
+  const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ContactRecord | null>(null);
@@ -64,9 +65,13 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
     setContacts(list);
     if (list.length) {
       const ids = list.map((c) => c.id);
-      const [{ data: deals }, { data: colorRows }] = await Promise.all([
+      const ownerIds = Array.from(new Set(list.map((c) => (c as any).user_id).filter(Boolean)));
+      const [{ data: deals }, { data: colorRows }, { data: profiles }] = await Promise.all([
         supabase.from("deals").select("contact_id, value").in("contact_id", ids),
         supabase.from("contact_colors" as any).select("contact_id, color").in("contact_id", ids),
+        ownerIds.length
+          ? supabase.from("profiles").select("id, full_name").in("id", ownerIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
       const acc: Record<string, { count: number; total: number }> = {};
       (deals || []).forEach((d: any) => {
@@ -79,9 +84,13 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
       const cmap: Record<string, string> = {};
       (colorRows || []).forEach((r: any) => { cmap[r.contact_id] = r.color; });
       setColors(cmap);
+      const nameMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { nameMap[p.id] = p.full_name; });
+      setSellerNames(nameMap);
     } else {
       setStats({});
       setColors({});
+      setSellerNames({});
     }
   };
 
@@ -255,6 +264,12 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
                   {(c.state || c.city) && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" /> {[c.city, c.state].filter(Boolean).join(" / ")}
+                    </div>
+                  )}
+                  {sellerNames[(c as any).user_id] && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      <span className="truncate">{sellerNames[(c as any).user_id]}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-1 border-t border-border/50">
