@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight } from "lucide-react";
+import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactDialog, type ContactRecord } from "@/components/ContactDialog";
 import { CreateDealFromContactDialog } from "@/components/CreateDealFromContactDialog";
@@ -264,6 +264,12 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
                   {(c.state || c.city) && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" /> {[c.city, c.state].filter(Boolean).join(" / ")}
+                    </div>
+                  )}
+                  {sellerNames[(c as any).user_id] && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      <span className="truncate">{sellerNames[(c as any).user_id]}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-1 border-t border-border/50">
