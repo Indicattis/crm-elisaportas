@@ -151,8 +151,7 @@ export function ClientsSidebar() {
           </div>
         )}
       </SidebarHeader>
-      {!collapsed && (
-        <SidebarContent>
+      <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>{filtered.length} clientes · por valor vendido</SidebarGroupLabel>
             <SidebarGroupContent className="space-y-2 px-1">
