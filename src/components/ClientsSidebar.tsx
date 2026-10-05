@@ -180,7 +180,6 @@ export function ClientsSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-      )}
 
       {funnelId && (
         <DealDialog open={dealOpen} onOpenChange={setDealOpen} statuses={dealStatuses} funnelId={funnelId}
