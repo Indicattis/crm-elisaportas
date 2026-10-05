@@ -103,16 +103,28 @@ export function ClientsSidebar() {
 
   const openDeal = (p?: typeof prefill) => { setPrefill(p); setDealOpen(true); };
 
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Meus clientes"
+        className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-xl border border-l-0 border-border bg-card/90 py-4 pl-2 pr-3 shadow-lg backdrop-blur-md transition-colors hover:bg-accent"
+      >
+        <Users className="h-5 w-5 text-muted-foreground" />
+      </button>
+    );
+  }
+
   return (
-    <Sidebar collapsible="icon" className="top-[var(--header-h,77px)] h-[calc(100svh-var(--header-h,77px))]">
+    <Sidebar collapsible="offcanvas" className="top-0 z-50 h-svh border-r shadow-2xl">
       <SidebarHeader>
-        {collapsed ? (
-          <button onClick={() => setOpen(true)} className="mx-auto mt-2 rounded-lg p-2 text-muted-foreground hover:bg-accent" aria-label="Meus clientes">
-            <Users className="h-5 w-5" />
-          </button>
-        ) : (
           <div className="space-y-2 p-1">
-            <div className="flex items-center gap-2 font-semibold"><Users className="h-4 w-4" /> Clientes</div>
+            <div className="flex items-center justify-between font-semibold">
+              <span className="flex items-center gap-2"><Users className="h-4 w-4" /> Clientes</span>
+              <button onClick={() => setOpen(false)} aria-label="Fechar" className="rounded-lg p-1 text-muted-foreground hover:bg-accent">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             {role === "admin" && sellers.length > 0 && (
               <Select value={sellerId} onValueChange={setSellerId}>
                 <SelectTrigger className="h-8"><SelectValue placeholder="Vendedor" /></SelectTrigger>
