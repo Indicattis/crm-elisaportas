@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight, User } from "lucide-react";
+import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ContactDialog, type ContactRecord } from "@/components/ContactDialog";
