@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import logo from "@/assets/logo.png";
 import logoWhite from "@/assets/logo-white.png";
 
@@ -47,7 +46,6 @@ export function Header() {
     <>
       <header className="glass-strong sticky top-0 z-40 flex items-center justify-between px-4 py-2 md:grid md:grid-cols-3 md:px-8 md:py-4">
         <div className="flex items-center gap-2">
-          <SidebarTrigger className="rounded-full" aria-label="Clientes" />
           <img
             src={theme === "dark" ? logoWhite : logo}
             alt="Elisa Portas de Enrolar"
