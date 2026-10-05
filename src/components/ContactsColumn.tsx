@@ -125,7 +125,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
   const headerBg = color ? (isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)) : undefined;
   const columnBg = color ? (isDark ? hexToRgba(color, 0.2) : color) : "hsl(var(--muted) / 0.3)";
 
-  const totalOrders = useMemo(() => Object.values(stats).reduce((a, b) => a + b.count, 0), [stats]);
+  const totalOrders = useMemo(() => contacts.reduce((a, c) => a + (stats[c.id]?.count || 0), 0), [stats, contacts]);
 
 
   return (
