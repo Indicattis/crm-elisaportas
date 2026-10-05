@@ -26,9 +26,10 @@ interface DealDialogProps {
   statuses: string[];
   funnelId: string;
   onSaved: () => void;
+  initialValues?: { title?: string; phone?: string; email?: string };
 }
 
-export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, funnelId, onSaved }: DealDialogProps) {
+export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, funnelId, onSaved, initialValues }: DealDialogProps) {
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -97,9 +98,9 @@ export function DealDialog({ open, onOpenChange, deal, defaultStatus, statuses, 
       setCity((deal as any).city || "");
       setAssignedTo(deal.assigned_to || "");
     } else {
-      setTitle("");
-      setPhone("");
-      setEmail("");
+      setTitle(initialValues?.title || "");
+      setPhone(initialValues?.phone || "");
+      setEmail(initialValues?.email || "");
       setValue("");
       setStatus(defaultStatus || statuses[0] || "");
       setChannel("");
