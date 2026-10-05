@@ -149,7 +149,6 @@ export function ClientsSidebar() {
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nome ou telefone" className="h-9 pl-8" />
             </div>
           </div>
-        )}
       </SidebarHeader>
       <SidebarContent>
           <SidebarGroup>
