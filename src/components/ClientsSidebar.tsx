@@ -104,7 +104,7 @@ export function ClientsSidebar() {
   const openDeal = (p?: typeof prefill) => { setPrefill(p); setDealOpen(true); };
 
   return (
-    <Sidebar collapsible="icon" className="top-[var(--header-h,64px)] h-[calc(100svh-var(--header-h,64px))]">
+    <Sidebar collapsible="icon" className="top-[var(--header-h,77px)] h-[calc(100svh-var(--header-h,77px))]">
       <SidebarHeader>
         {collapsed ? (
           <button onClick={() => setOpen(true)} className="mx-auto mt-2 rounded-lg p-2 text-muted-foreground hover:bg-accent" aria-label="Meus clientes">
