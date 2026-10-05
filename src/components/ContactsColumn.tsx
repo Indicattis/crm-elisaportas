@@ -65,9 +65,13 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
     setContacts(list);
     if (list.length) {
       const ids = list.map((c) => c.id);
-      const [{ data: deals }, { data: colorRows }] = await Promise.all([
+      const ownerIds = Array.from(new Set(list.map((c) => (c as any).user_id).filter(Boolean)));
+      const [{ data: deals }, { data: colorRows }, { data: profiles }] = await Promise.all([
         supabase.from("deals").select("contact_id, value").in("contact_id", ids),
         supabase.from("contact_colors" as any).select("contact_id, color").in("contact_id", ids),
+        ownerIds.length
+          ? supabase.from("profiles").select("id, full_name").in("id", ownerIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
       const acc: Record<string, { count: number; total: number }> = {};
       (deals || []).forEach((d: any) => {
@@ -80,9 +84,13 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
       const cmap: Record<string, string> = {};
       (colorRows || []).forEach((r: any) => { cmap[r.contact_id] = r.color; });
       setColors(cmap);
+      const nameMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { nameMap[p.id] = p.full_name; });
+      setSellerNames(nameMap);
     } else {
       setStats({});
       setColors({});
+      setSellerNames({});
     }
   };
 
