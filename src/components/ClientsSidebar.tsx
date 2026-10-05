@@ -179,7 +179,7 @@ export function ClientsSidebar() {
                 >
                   <button className="w-full text-left" onClick={() => c.lastDealId && navigate(`/sale/${c.lastDealId}`)}>
                     <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/12 text-[10px] font-bold text-primary transition-transform group-hover:scale-110">{i + 1}</span>
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary transition-transform group-hover:scale-110">{i + 1}</span>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">{c.name}</div>
                         {c.phone && <div className="flex items-center gap-1 text-[11px] text-muted-foreground"><Phone className="h-3 w-3" />{c.phone}</div>}
