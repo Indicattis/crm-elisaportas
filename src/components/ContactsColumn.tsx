@@ -15,6 +15,7 @@ interface Props {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onChanged?: () => void;
+  sellerFilter?: string;
 }
 
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
