@@ -63,13 +63,18 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
 
 
   useLayoutEffect(() => {
-    const rowEl = columnsRowRef.current;
-    if (!rowEl) return;
+    let rowEl: HTMLDivElement | null = null;
+    let ro: ResizeObserver | null = null;
+    let mo: MutationObserver | null = null;
+    let raf = 0;
+    let cancelled = false;
+
     const compute = () => {
+      if (!rowEl) return;
       const next: Record<string, { left: number; width: number }> = {};
       const rowRect = rowEl.getBoundingClientRect();
       columns.forEach((c) => {
-        const el = rowEl.querySelector<HTMLElement>(`[data-column-id="${c.id}"]`);
+        const el = rowEl!.querySelector<HTMLElement>(`[data-column-id="${c.id}"]`);
         if (!el) return;
         const r = el.getBoundingClientRect();
         next[c.id] = { left: r.left - rowRect.left, width: r.width };
@@ -78,16 +83,34 @@ export function KanbanTracks({ columns, tracks, funnelId, isAdmin, columnsRowRef
       setTotalWidth(rowEl.scrollWidth);
     };
 
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(rowEl);
-    Array.from(rowEl.children).forEach((el) => ro.observe(el as Element));
+    const attach = () => {
+      if (cancelled) return;
+      rowEl = columnsRowRef.current;
+      if (!rowEl) {
+        raf = requestAnimationFrame(attach);
+        return;
+      }
+      compute();
+      ro = new ResizeObserver(compute);
+      ro.observe(rowEl);
+      Array.from(rowEl.children).forEach((el) => ro!.observe(el as Element));
+      mo = new MutationObserver(() => {
+        Array.from(rowEl!.children).forEach((el) => ro!.observe(el as Element));
+        compute();
+      });
+      mo.observe(rowEl, { childList: true, subtree: true });
+    };
+
+    attach();
     window.addEventListener("resize", compute);
     return () => {
-      ro.disconnect();
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      mo?.disconnect();
       window.removeEventListener("resize", compute);
     };
-  }, [columns, columnsRowRef]);
+  }, [columns, columnsRowRef, tracks]);
 
 
   const posById = useMemo(() => {
