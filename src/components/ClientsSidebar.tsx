@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, UserPlus, Search, Phone, X } from "lucide-react";
+import { Users, Plus, UserPlus, Search, Phone, X, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DealDialog } from "@/components/DealDialog";
 import { ContactDialog } from "@/components/ContactDialog";
+import { cn } from "@/lib/utils";
 
 interface ClientRow { id: string; name: string; phone: string | null; email: string | null; total: number; count: number; lastDealId: string | null }
 interface Funnel { id: string; name: string }
@@ -103,31 +104,29 @@ export function ClientsSidebar() {
 
   const openDeal = (p?: typeof prefill) => { setPrefill(p); setDealOpen(true); };
 
-  if (collapsed) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Meus clientes"
-        className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-xl border border-l-0 border-border bg-card/90 py-4 pl-2 pr-3 shadow-lg backdrop-blur-md transition-colors hover:bg-accent"
-      >
-        <Users className="h-5 w-5 text-muted-foreground" />
-      </button>
-    );
-  }
-
   return (
-    <Sidebar collapsible="offcanvas" className="top-0 z-50 h-svh border-r shadow-2xl">
-      <SidebarHeader>
-          <div className="space-y-2 p-1">
-            <div className="flex items-center justify-between font-semibold">
-              <span className="flex items-center gap-2"><Users className="h-4 w-4" /> Clientes</span>
-              <button onClick={() => setOpen(false)} aria-label="Fechar" className="rounded-lg p-1 text-muted-foreground hover:bg-accent">
+    <>
+      <Sidebar collapsible="offcanvas" className="clients-panel z-50 shadow-none">
+        <SidebarHeader className="border-b border-border/40 p-0">
+          <div className="space-y-2.5 p-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-inner">
+                  <Users className="h-4 w-4" />
+                </span>
+                Clientes
+              </span>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Fechar"
+                className="rounded-lg p-1.5 text-muted-foreground transition-all hover:rotate-90 hover:bg-accent hover:text-foreground"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
             {role === "admin" && sellers.length > 0 && (
               <Select value={sellerId} onValueChange={setSellerId}>
-                <SelectTrigger className="h-8"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+                <SelectTrigger className="h-8 bg-card/60 backdrop-blur-sm"><SelectValue placeholder="Vendedor" /></SelectTrigger>
                 <SelectContent>
                   {user && <SelectItem value={user.id}>Eu</SelectItem>}
                   {sellers.filter((s) => s.id !== user?.id).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -136,42 +135,62 @@ export function ClientsSidebar() {
             )}
             {funnels.length > 1 && (
               <Select value={funnelId} onValueChange={setFunnelId}>
-                <SelectTrigger className="h-8"><SelectValue placeholder="Funil" /></SelectTrigger>
+                <SelectTrigger className="h-8 bg-card/60 backdrop-blur-sm"><SelectValue placeholder="Funil" /></SelectTrigger>
                 <SelectContent>{funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
               </Select>
             )}
             <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" onClick={() => openDeal()} disabled={!funnelId}><Plus className="h-4 w-4" /> Negociação</Button>
-              <Button size="sm" variant="outline" onClick={() => setContactOpen(true)} disabled={!contactColumn}><UserPlus className="h-4 w-4" /> Contato</Button>
+              <Button size="sm" onClick={() => openDeal()} disabled={!funnelId} className="h-8 gap-1 text-xs shadow-md shadow-primary/20"><Plus className="h-3.5 w-3.5" /> Negociação</Button>
+              <Button size="sm" variant="outline" onClick={() => setContactOpen(true)} disabled={!contactColumn} className="h-8 gap-1 bg-card/60 text-xs"><UserPlus className="h-3.5 w-3.5" /> Contato</Button>
             </div>
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nome ou telefone" className="h-9 pl-8" />
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nome ou telefone" className="h-8 rounded-xl bg-card/60 pl-8 text-xs backdrop-blur-sm" />
             </div>
           </div>
-      </SidebarHeader>
-      <SidebarContent>
+        </SidebarHeader>
+        <SidebarContent className="p-2">
           <SidebarGroup>
-            <SidebarGroupLabel>{filtered.length} clientes · por valor vendido</SidebarGroupLabel>
+            <SidebarGroupLabel className="mb-1 px-1.5">
+              <Sparkles className="mr-1 h-3 w-3 text-primary" />
+              {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"} · por valor vendido
+            </SidebarGroupLabel>
             <SidebarGroupContent className="space-y-2 px-1">
-              {loading && <div className="py-6 text-center text-xs text-muted-foreground">Carregando...</div>}
-              {!loading && filtered.length === 0 && <div className="py-6 text-center text-xs text-muted-foreground">Nenhum cliente</div>}
+              {loading && (
+                <div className="space-y-2 py-2">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className="h-[68px] animate-pulse rounded-xl bg-card/50" style={{ animationDelay: `${i * 120}ms` }} />
+                  ))}
+                </div>
+              )}
+              {!loading && filtered.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border/60 py-8 text-center text-xs text-muted-foreground">
+                  Nenhum cliente
+                </div>
+              )}
               {!loading && filtered.map((c, i) => (
-                <div key={c.id} className="group rounded-xl border border-border/60 bg-card p-2.5 shadow-sm">
+                <div
+                  key={c.id}
+                  className={cn(
+                    "clients-card group rounded-xl border border-border/50 bg-card/70 p-2.5 shadow-sm backdrop-blur-sm",
+                    "transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/90 hover:shadow-lg hover:shadow-primary/10",
+                  )}
+                  style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                >
                   <button className="w-full text-left" onClick={() => c.lastDealId && navigate(`/sale/${c.lastDealId}`)}>
                     <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">{i + 1}</span>
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary transition-transform group-hover:scale-110">{i + 1}</span>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">{c.name}</div>
                         {c.phone && <div className="flex items-center gap-1 text-[11px] text-muted-foreground"><Phone className="h-3 w-3" />{c.phone}</div>}
                       </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{c.count} {c.count === 1 ? "venda" : "vendas"}</span>
+                      <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{c.count} {c.count === 1 ? "venda" : "vendas"}</span>
                       <span className="font-semibold tabular-nums text-success">{fmtBRL(c.total)}</span>
                     </div>
                   </button>
-                  <Button size="sm" variant="ghost" className="mt-1 h-7 w-full text-xs" onClick={() => openDeal({ title: c.name, phone: c.phone || "", email: c.email || "" })}>
+                  <Button size="sm" variant="ghost" className="mt-1 h-7 w-full gap-1 text-xs text-muted-foreground opacity-0 transition-opacity hover:bg-primary/10 hover:text-primary group-hover:opacity-100" onClick={() => openDeal({ title: c.name, phone: c.phone || "", email: c.email || "" })}>
                     <Plus className="h-3 w-3" /> Nova negociação
                   </Button>
                 </div>
@@ -180,14 +199,26 @@ export function ClientsSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-      {funnelId && (
-        <DealDialog open={dealOpen} onOpenChange={setDealOpen} statuses={dealStatuses} funnelId={funnelId}
-          initialValues={prefill} onSaved={() => load()} />
+        {funnelId && (
+          <DealDialog open={dealOpen} onOpenChange={setDealOpen} statuses={dealStatuses} funnelId={funnelId}
+            initialValues={prefill} onSaved={() => load()} />
+        )}
+        {contactColumn && (
+          <ContactDialog open={contactOpen} onOpenChange={setContactOpen} funnelId={contactColumn.funnel_id}
+            columnId={contactColumn.id} onSaved={() => {}} />
+        )}
+      </Sidebar>
+
+      {collapsed && (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Meus clientes"
+          className="clients-tab fixed left-0 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1 rounded-r-2xl py-4 pl-2.5 pr-3 transition-transform hover:translate-x-0.5"
+        >
+          <Users className="h-5 w-5 text-primary" />
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-primary">Clientes</span>
+        </button>
       )}
-      {contactColumn && (
-        <ContactDialog open={contactOpen} onOpenChange={setContactOpen} funnelId={contactColumn.funnel_id}
-          columnId={contactColumn.id} onSaved={() => {}} />
-      )}
-    </Sidebar>
+    </>
   );
 }
