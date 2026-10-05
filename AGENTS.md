@@ -1,0 +1,1 @@
+- Clients are derived from sold deals by the `upsert_client_from_deal` trigger (unique per seller + phone digits); never insert clients manually from sales code — keeps one source of truth.

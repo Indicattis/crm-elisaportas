@@ -8,6 +8,13 @@
       "when": 1788287142055,
       "tag": "0000_add_justification_to_crm_monitoring",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791228365862,
+      "tag": "0001_clients_from_sales",
+      "breakpoints": true
     }
   ]
 }
