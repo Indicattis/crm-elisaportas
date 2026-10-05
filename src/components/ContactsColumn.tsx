@@ -40,6 +40,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [colors, setColors] = useState<Record<string, string>>({});
+  const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ContactRecord | null>(null);
