@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Phone, MapPin, ShoppingBag, Pencil, ChevronRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ContactDialog, type ContactRecord } from "@/components/ContactDialog";
 import { CreateDealFromContactDialog } from "@/components/CreateDealFromContactDialog";
 
@@ -48,6 +49,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [colors, setColors] = useState<Record<string, string>>({});
   const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
+  const [sellerAvatars, setSellerAvatars] = useState<Record<string, string | null>>({});
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ContactRecord | null>(null);
@@ -77,7 +79,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
         supabase.from("deals").select("contact_id, value").in("contact_id", ids),
         supabase.from("contact_colors" as any).select("contact_id, color").in("contact_id", ids),
         ownerIds.length
-          ? supabase.from("profiles").select("id, full_name").in("id", ownerIds)
+          ? supabase.from("profiles").select("id, full_name, avatar_url").in("id", ownerIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
       const acc: Record<string, { count: number; total: number }> = {};
@@ -92,12 +94,18 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
       (colorRows || []).forEach((r: any) => { cmap[r.contact_id] = r.color; });
       setColors(cmap);
       const nameMap: Record<string, string> = {};
-      (profiles || []).forEach((p: any) => { nameMap[p.id] = p.full_name; });
+      const avatarMap: Record<string, string | null> = {};
+      (profiles || []).forEach((p: any) => {
+        nameMap[p.id] = p.full_name;
+        avatarMap[p.id] = p.avatar_url || null;
+      });
       setSellerNames(nameMap);
+      setSellerAvatars(avatarMap);
     } else {
       setStats({});
       setColors({});
       setSellerNames({});
+      setSellerAvatars({});
     }
   };
 
@@ -233,7 +241,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
 
               const s = stats[c.id] || { count: 0, total: 0 };
               return (
-                <div key={c.id} className="rounded-lg bg-card/95 backdrop-blur-sm p-3 shadow-sm space-y-1.5">
+                <div key={c.id} className="rounded-lg bg-muted/70 border border-border/60 backdrop-blur-sm p-3 shadow-sm space-y-1.5 hover:bg-muted/80 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
                       {hasDailyColor && allowed.length > 0 && (() => {
@@ -274,8 +282,18 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
                     </div>
                   )}
                   {sellerNames[(c as any).user_id] && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
+                    <div
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                      title={sellerNames[(c as any).user_id]}
+                    >
+                      <Avatar className="h-4 w-4 shrink-0">
+                        {sellerAvatars[(c as any).user_id] ? (
+                          <AvatarImage src={sellerAvatars[(c as any).user_id] as string} alt={sellerNames[(c as any).user_id]} />
+                        ) : null}
+                        <AvatarFallback className="text-[7px] bg-primary/10 text-primary">
+                          {sellerNames[(c as any).user_id].split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="truncate">{sellerNames[(c as any).user_id]}</span>
                     </div>
                   )}
