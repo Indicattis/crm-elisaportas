@@ -10,7 +10,9 @@ export function AppLayout() {
       <div className="min-h-screen w-full bg-background">
         <Header />
         <MonitoringBanner />
-        <ClientsSidebar />
+        <div className="h-0 w-0 overflow-visible">
+          <ClientsSidebar />
+        </div>
         <main className="w-full">
           <Outlet />
         </main>
