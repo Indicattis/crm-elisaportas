@@ -972,6 +972,7 @@ export function KanbanBoard() {
                     collapsed={collapsedColumns.has(column.name)}
                     onToggleCollapse={() => toggleColumnCollapse(column.name)}
                     onChanged={fetchDeals}
+                    sellerFilter={selectedSellerId}
                   />
                 );
               }

@@ -15,6 +15,7 @@ interface Props {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onChanged?: () => void;
+  sellerFilter?: string;
 }
 
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
@@ -36,8 +37,14 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColor = true, allowedDailyColors, collapsed = false, onToggleCollapse, onChanged }: Props) {
-  const [contacts, setContacts] = useState<ContactRecord[]>([]);
+export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColor = true, allowedDailyColors, collapsed = false, onToggleCollapse, onChanged, sellerFilter = "all" }: Props) {
+  const [allContacts, setContacts] = useState<ContactRecord[]>([]);
+  const contacts = useMemo(
+    () => (sellerFilter === "all" || sellerFilter === "unassigned"
+      ? allContacts
+      : allContacts.filter((c) => c.user_id === sellerFilter)),
+    [allContacts, sellerFilter]
+  );
   const [stats, setStats] = useState<Record<string, { count: number; total: number }>>({});
   const [colors, setColors] = useState<Record<string, string>>({});
   const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
@@ -118,7 +125,7 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
   const headerBg = color ? (isDark ? hexToRgba(color, 0.35) : darkenHex(color, 0.25)) : undefined;
   const columnBg = color ? (isDark ? hexToRgba(color, 0.2) : color) : "hsl(var(--muted) / 0.3)";
 
-  const totalOrders = useMemo(() => Object.values(stats).reduce((a, b) => a + b.count, 0), [stats]);
+  const totalOrders = useMemo(() => contacts.reduce((a, c) => a + (stats[c.id]?.count || 0), 0), [stats, contacts]);
 
 
   return (
