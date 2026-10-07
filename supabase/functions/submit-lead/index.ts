@@ -150,13 +150,22 @@ Deno.serve(async (req) => {
     // Determine assigned_to based on assignment_mode
     let assigned_to: string | null = null;
     if (assignment_mode === "round_robin") {
-      const { data: members } = await supabase
-        .from("funnel_members")
+      // Only active sellers (role 'vendedor') who are members of the funnel
+      const { data: roles } = await supabase
+        .from("user_roles")
         .select("user_id")
-        .eq("funnel_id", funnel_id);
+        .eq("role", "vendedor");
+      const sellerIds = Array.from(new Set((roles ?? []).map((r: any) => r.user_id)));
+      const { data: members } = sellerIds.length
+        ? await supabase
+            .from("funnel_members")
+            .select("user_id")
+            .eq("funnel_id", funnel_id)
+            .in("user_id", sellerIds)
+        : { data: [] as any[] };
 
       if (members && members.length > 0) {
-        const memberIds = members.map((m: any) => m.user_id);
+        const memberIds = Array.from(new Set(members.map((m: any) => m.user_id))) as string[];
         memberIds.sort();
         // Circular rotation: next member after the last one assigned by lead flows
         const { data: last } = await supabase
