@@ -111,6 +111,31 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
 
   useEffect(() => { fetchContacts(); }, [columnId]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent).detail || {};
+      if (d.from === columnId || d.to === columnId) fetchContacts();
+    };
+    window.addEventListener("contacts-moved", handler);
+    return () => window.removeEventListener("contacts-moved", handler);
+  }, [columnId]);
+
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const raw = e.dataTransfer.getData("application/x-contact");
+    if (!raw) return;
+    const { id, from } = JSON.parse(raw);
+    if (!id || from === columnId) return;
+    const { error } = await supabase
+      .from("contacts" as any)
+      .update({ column_id: columnId, funnel_id: funnelId })
+      .eq("id", id);
+    if (!error) window.dispatchEvent(new CustomEvent("contacts-moved", { detail: { from, to: columnId } }));
+  };
+
   const allowed = useMemo(
     () => (allowedDailyColors && allowedDailyColors.length > 0
       ? COLOR_ORDER.filter((c) => allowedDailyColors.includes(c))
@@ -139,12 +164,17 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
   return (
     <>
       <div
-        className="flex flex-shrink-0 flex-col rounded-2xl overflow-hidden h-full transition-all duration-300 ease-in-out"
+        className={`flex flex-shrink-0 flex-col rounded-2xl overflow-hidden h-full transition-all duration-300 ease-in-out ${dragOver ? "ring-2 ring-primary" : ""}`}
         style={{
           backgroundColor: columnBg,
           width: collapsed ? 48 : 320,
           minWidth: collapsed ? 48 : 320,
         }}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("application/x-contact")) { e.preventDefault(); setDragOver(true); }
+        }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
+        onDrop={handleDrop}
       >
         <div
           className="flex items-center h-[50px] max-h-[50px] cursor-pointer overflow-hidden"
@@ -241,7 +271,15 @@ export function ContactsColumn({ status, color, columnId, funnelId, hasDailyColo
 
               const s = stats[c.id] || { count: 0, total: 0 };
               return (
-                <div key={c.id} className="rounded-lg bg-muted/70 border border-border/60 backdrop-blur-sm p-3 shadow-sm space-y-1.5 hover:bg-muted/80 transition-colors">
+                <div
+                  key={c.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("application/x-contact", JSON.stringify({ id: c.id, from: columnId }));
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  className="rounded-lg bg-muted/70 border border-border/60 backdrop-blur-sm p-3 shadow-sm space-y-1.5 hover:bg-muted/80 transition-colors cursor-grab active:cursor-grabbing"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
                       {hasDailyColor && allowed.length > 0 && (() => {
