@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { CalendarIcon, FileText, Printer, BarChart3, UserSquare2 } from "lucide-react";
+import { CalendarIcon, FileText, Printer, BarChart3, UserSquare2, Download } from "lucide-react";
 import { format, startOfMonth, endOfDay, startOfDay, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
@@ -443,6 +443,22 @@ export default function Reports() {
 
   const profileEntries = Object.entries(profiles).filter(([id]) => sellerIds.includes(id));
 
+  const handleExportContactsTxt = () => {
+    const numbers = filteredContacts
+      .filter((c) => c.phone)
+      .map((c) => applyPhoneMask(c.phone));
+    const content = numbers.length > 0 ? numbers.join("\n") + "\n" : "";
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contatos-telefones-${format(new Date(), "yyyy-MM-dd")}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-muted/40">
       <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -458,10 +474,18 @@ export default function Reports() {
                 <p className="text-xs text-muted-foreground">Gere relatórios em PDF para impressão</p>
               </div>
             </div>
-            <Button onClick={handlePrint} className="gap-2 sm:ml-auto">
-              <Printer className="h-4 w-4" />
-              Gerar PDF
-            </Button>
+            <div className="flex items-center gap-2 sm:ml-auto">
+              {activeTab === "contacts" && (
+                <Button variant="outline" onClick={handleExportContactsTxt} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar telefones
+                </Button>
+              )}
+              <Button onClick={handlePrint} className="gap-2">
+                <Printer className="h-4 w-4" />
+                Gerar PDF
+              </Button>
+            </div>
           </div>
         </div>
 
