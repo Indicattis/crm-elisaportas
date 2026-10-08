@@ -93,6 +93,7 @@ export function KanbanBoard() {
   const [allTags, setAllTags] = useState<DealTag[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [overdueDeals, setOverdueDeals] = useState<Set<string>>(new Set());
+  const [pendingTodayDeals, setPendingTodayDeals] = useState<Set<string>>(new Set());
   const [nextTaskMap, setNextTaskMap] = useState<Record<string, string>>({});
   const [dailyColorsMap, setDailyColorsMap] = useState<Record<string, string>>({});
   const [channelIconMap, setChannelIconMap] = useState<Record<string, string>>({});
@@ -376,9 +377,13 @@ export function KanbanBoard() {
     const dealStageIds: Record<string, Set<string>> = {};
     const stageBuckets: Record<string, Record<string, { total: number; completed: number }>> = {};
 
+    const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+    const endIso = endOfToday.toISOString();
+    const pendingToday = new Set<string>();
     for (const task of allTasks) {
       const dealId = task.deal_id as string;
       if (!task.completed && task.deadline_at < now) overdue.add(dealId);
+      if (!task.completed && task.deadline_at <= endIso) pendingToday.add(dealId);
       if (!task.completed && task.deadline_at >= now && !nextMap[dealId]) {
         nextMap[dealId] = task.deadline_at;
       }
