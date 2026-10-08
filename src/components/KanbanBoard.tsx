@@ -400,6 +400,7 @@ export function KanbanBoard() {
     }
 
     setOverdueDeals(overdue);
+    setPendingTodayDeals(pendingToday);
     setNextTaskMap(nextMap);
 
     const progress: Record<string, { completed: number; total: number }> = {};
@@ -687,6 +688,44 @@ export function KanbanBoard() {
     }
   };
 
+  const lockInfo = useMemo(() => {
+    const result: Record<string, { locked: boolean; reason: string }> = {};
+    if (!authUser) return result;
+    const dealCols = [...columns]
+      .filter((c: any) => (c.column_type || (c.is_notice ? "notice" : "deals")) === "deals")
+      .sort((a, b) => a.position - b.position);
+    const mine = deals.filter((d) => d.assigned_to === authUser.id);
+    const isDone = (col: any): { ok: boolean; reason: string } => {
+      const conds: string[] = col.lock_conditions || [];
+      const list = mine.filter((d) => d.status === col.name);
+      if (conds.includes("empty") && list.length > 0)
+        return { ok: false, reason: `Faltam ${list.length} card(s) em "${col.name}"` };
+      if (conds.includes("tasks_done")) {
+        const n = list.filter((d) => pendingTodayDeals.has(d.id)).length;
+        if (n > 0) return { ok: false, reason: `Faltam tarefas do dia em ${n} card(s) de "${col.name}"` };
+      }
+      if (conds.includes("daily_color")) {
+        const acc: string[] = col.lock_accepted_colors || ["green"];
+        const n = list.filter((d) => !acc.includes(dailyColorsMap[d.id] || "red")).length;
+        if (n > 0) return { ok: false, reason: `Faltam cores do dia em ${n} card(s) de "${col.name}"` };
+      }
+      return { ok: true, reason: "" };
+    };
+    dealCols.forEach((col: any, idx) => {
+      const conds: string[] = col.lock_conditions || [];
+      if (!col.lock_enabled || conds.length === 0) { result[col.name] = { locked: false, reason: "" }; return; }
+      const dep: any = col.lock_depends_on_column_id
+        ? dealCols.find((c) => c.id === col.lock_depends_on_column_id)
+        : dealCols[idx - 1];
+      if (!dep) { result[col.name] = { locked: false, reason: "" }; return; }
+      const depState = result[dep.name];
+      if (depState?.locked) { result[col.name] = { locked: true, reason: `Desbloqueie "${dep.name}" primeiro` }; return; }
+      const r = isDone({ ...dep, lock_conditions: conds, lock_accepted_colors: col.lock_accepted_colors });
+      result[col.name] = { locked: !r.ok, reason: r.reason };
+    });
+    return result;
+  }, [columns, deals, authUser, pendingTodayDeals, dailyColorsMap]);
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     const newStatus = resolveStatusFromTargetId(over?.id ? String(over.id) : null);
@@ -702,6 +741,10 @@ export function KanbanBoard() {
 
     const deal = deals.find((item) => item.id === dealId);
     if (!deal || deal.status === newStatus) return;
+    if (!isAdmin && lockInfo[newStatus]?.locked) {
+      toast({ title: "Coluna travada", description: lockInfo[newStatus].reason, variant: "destructive" });
+      return;
+    }
 
     // Check entry requirements for target column (skip when moving backwards)
     const targetColumn = columns.find((c) => c.name === newStatus);
@@ -1058,6 +1101,9 @@ export function KanbanBoard() {
                   allowedDailyColors={(column as any).daily_colors as string[] | undefined}
                   showSellButton={!!(column as any).show_sell_button}
                   onQuickSell={handleQuickSell}
+                  locked={!!lockInfo[column.name]?.locked}
+                  lockBypass={isAdmin}
+                  lockReason={lockInfo[column.name]?.reason}
                   showDropSpacer={Boolean(
                     activeDeal && activeOverStatus === column.name && activeDeal.status !== column.name
                   )}
