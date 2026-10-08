@@ -58,6 +58,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
+    disabled: !!disabled,
   });
 
   const primaryTag = tags.length > 0 ? tags[0] : null;
