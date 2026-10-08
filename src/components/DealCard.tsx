@@ -41,6 +41,7 @@ interface DealCardProps {
   onQuickSell?: (dealId: string) => void;
   taskProgress?: { completed: number; total: number } | null;
   onClick: () => void;
+  disabled?: boolean;
 }
 
 function hexToRgb(hex: string) {
@@ -53,7 +54,7 @@ function hexToRgb(hex: string) {
 const COLOR_HEX: Record<string, string> = { red: "#ef4444", yellow: "#eab308", green: "#22c55e" };
 const COLOR_ORDER = ["red", "yellow", "green"] as const;
 
-export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, showSellButton, onTagsChanged, onCapture, onColorChange, onQuickSell, onClick }: DealCardProps) {
+export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], assignedProfile, hasOverdueTasks, dailyColor, allowedDailyColors, nextTaskDeadline, channelIconKey, currentStage, taskProgress, showSellButton, onTagsChanged, onCapture, onColorChange, onQuickSell, onClick, disabled }: DealCardProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,

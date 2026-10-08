@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, ChevronRight, ArrowUpDown } from "lucide-react";
+import { Plus, ChevronRight, ArrowUpDown, Lock } from "lucide-react";
 import { useState, useEffect, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { DealCard } from "./DealCard";
@@ -48,6 +48,9 @@ interface KanbanColumnProps {
   onColorChange?: (dealId: string, newColor: string) => void;
   onQuickSell?: (dealId: string) => void;
   onAddDeal: (status: string) => void;
+  locked?: boolean;
+  lockBypass?: boolean;
+  lockReason?: string;
   onEditDeal: (deal: Deal) => void;
 }
 
@@ -95,8 +98,12 @@ export const KanbanColumn = memo(function KanbanColumn({
   onQuickSell,
   onAddDeal,
   onEditDeal,
+  locked = false,
+  lockBypass = false,
+  lockReason,
 }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
+  const { setNodeRef, isOver } = useDroppable({ id: status, disabled: locked && !lockBypass });
+  const hardLock = locked && !lockBypass;
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
 
   useEffect(() => {
@@ -148,6 +155,8 @@ export const KanbanColumn = memo(function KanbanColumn({
       style={{
         backgroundColor: columnBg,
         width: collapsed ? 48 : 320,
+        filter: hardLock ? "grayscale(0.85)" : undefined,
+        opacity: hardLock ? 0.6 : 1,
         minWidth: collapsed ? 48 : 320,
       }}
     >
@@ -180,6 +189,7 @@ export const KanbanColumn = memo(function KanbanColumn({
           }}
         >
           <div className="flex items-center gap-1.5 min-w-0">
+            {locked && <span title={lockReason}><Lock className="h-3.5 w-3.5 text-white shrink-0" /></span>}
             {typeof startOfDayCount === "number" && (
               <span
                 className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white/80 shrink-0"
@@ -218,6 +228,7 @@ export const KanbanColumn = memo(function KanbanColumn({
               variant="ghost"
               size="icon"
               className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/15"
+              disabled={hardLock}
               onClick={(e) => { e.stopPropagation(); onAddDeal(status); }}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -267,6 +278,12 @@ export const KanbanColumn = memo(function KanbanColumn({
           >
             {status}
           </h3>
+          {locked && (
+            <div className="mx-3 mb-2 flex items-start gap-1.5 rounded-lg bg-black/25 px-3 py-2 text-xs text-white">
+              <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{lockBypass ? "Travada para vendedores. " : ""}{lockReason || "Coluna travada"}</span>
+            </div>
+          )}
 
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3 min-h-0">
             <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
@@ -289,7 +306,8 @@ export const KanbanColumn = memo(function KanbanColumn({
                   onColorChange={onColorChange}
                   showSellButton={showSellButton}
                   onQuickSell={onQuickSell}
-                  onClick={() => onEditDeal(deal)}
+                  disabled={hardLock}
+                  onClick={() => { if (!hardLock) onEditDeal(deal); }}
                 />
               ))}
               {showDropSpacer ? (
