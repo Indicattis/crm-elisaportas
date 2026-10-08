@@ -484,6 +484,74 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
                 </label>
               )}
 
+              {currentType === "deals" && (() => {
+                const col: any = editingColumn;
+                const conds: string[] = col.lock_conditions || [];
+                const accepted: string[] = col.lock_accepted_colors || ["green"];
+                const upd = async (patch: Record<string, any>) => {
+                  await supabase.from("funnel_columns").update(patch as any).eq("id", col.id);
+                  onChanged();
+                };
+                const others = columns.filter((c: any) => c.id !== col.id && (c.column_type || "deals") === "deals");
+                const condOpts = [
+                  { key: "empty", label: "Coluna esvaziada (cards movidos ou desqualificados)" },
+                  { key: "tasks_done", label: "Tarefas do dia concluídas" },
+                  { key: "daily_color", label: "Cor do dia definida em todos os cards" },
+                ];
+                return (
+                  <div className="space-y-2 rounded-lg border p-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox checked={!!col.lock_enabled} onCheckedChange={(v) => upd({ lock_enabled: !!v })} />
+                      <span className="text-sm font-medium flex items-center gap-1.5"><Lock className="h-4 w-4" /> Trava de desbloqueio diária</span>
+                    </label>
+                    {col.lock_enabled && (
+                      <div className="space-y-2 pl-6">
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">Depende da coluna</span>
+                          <Select value={col.lock_depends_on_column_id || "prev"} onValueChange={(v) => upd({ lock_depends_on_column_id: v === "prev" ? null : v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="prev">Coluna anterior</SelectItem>
+                              {others.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Condições (todas precisam ser cumpridas)</span>
+                        {condOpts.map((o) => (
+                          <label key={o.key} className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={conds.includes(o.key)}
+                              onCheckedChange={(v) => upd({ lock_conditions: v ? [...conds, o.key] : conds.filter((c) => c !== o.key) })}
+                            />
+                            <span className="text-xs">{o.label}</span>
+                          </label>
+                        ))}
+                        {conds.includes("daily_color") && (
+                          <div className="flex gap-3 pl-6">
+                            {[{ k: "green", l: "Verde", h: "#22c55e" }, { k: "yellow", l: "Amarela", h: "#eab308" }, { k: "red", l: "Vermelha", h: "#ef4444" }].map((o) => (
+                              <label key={o.k} className="flex items-center gap-1.5 cursor-pointer">
+                                <Checkbox
+                                  checked={accepted.includes(o.k)}
+                                  onCheckedChange={(v) => {
+                                    const next = v ? [...accepted, o.k] : accepted.filter((c) => c !== o.k);
+                                    if (next.length) upd({ lock_accepted_colors: next });
+                                  }}
+                                />
+                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: o.h }} />
+                                <span className="text-xs">{o.l}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {conds.length === 0 && <p className="text-xs text-muted-foreground">Sem condições marcadas, a coluna não trava.</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+
+
 
               {currentType === "deals" && (
                 <>

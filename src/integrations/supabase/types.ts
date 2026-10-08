@@ -709,6 +709,10 @@ export type Database = {
           has_daily_color: boolean
           id: string
           is_notice: boolean
+          lock_accepted_colors: string[]
+          lock_conditions: string[]
+          lock_depends_on_column_id: string | null
+          lock_enabled: boolean
           name: string
           notice_text: string | null
           position: number
@@ -727,6 +731,10 @@ export type Database = {
           has_daily_color?: boolean
           id?: string
           is_notice?: boolean
+          lock_accepted_colors?: string[]
+          lock_conditions?: string[]
+          lock_depends_on_column_id?: string | null
+          lock_enabled?: boolean
           name: string
           notice_text?: string | null
           position?: number
@@ -745,6 +753,10 @@ export type Database = {
           has_daily_color?: boolean
           id?: string
           is_notice?: boolean
+          lock_accepted_colors?: string[]
+          lock_conditions?: string[]
+          lock_depends_on_column_id?: string | null
+          lock_enabled?: boolean
           name?: string
           notice_text?: string | null
           position?: number
