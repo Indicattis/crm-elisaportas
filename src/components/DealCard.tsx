@@ -101,13 +101,25 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
             const effective = allowed.includes(current) || current === "green" || current === "yellow"
               ? current
               : allowed[0];
+            const handleCycle = (e: React.MouseEvent) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (!onColorChange || allowed.length === 0) return;
+              const idx = allowed.indexOf(effective);
+              const next = allowed[(idx + 1) % allowed.length];
+              onColorChange(deal.id, next);
+            };
             return (
               <span
-                className="shrink-0 h-3 w-3 rounded-full transition-all"
+                role="button"
+                title="Clique para mudar a cor"
+                className="shrink-0 h-3 w-3 rounded-full transition-all cursor-pointer hover:scale-125"
                 style={{
                   backgroundColor: COLOR_HEX[effective],
                   boxShadow: `0 0 8px ${COLOR_HEX[effective]}`,
                 }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={handleCycle}
               />
             );
           })()}
