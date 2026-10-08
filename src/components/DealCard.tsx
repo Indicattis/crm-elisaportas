@@ -101,7 +101,7 @@ export const DealCard = memo(function DealCard({ deal, tags = [], allTags = [], 
             const effective = allowed.includes(current) || current === "green" || current === "yellow"
               ? current
               : allowed[0];
-            const handleCycle = (e: React.MouseEvent) => {
+            const handleCycle = (e: { stopPropagation: () => void; preventDefault: () => void }) => {
               e.stopPropagation();
               e.preventDefault();
               if (!onColorChange || allowed.length === 0) return;
