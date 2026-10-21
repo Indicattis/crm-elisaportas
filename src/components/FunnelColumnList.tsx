@@ -241,6 +241,23 @@ export function FunnelColumnList({ funnelId, columns, onChanged }: Props) {
   };
 
   const handleDelete = async (id: string) => {
+    const col = columns.find((c) => c.id === id);
+    const [{ count: contactsCount }, { count: dealsCount }] = await Promise.all([
+      supabase.from("contacts").select("id", { count: "exact", head: true }).eq("column_id", id),
+      supabase.from("deals").select("id", { count: "exact", head: true }).eq("status", col?.name ?? "").eq("funnel_id", funnelId),
+    ]);
+    const total = (contactsCount ?? 0) + (dealsCount ?? 0);
+    if (total > 0) {
+      const typed = prompt(
+        `A coluna "${col?.name}" tem ${contactsCount ?? 0} contato(s) e ${dealsCount ?? 0} negociação(ões). Os contatos serão apagados permanentemente.\n\nPara confirmar, digite o nome da coluna:`
+      );
+      if (typed?.trim() !== col?.name) {
+        toast({ title: "Exclusão cancelada" });
+        return;
+      }
+    } else if (!confirm(`Excluir a coluna "${col?.name}"?`)) {
+      return;
+    }
     const { error } = await supabase.from("funnel_columns").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
