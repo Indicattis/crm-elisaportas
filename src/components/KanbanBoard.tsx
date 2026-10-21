@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { createNotification } from "@/lib/notifications";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutGrid, List, Search, User, Rows3 } from "lucide-react";
+import { LayoutGrid, List, Search, User, Rows3, CalendarClock } from "lucide-react";
 import { StateCitySelect } from "./StateCitySelect";
 import { SharedNotesDialog } from "./SharedNotesDialog";
 import { RecurringTasksDialog } from "./RecurringTasksDialog";
@@ -75,6 +75,7 @@ export function KanbanBoard() {
     filterState?: string;
     filterCity?: string;
     selectedTab?: string;
+    returnDateFilter?: string;
   };
 
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -120,6 +121,7 @@ export function KanbanBoard() {
   });
   const [filterState, setFilterState] = useState(sessionFilters.filterState || "");
   const [filterCity, setFilterCity] = useState(sessionFilters.filterCity || "");
+  const [returnDateFilter, setReturnDateFilter] = useState<string>(sessionFilters.returnDateFilter || "all");
   const [userSortOverrides, setUserSortOverrides] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("kanban_sort_overrides");
@@ -140,10 +142,10 @@ export function KanbanBoard() {
   useEffect(() => {
     try {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab,
+        selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab, returnDateFilter,
       }));
     } catch { /* ignore */ }
-  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab]);
+  }, [selectedFunnelId, searchQuery, selectedSellerId, viewMode, filterState, filterCity, selectedTab, returnDateFilter]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const columnsRowRef = useRef<HTMLDivElement>(null);
@@ -862,6 +864,21 @@ export function KanbanBoard() {
     return true;
   }, [filterState, filterCity]);
 
+  const filterByReturnDate = useCallback((deal: Deal) => {
+    if (returnDateFilter === "all") return true;
+    const rd = (deal as any).return_date as string | null | undefined;
+    if (returnDateFilter === "none") return !rd;
+    if (!rd) return false;
+    const d = new Date(rd);
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endToday = new Date(startToday.getTime() + 24 * 3600 * 1000);
+    if (returnDateFilter === "overdue") return d < startToday;
+    if (returnDateFilter === "today") return d >= startToday && d < endToday;
+    if (returnDateFilter === "week") return d >= startToday && d < new Date(startToday.getTime() + 7 * 24 * 3600 * 1000);
+    return true;
+  }, [returnDateFilter]);
+
   return (
     <>
       <div className="px-6 pt-4 flex items-center justify-between">
@@ -897,6 +914,19 @@ export function KanbanBoard() {
             onCityChange={setFilterCity}
             compact
           />
+          <Select value={returnDateFilter} onValueChange={setReturnDateFilter}>
+            <SelectTrigger className="w-44">
+              <CalendarClock className="h-4 w-4 mr-1 text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Retorno" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os retornos</SelectItem>
+              <SelectItem value="overdue">Retorno atrasado</SelectItem>
+              <SelectItem value="today">Retorna hoje</SelectItem>
+              <SelectItem value="week">Retorna em 7 dias</SelectItem>
+              <SelectItem value="none">Sem data de retorno</SelectItem>
+            </SelectContent>
+          </Select>
           <SharedNotesDialog />
           <RecurringTasksDialog />
         </div>
@@ -922,7 +952,7 @@ export function KanbanBoard() {
         </div>
       ) : viewMode === "list" ? (
         <DealsListView
-          deals={deals.filter(filterBySeller).filter(filterByLocation).filter((d) => {
+          deals={deals.filter(filterBySeller).filter(filterByLocation).filter(filterByReturnDate).filter((d) => {
             if (!searchQuery.trim()) return true;
             const q = searchQuery.toLowerCase().trim();
             const qDigits = q.replace(/\D/g, "");
@@ -946,7 +976,7 @@ export function KanbanBoard() {
           {viewMode === "tabs" && (
             <div className="px-6 pt-3 flex gap-2 overflow-x-auto">
               {columns.filter((c) => !(c as any).is_notice && ((c as any).column_type !== "contacts")).map((column) => {
-                const count = deals.filter((d) => d.status === column.name).filter(filterBySeller).filter(filterByLocation).length;
+                const count = deals.filter((d) => d.status === column.name).filter(filterBySeller).filter(filterByLocation).filter(filterByReturnDate).length;
                 const active = selectedTab === column.name;
                 return (
                   <button
@@ -1036,6 +1066,7 @@ export function KanbanBoard() {
                 .filter((deal) => deal.status === column.name)
                 .filter(filterBySeller)
                 .filter(filterByLocation)
+                .filter(filterByReturnDate)
                 .filter((deal) => !isDraggingAcrossColumns || deal.id !== activeDeal?.id)
                 .filter((deal) => {
                   if (!q) return true;
