@@ -227,13 +227,38 @@ export type Database = {
           },
         ]
       }
+      contact_lists: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           city: string | null
-          column_id: string
+          column_id: string | null
           created_at: string
-          funnel_id: string
+          funnel_id: string | null
           id: string
+          list_id: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -244,10 +269,11 @@ export type Database = {
         }
         Insert: {
           city?: string | null
-          column_id: string
+          column_id?: string | null
           created_at?: string
-          funnel_id: string
+          funnel_id?: string | null
           id?: string
+          list_id?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -258,10 +284,11 @@ export type Database = {
         }
         Update: {
           city?: string | null
-          column_id?: string
+          column_id?: string | null
           created_at?: string
-          funnel_id?: string
+          funnel_id?: string | null
           id?: string
+          list_id?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -283,6 +310,13 @@ export type Database = {
             columns: ["funnel_id"]
             isOneToOne: false
             referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "contact_lists"
             referencedColumns: ["id"]
           },
         ]
