@@ -12,8 +12,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export interface ContactRecord {
   id: string;
-  funnel_id: string;
-  column_id: string;
+  funnel_id: string | null;
+  column_id: string | null;
+  list_id?: string | null;
   user_id: string;
   name: string;
   phone: string | null;
@@ -26,12 +27,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contact?: ContactRecord | null;
-  funnelId: string;
-  columnId: string;
+  funnelId?: string | null;
+  columnId?: string | null;
+  listId?: string | null;
   onSaved: () => void;
 }
 
-export function ContactDialog({ open, onOpenChange, contact, funnelId, columnId, onSaved }: Props) {
+export function ContactDialog({ open, onOpenChange, contact, funnelId, columnId, listId, onSaved }: Props) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [state, setState] = useState("");
@@ -59,15 +61,20 @@ export function ContactDialog({ open, onOpenChange, contact, funnelId, columnId,
     setLoading(true);
     try {
       const payload: any = {
-        funnel_id: funnelId,
-        column_id: columnId,
-        user_id: user.id,
         name: name.replace(/[0-9]/g, "").trim(),
         phone: phone.trim() || null,
         state: state.trim() || null,
         city: city.trim() || null,
         notes: notes.trim() || null,
       };
+      if (!contact) {
+        payload.user_id = user.id;
+        payload.funnel_id = funnelId ?? null;
+        payload.column_id = columnId ?? null;
+        payload.list_id = listId ?? null;
+      } else if (listId !== undefined) {
+        payload.list_id = listId;
+      }
       if (contact) {
         const { error } = await supabase.from("contacts" as any).update(payload).eq("id", contact.id);
         if (error) throw error;

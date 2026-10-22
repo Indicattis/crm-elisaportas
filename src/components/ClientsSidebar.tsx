@@ -99,8 +99,11 @@ export function ClientsSidebar() {
   }, [clients, search]);
 
   const dealStatuses = columns.filter((c) => c.funnel_id === funnelId && c.column_type === "deals").map((c) => c.name);
-  const contactColumn = columns.find((c) => c.funnel_id === funnelId && c.column_type === "contacts")
-    || columns.find((c) => c.column_type === "contacts");
+  const [contactListId, setContactListId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from("contact_lists" as any).select("id").order("position").limit(1)
+      .then(({ data }) => setContactListId(((data as any)?.[0]?.id) ?? null));
+  }, []);
 
   const openDeal = (p?: typeof prefill) => { setPrefill(p); setDealOpen(true); };
 
@@ -141,7 +144,7 @@ export function ClientsSidebar() {
             )}
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" onClick={() => openDeal()} disabled={!funnelId} className="h-8 gap-1 text-xs shadow-md shadow-primary/20"><Plus className="h-3.5 w-3.5" /> Negociação</Button>
-              <Button size="sm" variant="outline" onClick={() => setContactOpen(true)} disabled={!contactColumn} className="h-8 gap-1 bg-card/60 text-xs"><UserPlus className="h-3.5 w-3.5" /> Contato</Button>
+              <Button size="sm" variant="outline" onClick={() => setContactOpen(true)} disabled={!contactListId} className="h-8 gap-1 bg-card/60 text-xs"><UserPlus className="h-3.5 w-3.5" /> Contato</Button>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -203,9 +206,9 @@ export function ClientsSidebar() {
           <DealDialog open={dealOpen} onOpenChange={setDealOpen} statuses={dealStatuses} funnelId={funnelId}
             initialValues={prefill} onSaved={() => load()} />
         )}
-        {contactColumn && (
-          <ContactDialog open={contactOpen} onOpenChange={setContactOpen} funnelId={contactColumn.funnel_id}
-            columnId={contactColumn.id} onSaved={() => {}} />
+        {contactListId && (
+          <ContactDialog open={contactOpen} onOpenChange={setContactOpen}
+            listId={contactListId} onSaved={() => {}} />
         )}
       </Sidebar>
 

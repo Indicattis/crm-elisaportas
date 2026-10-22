@@ -1,1 +1,2 @@
 - Clients are derived from sold deals by the `upsert_client_from_deal` trigger (unique per seller + phone digits); never insert clients manually from sales code — keeps one source of truth.
+- Contacts belong to `contact_lists` via `contacts.list_id` and are shown on /contatos (paginated), not as kanban columns; column_id/funnel_id on contacts are deprecated — keeps large lists from breaking the kanban.
