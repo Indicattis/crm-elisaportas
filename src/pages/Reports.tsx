@@ -78,9 +78,10 @@ export default function Reports() {
       supabase.from("profiles").select("id, full_name"),
       supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
       supabase.from("acquisition_channels").select("id, name"),
-      supabase.from("contacts" as any).select("id, name, phone, state, city, notes, created_at, column_id, funnel_id").gte("created_at", from).lte("created_at", to).order("created_at", { ascending: false }),
+      supabase.from("contacts" as any).select("id, name, phone, state, city, notes, created_at, column_id:list_id, funnel_id").gte("created_at", from).lte("created_at", to).order("created_at", { ascending: false }),
       supabase.from("funnel_columns").select("id, name, funnel_id, column_type").order("position"),
     ]);
+    const { data: listsData } = await supabase.from("contact_lists" as any).select("id, name").order("position");
 
     const dealsById = new Map<string, Deal>();
     [updatedDealsRes.data, createdDealsRes.data, soldDealsRes.data].forEach((rows) => {
@@ -91,7 +92,10 @@ export default function Reports() {
     setSellerIds((rolesRes.data || []).map((role) => role.user_id));
     setChannels(channelsRes.data || []);
     setContacts(((contactsRes.data as any) || []) as ContactRow[]);
-    setContactColumns(((contactColsRes.data as any) || []).map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id, column_type: c.column_type })));
+    setContactColumns([
+      ...((contactColsRes.data as any) || []).filter((c: any) => c.column_type !== "contacts").map((c: any) => ({ id: c.id, name: c.name, funnel_id: c.funnel_id, column_type: c.column_type })),
+      ...(((listsData as any) || []) as any[]).map((l) => ({ id: l.id, name: l.name, funnel_id: "", column_type: "contacts" })),
+    ]);
 
     const map: Record<string, string> = {};
     (profilesRes.data || []).forEach((p) => {
@@ -162,7 +166,6 @@ export default function Reports() {
   const filteredContacts = useMemo(() => {
     return contacts.filter((c) => {
       if (selectedContactColumn !== "all" && c.column_id !== selectedContactColumn) return false;
-      if (selectedFunnel !== "all" && c.funnel_id !== selectedFunnel) return false;
       return true;
     });
   }, [contacts, selectedContactColumn, selectedFunnel]);
@@ -550,7 +553,7 @@ export default function Reports() {
                 <SelectContent>
                   <SelectItem value="all">Todas as colunas</SelectItem>
                   {contactColumns
-                    .filter((c) => c.column_type === "contacts" && (selectedFunnel === "all" || c.funnel_id === selectedFunnel))
+                    .filter((c) => c.column_type === "contacts")
                     .map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
