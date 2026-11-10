@@ -74,24 +74,20 @@ Deno.serve(async (req) => {
     const toName = profiles.find((p) => p.id === to_user_id)?.full_name || "usuário";
 
     // Fetch deals where source is owner and where source is assignee (two queries — more reliable than .or())
-    let ownedQuery = adminClient
-      .from("deals")
-      .select("id, funnel_id")
-      .eq("user_id", from_user_id);
-    let assignedQuery = adminClient
-      .from("deals")
-      .select("id, funnel_id")
-      .eq("assigned_to", from_user_id);
-    if (!include_archived) {
-      ownedQuery = ownedQuery.eq("archived", false);
-      assignedQuery = assignedQuery.eq("archived", false);
-    }
-    const [{ data: ownedDeals, error: ownedErr }, { data: assignedDeals, error: assignedErr }] = await Promise.all([
-      ownedQuery,
-      assignedQuery,
-    ]);
-    if (ownedErr) throw ownedErr;
-    if (assignedErr) throw assignedErr;
+    const fetchAll = async (col: string) => {
+      const rows: { id: string; funnel_id: string | null }[] = [];
+      const page = 1000;
+      for (let from = 0; ; from += page) {
+        let q = adminClient.from("deals").select("id, funnel_id").eq(col, from_user_id).order("id").range(from, from + page - 1);
+        if (!include_archived) q = q.eq("archived", false);
+        const { data, error } = await q;
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < page) break;
+      }
+      return rows;
+    };
+    const [ownedDeals, assignedDeals] = await Promise.all([fetchAll("user_id"), fetchAll("assigned_to")]);
     console.log(`[transfer] from=${from_user_id} to=${to_user_id} owned=${(ownedDeals||[]).length} assigned=${(assignedDeals||[]).length}`);
 
     const ownerIds = (ownedDeals || []).map((d) => d.id);
@@ -134,20 +130,24 @@ Deno.serve(async (req) => {
 
     // Update owner where source owned
     if (ownerIds.length > 0) {
-      const { error: e1 } = await adminClient
-        .from("deals")
-        .update({ user_id: to_user_id })
-        .in("id", ownerIds);
-      if (e1) throw e1;
+      for (let i = 0; i < ownerIds.length; i += 200) {
+        const { error: e1 } = await adminClient
+          .from("deals")
+          .update({ user_id: to_user_id })
+          .in("id", ownerIds.slice(i, i + 200));
+        if (e1) throw e1;
+      }
     }
 
     // Update assignee where source was assigned
     if (assigneeIds.length > 0) {
-      const { error: e2 } = await adminClient
-        .from("deals")
-        .update({ assigned_to: to_user_id })
-        .in("id", assigneeIds);
-      if (e2) throw e2;
+      for (let i = 0; i < assigneeIds.length; i += 200) {
+        const { error: e2 } = await adminClient
+          .from("deals")
+          .update({ assigned_to: to_user_id })
+          .in("id", assigneeIds.slice(i, i + 200));
+        if (e2) throw e2;
+      }
     }
 
     // History entries (one per affected deal)
