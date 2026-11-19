@@ -1336,6 +1336,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_team_member: { Args: { _user_id: string }; Returns: boolean }
       mark_deal_as_sold: {
         Args: { _deal_id: string; _sold_at: string }
         Returns: undefined

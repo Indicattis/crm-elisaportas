@@ -36,6 +36,13 @@
       "when": 1792697028998,
       "tag": "0004_contact_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795092774025,
+      "tag": "0005_tighten_permissive_policies",
+      "breakpoints": true
     }
   ]
 }
