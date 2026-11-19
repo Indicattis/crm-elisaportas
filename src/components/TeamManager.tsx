@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound, Camera, UserCog } from "lucide-react";
+import { Loader2, Users, UserPlus, Trash2, Copy, KeyRound, Camera, UserCog, RotateCcw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -52,6 +52,12 @@ export function TeamManager() {
   const [dealCount, setDealCount] = useState<number | null>(null);
   const [orphans, setOrphans] = useState<OrphanUser[]>([]);
   const [transferIsOrphan, setTransferIsOrphan] = useState(false);
+  const [inactiveUsers, setInactiveUsers] = useState<TeamMember[]>([]);
+  const [reactivateUser, setReactivateUser] = useState<TeamMember | null>(null);
+  const [reactivateRole, setReactivateRole] = useState<string>("vendedor");
+  const [reactivateFunnels, setReactivateFunnels] = useState<string[]>([]);
+  const [allFunnels, setAllFunnels] = useState<{ id: string; name: string }[]>([]);
+  const [reactivating, setReactivating] = useState(false);
   const { toast } = useToast();
   const { role } = useUserRole();
   const { user: authUser } = useAuth();
@@ -62,8 +68,46 @@ export function TeamManager() {
     if (isAdmin) {
       fetchTeamMembers();
       fetchOrphans();
+      fetchInactive();
     }
   }, [isAdmin]);
+
+  const fetchInactive = async () => {
+    const [{ data: roles }, { data: profiles }, { data: funnels }] = await Promise.all([
+      supabase.from("user_roles").select("user_id"),
+      supabase.from("profiles").select("id, full_name, avatar_url, email").order("full_name"),
+      supabase.from("funnels").select("id, name").order("position"),
+    ]);
+    const active = new Set((roles || []).map((r: any) => r.user_id));
+    setInactiveUsers((profiles || []).filter((p: any) => !active.has(p.id)).map((p: any) => ({ ...p, role: "" })));
+    setAllFunnels(funnels || []);
+  };
+
+  const openReactivate = (u: TeamMember) => {
+    setReactivateUser(u);
+    setReactivateRole("vendedor");
+    setReactivateFunnels(allFunnels.map((f) => f.id));
+  };
+
+  const handleReactivate = async () => {
+    if (!reactivateUser) return;
+    setReactivating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-user", {
+        body: { user_id: reactivateUser.id, role: reactivateRole, funnel_ids: reactivateFunnels },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast({ title: "Usuário reativado", description: `${reactivateUser.full_name || "Usuário"} voltou a ter acesso.` });
+      setReactivateUser(null);
+      fetchTeamMembers();
+      fetchInactive();
+      fetchOrphans();
+    } catch (err: any) {
+      toast({ title: "Erro ao reativar", description: err.message, variant: "destructive" });
+    } finally {
+      setReactivating(false);
+    }
+  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -439,6 +483,77 @@ export function TeamManager() {
           </CardContent>
         </Card>
       )}
+
+      {inactiveUsers.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">Usuários desativados</h3>
+              <p className="text-xs text-muted-foreground mt-1">Reative para devolver o acesso ao sistema.</p>
+            </div>
+            <div className="space-y-3">
+              {inactiveUsers.map((u) => {
+                const initials = (u.full_name || u.email || "U").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                return (
+                  <div key={u.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                    <Avatar className="h-10 w-10 opacity-70">
+                      {u.avatar_url && <AvatarImage src={u.avatar_url} />}
+                      <AvatarFallback className="text-xs bg-muted text-muted-foreground">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{u.full_name || "Sem nome"}</p>
+                      {u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => openReactivate(u)}>
+                      <RotateCcw className="h-4 w-4 mr-1" /> Reativar
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={!!reactivateUser} onOpenChange={(o) => !o && setReactivateUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reativar {reactivateUser?.full_name || "usuário"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Papel</Label>
+              <Select value={reactivateRole} onValueChange={setReactivateRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vendedor">Vendedor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Funis com acesso</Label>
+              {allFunnels.map((f) => (
+                <label key={f.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={reactivateFunnels.includes(f.id)}
+                    onCheckedChange={(c) =>
+                      setReactivateFunnels((prev) => (c ? [...prev, f.id] : prev.filter((x) => x !== f.id)))
+                    }
+                  />
+                  {f.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReactivateUser(null)}>Cancelar</Button>
+            <Button onClick={handleReactivate} disabled={reactivating}>
+              {reactivating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Reativar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
